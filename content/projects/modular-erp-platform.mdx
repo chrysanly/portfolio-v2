@@ -1,0 +1,59 @@
+---
+slug: modular-erp-platform
+title: Modular ERP Platform
+type: erp
+confidential: true
+client: null
+sector: Vehicle testing and registration
+year: 2025
+role: Senior Full-Stack Developer
+summary: >
+  Four-module Laravel ERP — Dashboard, Finance, Mobile CIS and API App — on one
+  codebase with role-based middleware throughout.
+outcome:
+  value: "[METRIC]"
+  label: "[what it improved]"
+stack:
+  - Laravel
+  - MySQL
+  - Laravel Sanctum
+  - REST API
+  - Repository pattern
+  - Service Layer pattern
+  - RBAC
+images: []
+featured: true
+order: 1
+---
+
+## Problem
+
+Operations spanning vehicle testing, registration, finance and field service had
+no single system. Access control and financial tracking were the weak points.
+
+## Approach
+
+Role-based middleware handles authentication and permission management across all
+four modules.
+
+The Finance module carries role-permissioned accounting pages, financial aging
+logic for debit and credit balances, and asset depreciation tracking. The Mobile
+CIS module manages client service appointments driven by customer information.
+The Dashboard module configures mobile API data categories and service listings.
+
+Secure REST APIs built on Laravel Sanctum power mobile app authentication.
+
+Core business logic was refactored onto the Repository and Service Layer
+patterns, improving reusability and Eloquent query performance. Code review and
+mentoring held the clean architecture standard in place.
+
+## Stack notes
+
+Laravel with MySQL. Laravel Sanctum issues the tokens the mobile app
+authenticates with. The Repository and Service Layer patterns separate business
+logic from the framework, and RBAC middleware is applied at the module boundary
+rather than per controller.
+
+## Outcome
+
+[METRIC] — [what it improved]

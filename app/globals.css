@@ -1,0 +1,1406 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Design tokens — docs/04-UIUX-BRIEF.md §2 and §3.
+   No rule below this block may hardcode a colour.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-ink: #1a1a18;
+  --color-ground: #eceae4;
+  --color-surface: #f5f3ee;
+  --color-muted: #55524b;
+  --color-faint: #83807a;
+  --color-rule: #cfccc3;
+  --color-accent: #7b2d2d;
+
+  --font-display: var(--font-bodoni), Didot, 'Times New Roman', serif;
+  --font-body: var(--font-public-sans), 'Helvetica Neue', Helvetica, sans-serif;
+
+  /* Scale — docs/04-UIUX-BRIEF.md §3: 11/13/15/17/22/26/30/44/96+ */
+  --text-meta: 0.6875rem;
+  --text-small: 0.8125rem;
+  --text-body: 0.9375rem;
+  --text-body-lg: 1.0625rem;
+  --text-lead: 1.375rem;
+  --text-title: 1.625rem;
+  --text-figure: 1.875rem;
+  --text-display: 2.75rem;
+}
+
+/*
+ * Dark theme — docs/01-PRD.md F12, built at Chrys's request ahead of the
+ * post-launch backlog. Every value is measured against its own background:
+ * ink 15.5:1, muted 7.5:1, faint 5.2:1, accent 5.4:1 on --ground. The accent
+ * is oxblood lifted toward terracotta because #7b2d2d sits at 1.5:1 on a dark
+ * ground and would fail as a link colour.
+ *
+ * The grain is inverted here: a dark noise over a dark ground is invisible, so
+ * it screens instead of multiplying.
+ */
+:root[data-theme='dark'] {
+  --color-ink: #eceae4;
+  --color-ground: #14130f;
+  --color-surface: #1e1c17;
+  --color-muted: #a9a49a;
+  --color-faint: #8c877d;
+  --color-rule: #3a3830;
+  --color-accent: #c2766b;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --cloud-opacity: 0.07;
+  color-scheme: dark;
+}
+
+@layer base {
+  :root {
+    --page-x: 64px;
+    --header-h: 72px;
+    --grain-blend: multiply;
+    --grain-opacity: 0.055;
+    --cloud-opacity: 0.09;
+    color-scheme: light;
+  }
+
+  @media (max-width: 1279px) {
+    :root {
+      --page-x: 40px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    :root {
+      --page-x: 20px;
+      --header-h: 60px;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-radius: 0; /* docs/04-UIUX-BRIEF.md §4 — zero radius everywhere */
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 88px;
+  }
+
+  /*
+   * Paper grain. Fixed so it reads as a property of the sheet rather than of
+   * the content, and pointer-events:none so it never intercepts a click. It is
+   * generated inline — docs/02-TRD.md §1 allows no image or texture package.
+   */
+  /*
+   * Paper grain, in two layers. The fine layer is the tooth of the sheet; the
+   * coarse layer is a much larger, fainter cloud that drifts very slowly, so
+   * the ground reads as a material rather than a flat fill. Both are generated
+   * inline — docs/02-TRD.md §1 allows no image or texture package — and both
+   * are fixed and pointer-events:none so they never intercept a click.
+   */
+  body::before,
+  body::after {
+    content: '';
+    position: fixed;
+    inset: -20%;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: var(--grain-blend);
+  }
+
+  body::before {
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  body::after {
+    opacity: var(--cloud-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E");
+    animation: drift 48s linear infinite alternate;
+  }
+
+  @keyframes drift {
+    from {
+      transform: translate3d(-2%, -1.5%, 0) scale(1.05);
+    }
+    to {
+      transform: translate3d(2%, 1.5%, 0) scale(1.12);
+    }
+  }
+
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-ground);
+    color: var(--color-ink);
+    transition:
+      background-color 260ms ease,
+      color 260ms ease;
+    font-family: var(--font-body);
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--color-accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote,
+  ul,
+  ol,
+  dl,
+  dd {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    padding: 0;
+    list-style: none;
+  }
+}
+
+@layer components {
+  /* ----- shell ----------------------------------------------------------- */
+  .wrap {
+    /* width:100% matters inside the hero stage, which is a column flexbox:
+       an item with auto cross-axis margins is not stretched, so .wrap would be
+       shrink-to-fit and the masthead would never span the content width. The
+       measured letter spread then comes out as 0 and the edge-to-edge
+       distribution in docs/04-UIUX-BRIEF.md §4 silently does not happen. */
+    width: 100%;
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: var(--page-x);
+  }
+
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--color-ink);
+    color: var(--color-ground);
+    padding: 12px 18px;
+    font-size: var(--text-small);
+  }
+
+  .skip:focus {
+    left: 0;
+  }
+
+  .label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-meta);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .section-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-meta);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    padding: 44px 0 16px;
+  }
+
+  .prose-body {
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    color: var(--color-muted);
+    /* docs/04-UIUX-BRIEF.md §3 caps the measure at 68 characters. Expressed in
+       em, not ch: ch is a glyph metric, so a 68ch cap rewraps every paragraph
+       when the webfont swaps in. Measured CLS 0.0303 on project detail pages. */
+    max-width: 34em;
+  }
+
+  .prose-body p + p {
+    margin-top: 1.1em;
+  }
+
+  /* ----- sticky header — the masthead's destination ----------------------- */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--color-ground);
+    border-bottom: 2px solid var(--color-ink);
+  }
+
+  .site-header__inner {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .logo {
+    display: flex;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--color-ink);
+  }
+
+  .site-header__end {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+  }
+
+  /*
+   * A word and a filled/hollow dot, not an icon: docs/02-TRD.md §1 allows no
+   * icon package, and the label says which theme the press will switch to.
+   */
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    cursor: pointer;
+    transition: color 120ms ease;
+  }
+
+  .theme-toggle:hover {
+    color: var(--color-accent);
+  }
+
+  .theme-toggle__dot {
+    width: 9px;
+    height: 9px;
+    border: 1px solid currentColor;
+    background: transparent;
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease;
+  }
+
+  .theme-toggle[aria-pressed='true'] .theme-toggle__dot {
+    background: currentColor;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 30px;
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .site-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .site-nav a[aria-current='page'] {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  /* The hero owns the viewport until it hands the masthead to the header. */
+  /*
+   * During the sequence the header bar itself disappears, but the theme toggle
+   * stays: it is the one control a visitor may want before they have scrolled,
+   * and the header is the only place it lives. So the bar goes transparent and
+   * the logo and nav fade, rather than the whole header fading as one.
+   */
+  [data-motion='on'] .site-header {
+    background: transparent;
+    border-bottom-color: transparent;
+    transition:
+      background-color 320ms ease,
+      border-bottom-color 320ms ease;
+  }
+
+  [data-motion='on'] .logo,
+  [data-motion='on'] .site-nav {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 320ms ease;
+  }
+
+  [data-motion='on'][data-hero-handoff='on'] .site-header {
+    background: var(--color-ground);
+    border-bottom-color: var(--color-ink);
+  }
+
+  [data-motion='on'][data-hero-handoff='on'] .logo,
+  [data-motion='on'][data-hero-handoff='on'] .site-nav {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  [data-motion='on'] .static-intro {
+    display: none;
+  }
+
+  .hero {
+    display: none;
+  }
+
+  [data-motion='on'] .hero {
+    display: block;
+  }
+
+  /* ----- static (no-JS / reduced-motion) intro — the resolved state -------- */
+  .static-intro {
+    padding: 56px 0 40px;
+  }
+
+  .static-intro h1 {
+    font-family: var(--font-body);
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    font-weight: 400;
+    line-height: 1.3;
+    max-width: 11em; /* not ch — see .prose-body */
+  }
+
+  .meta-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 30px;
+    margin-top: 34px;
+    padding: 26px 0 30px;
+    border-top: 1px solid var(--color-rule);
+    font-size: var(--text-body);
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+
+  .meta-row strong {
+    display: block;
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+
+  /* ----- hero scroll sequence (motion mode only) -------------------------- */
+  .hero__track {
+    position: relative;
+    height: 200vh;
+  }
+
+  .hero__stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero__eyebrow {
+    position: absolute;
+    top: 44px;
+    left: var(--page-x);
+    font-size: var(--text-meta);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    will-change: opacity;
+  }
+
+  .masthead {
+    /* No justify-content. docs/04-UIUX-BRIEF.md §4 asks for edge-to-edge
+       distribution, and MastheadHero does it by translating each letter by the
+       measured gap. Adding space-between here spreads them a second time, so
+       the letters end up double-spaced and overflow the stage. */
+    display: flex;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(84px, 15.6vw, 210px);
+    line-height: 0.86;
+    letter-spacing: 0;
+    transform-origin: 0 50%;
+    will-change: transform;
+  }
+
+  /*
+   * Two nested spans per letter: the outer one carries the scroll transform,
+   * which paint() writes inline, and the inner one carries the hover lift.
+   * One element cannot hold both — the inline style would win every frame.
+   */
+  .masthead span {
+    display: block;
+    will-change: transform;
+  }
+
+  /* The letters are a graphic, not copy to select — an I-beam over them reads
+     as a mistake, and a text selection mid-hover breaks the lift. */
+  .masthead {
+    cursor: default;
+    user-select: none;
+  }
+
+  .masthead span > span {
+    display: block;
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .masthead:hover span > span {
+    transform: translate3d(0, 0.035em, 0);
+  }
+
+  .masthead span:hover > span {
+    transform: translate3d(0, -0.06em, 0);
+  }
+
+  /*
+   * The wrap holds only the masthead as far as layout is concerned, so the
+   * stage's flex centring centres the name itself. Everything else hangs off
+   * the bottom absolutely, which keeps the load state centred without a JS
+   * offset that would shift the page after hydration.
+   */
+  .hero .wrap {
+    position: relative;
+  }
+
+  .hero__body {
+    position: absolute;
+    top: 100%;
+    left: var(--page-x);
+    right: var(--page-x);
+    will-change: transform;
+  }
+
+  .intro {
+    margin-top: 38px;
+    max-width: 780px;
+  }
+
+  .intro__line {
+    overflow: hidden;
+    opacity: var(--fade, 0);
+  }
+
+  .intro__line > span {
+    display: block;
+    font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+    line-height: 1.35;
+    color: var(--color-ink);
+    transform: translate3d(0, var(--wipe, 100%), 0);
+    will-change: transform;
+  }
+
+  /* ----- stage B ledger ---------------------------------------------------
+     A statement of account, not a stat row: ruled entries, then a total line.
+     The direction is called Ledger and the work is ERP finance modules, so
+     the form comes from the subject rather than from a dashboard.
+     Rules are 1px --rule throughout — docs/04-UIUX-BRIEF.md §4 reserves an
+     --ink rule for under the masthead alone. The total line earns its weight
+     from the Bodoni figure, not from a heavier rule.
+  --------------------------------------------------------------------------- */
+  .intro__note {
+    overflow: hidden;
+    margin-top: 18px;
+    max-width: 38em;
+    opacity: var(--fade, 0);
+    will-change: opacity;
+  }
+
+  .intro__note + .intro__note {
+    margin-top: 10px;
+  }
+
+  .intro__note > span {
+    display: block;
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    color: var(--color-muted);
+    transform: translate3d(0, var(--wipe, 100%), 0);
+    will-change: transform;
+  }
+
+  .facts {
+    margin-top: 30px;
+    max-width: 980px;
+  }
+
+  /*
+   * Two columns from 1024px up. More entries make the hero more informative,
+   * but stacking them all would push the total line out of the pinned stage,
+   * so the ledger reads as two facing pages instead of one long list.
+   */
+  @media (min-width: 1024px) {
+    .facts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 48px;
+    }
+
+    .facts .tally {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /*
+   * The fade lives on the row, not on its text. The rules are borders on this
+   * element, so fading only the dt/dd left a ghost ledger of hairlines visible
+   * at scroll 0 and again after everything had cleared.
+   *
+   * Padding lives on the children, not here: the row is the overflow clip, and
+   * padding on the clip let the text peek out below the mask during the wipe.
+   */
+  .facts__row,
+  .tally {
+    overflow: hidden;
+    display: flex;
+    align-items: baseline;
+    gap: 22px;
+    opacity: var(--fade, 0);
+    border-bottom: 1px solid var(--color-rule);
+    will-change: opacity;
+  }
+
+  .facts__row:first-child {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .facts__row > dt,
+  .tally > dt {
+    width: 150px;
+    flex: none;
+    padding: 11px 0;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    transform: translate3d(0, var(--wipe, 100%), 0);
+    will-change: transform;
+  }
+
+  .facts__row > dd,
+  .tally > dd {
+    flex: 1 1 auto;
+    padding: 11px 0;
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: var(--color-ink);
+    transform: translate3d(0, var(--wipe, 100%), 0);
+    will-change: transform;
+  }
+
+  .tally {
+    border-bottom: 0;
+  }
+
+  .tally > dt,
+  .tally > dd {
+    padding-top: 16px;
+  }
+
+  .tally > dd {
+    color: var(--color-muted);
+  }
+
+  .tally > dd b {
+    font-family: var(--font-display);
+    font-size: var(--text-figure);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-ink);
+    margin-right: 6px;
+  }
+
+  /* ----- hanging identity badge -----------------------------------------
+     A lanyard from the top of the stage, a clip, and a card that swings from
+     it. The card is the only element on the site with a radius other than zero
+     and with depth — it is a physical object being depicted, not a panel, and
+     docs/04-UIUX-BRIEF.md §4's flat rule is about the page's own surfaces.
+  --------------------------------------------------------------------------- */
+  .badge-mount {
+    position: absolute;
+    top: 0;
+    right: calc(var(--page-x) + 40px);
+    width: 250px;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  .badge {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 250px;
+    margin-left: -125px;
+    perspective: 900px;
+  }
+
+  .badge__strap {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 64px;
+    height: 200px;
+    margin-left: -32px;
+    transform-origin: 50% 0;
+  }
+
+  .badge__tape {
+    position: absolute;
+    top: 0;
+    width: 11px;
+    height: 174px;
+    background: var(--color-ink);
+    opacity: 0.88;
+  }
+
+  .badge__tape--l {
+    left: 6px;
+    transform-origin: 50% 0;
+    transform: rotate(7.5deg);
+  }
+
+  .badge__tape--r {
+    right: 6px;
+    transform-origin: 50% 0;
+    transform: rotate(-7.5deg);
+  }
+
+  .badge__ring {
+    position: absolute;
+    top: 168px;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    margin-left: -11px;
+    border: 3px solid var(--color-muted);
+    border-radius: 50%;
+  }
+
+  .badge__pivot {
+    position: absolute;
+    top: 186px;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+  }
+
+  .badge__card {
+    position: absolute;
+    top: 186px;
+    left: 0;
+    width: 250px;
+    padding: 26px 0 0;
+    overflow: hidden;
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: 4px;
+    transform-origin: 50% 0;
+    transform-style: preserve-3d;
+    box-shadow: 0 18px 38px rgb(0 0 0 / 14%);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    pointer-events: auto;
+  }
+
+  .badge__card[data-held='true'] {
+    cursor: grabbing;
+  }
+
+  .badge__punch {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    width: 46px;
+    height: 9px;
+    margin-left: -23px;
+    border: 1px solid var(--color-rule);
+    border-radius: 5px;
+    background: var(--color-ground);
+  }
+
+  /* Header band: the part that makes it read as a credential, not a note. */
+  .badge__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 14px;
+    background: var(--color-ink);
+  }
+
+  .badge__wordmark {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    color: var(--color-ground);
+  }
+
+  .badge__issue {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ground);
+    opacity: 0.72;
+  }
+
+  .badge__id {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 14px;
+  }
+
+  /* Portrait frame. 4:5, the ratio an ID photo is actually shot at. */
+  .badge__photo {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--color-ground);
+    border: 1px solid var(--color-rule);
+    display: grid;
+    place-items: center;
+  }
+
+  .badge__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .badge__monogram {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--color-faint);
+  }
+
+  .badge__name {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.22;
+    color: var(--color-ink);
+  }
+
+  .badge__role {
+    margin-top: 5px;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--color-muted);
+  }
+
+  .badge__list {
+    display: grid;
+    gap: 9px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  /* Stacked, not columnar: "Experience" and "Languages" are too long at this
+     letter-spacing to sit beside their values in a 250px card. */
+  .badge__list > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .badge__list dt {
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .badge__list dd {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--color-ink);
+  }
+
+  .badge__foot {
+    padding: 9px 14px;
+    border-top: 1px solid var(--color-rule);
+    background: var(--color-ground);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    color: var(--color-faint);
+  }
+
+  @media (max-width: 1279px) {
+    .badge-mount {
+      display: none;
+    }
+  }
+
+  /* ----- stack marquee ---------------------------------------------------- */
+  .stack-band {
+    padding: 8px 0 44px;
+    border-top: 1px solid var(--color-rule);
+    margin-top: 72px;
+  }
+
+  .marquee {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* The row is a horizontal surface of its own; snapping it to the page
+       margin would make the loop visibly restart at the edge. */
+    padding-inline: var(--page-x);
+    gap: 0;
+  }
+
+  .marquee::-webkit-scrollbar {
+    display: none;
+  }
+
+  .marquee:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+
+  .marquee__row {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .marquee__item {
+    flex: 0 0 auto;
+    padding: 0 30px;
+    font-family: var(--font-display);
+    font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--color-muted);
+    border-right: 1px solid var(--color-rule);
+    transition: color 120ms ease;
+  }
+
+  .marquee__item:hover {
+    color: var(--color-ink);
+  }
+
+  /* ----- stage A rule ----------------------------------------------------
+     docs/04-UIUX-BRIEF.md §5 stage A: "Scroll to begin" and a short vertical
+     rule. It retracts as the sequence starts, so it reads as a cue that has
+     been answered rather than a decoration that lingers.
+  --------------------------------------------------------------------------- */
+  .cue-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .hero__rail {
+    display: block;
+    width: 1px;
+    height: 56px;
+    background: var(--color-rule);
+    transform-origin: 50% 100%;
+    will-change: transform;
+  }
+
+  .hero__foot {
+    position: absolute;
+    left: var(--page-x);
+    right: var(--page-x);
+    bottom: 44px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .cue {
+    font-size: var(--text-small);
+    color: var(--color-faint);
+    will-change: opacity;
+  }
+
+  .progress {
+    width: 180px;
+    height: 2px;
+    background: var(--color-rule);
+  }
+
+  .progress__bar {
+    height: 2px;
+    background: var(--color-accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    will-change: transform;
+  }
+
+  /* ----- work index row — docs/04-UIUX-BRIEF.md §4 ------------------------ */
+  .row {
+    display: flex;
+    gap: 22px;
+    align-items: baseline;
+    padding: 24px 0;
+    border-top: 1px solid var(--color-rule);
+    transition: background-color 120ms ease;
+  }
+
+  .row:first-of-type {
+    border-top: 1px solid var(--color-ink);
+  }
+
+  .row:last-of-type {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .row:hover,
+  .row:focus-visible {
+    background: var(--color-surface);
+  }
+
+  .row__no {
+    width: 44px;
+    flex: none;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+  }
+
+  .row__title {
+    width: 300px;
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 27px;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+
+  .row__client {
+    width: 240px;
+    flex: none;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .row__client em {
+    display: block;
+    font-style: normal;
+    font-size: 0.75rem;
+    color: var(--color-faint);
+  }
+
+  .row__scope {
+    flex: 1 1 auto;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+
+  .row__out {
+    width: 132px;
+    flex: none;
+    text-align: right;
+  }
+
+  .row__out b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-figure);
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .row__out em {
+    font-style: normal;
+    font-size: var(--text-meta);
+    color: var(--color-faint);
+  }
+
+  /* ----- filter bar ------------------------------------------------------- */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 28px;
+  }
+
+  .filters a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--color-rule);
+    font-size: var(--text-small);
+    color: var(--color-muted);
+    transition:
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .filters a:hover {
+    border-color: var(--color-muted);
+  }
+
+  .filters a[aria-current='true'] {
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  /* ----- project detail --------------------------------------------------- */
+  .figure-outcome b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 7vw, 5.5rem);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  .detail-section h2 {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-meta);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    margin-bottom: 14px;
+  }
+
+  .mdx h2 {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-meta);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    margin: 44px 0 14px;
+  }
+
+  .mdx p {
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 34em; /* see .prose-body */
+  }
+
+  .mdx p + p {
+    margin-top: 1.1em;
+  }
+
+  /* ----- forms ------------------------------------------------------------ */
+  .field + .field {
+    margin-top: 22px;
+  }
+
+  .field label {
+    display: block;
+    font-size: var(--text-small);
+    font-weight: 500;
+    color: var(--color-ink);
+    margin-bottom: 6px;
+  }
+
+  .field input,
+  .field textarea {
+    display: block;
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body-lg);
+    line-height: 1.5;
+    padding: 12px 14px;
+    min-height: 44px;
+  }
+
+  .field input:hover,
+  .field textarea:hover {
+    border-color: var(--color-muted);
+  }
+
+  .field[data-invalid='true'] input,
+  .field[data-invalid='true'] textarea {
+    border-color: var(--color-accent);
+  }
+
+  .field__error {
+    display: block;
+    margin-top: 6px;
+    font-size: var(--text-small);
+    color: var(--color-accent);
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 12px 22px;
+    background: var(--color-ink);
+    color: var(--color-ground);
+    border: 1px solid var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+
+  .button:hover:not(:disabled) {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* ----- contact band ----------------------------------------------------- */
+  .contact-band {
+    border-top: 1px solid var(--color-ink);
+    margin-top: 80px;
+    padding: 44px 0 64px;
+  }
+
+  .contact-band h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.625rem, 4vw, 2.75rem);
+    line-height: 1.15;
+    max-width: 9em; /* not ch — see .prose-body */
+  }
+}
+
+@layer components {
+  /*
+   * Cursor spot. mix-blend-mode: difference inverts whatever is beneath it, so
+   * one colour is legible on the oyster ground, on the near-black one and over
+   * the masthead — no per-theme branch. Decorative only: never hit-tested.
+   */
+  .cursor {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    mix-blend-mode: difference;
+  }
+
+  :root[data-cursor='on'] .cursor {
+    opacity: 1;
+  }
+
+  .cursor__dot,
+  .cursor__ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: transparent;
+    /* The one place the zero-radius rule in docs/04-UIUX-BRIEF.md §4 does not
+       apply: a square cursor spot reads as a rendering fault, not a choice.
+       This is an affordance, not part of the page's visual language. */
+    border-radius: 50%;
+  }
+
+  .cursor__dot {
+    width: 6px;
+    height: 6px;
+    background: #fff;
+  }
+
+  .cursor__ring {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #fff;
+    opacity: 0.5;
+  }
+}
+
+@layer utilities {
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .logo {
+    font-size: 26px;
+  }
+}
+
+/*
+ * Unlayered on purpose: this overrides the Tailwind utilities (h-screen, top-0)
+ * on the hero's pinned stage, and utilities outrank @layer components.
+ *
+ * The sticky header stays in flow at all times — it is hidden with opacity,
+ * never removed, so nothing shifts when the masthead is handed to it. The
+ * pinned stage therefore has to live in the viewport *minus* the header, or its
+ * 100vh overflows and the scroll cue and progress rule at bottom: 44px fall
+ * below the fold. svh, not vh, so mobile browser chrome appearing mid-sequence
+ * does not resize the stage.
+ */
+/*
+ * Motion mode only: the pinned stage is a full viewport, and its lower half is
+ * empty once the ledger has cleared. Without this you scroll a whole screen of
+ * nothing between the masthead docking and Selected Work arriving. Pulling the
+ * work index up by 15svh makes it rise as the hero resolves instead.
+ *
+ * Applied from the blocking head script's attribute, so it is in place before
+ * first paint and costs no layout shift. With JS off or reduced motion set the
+ * attribute is never added and the document keeps its natural flow.
+ */
+[data-motion='on'] .hero + main {
+  margin-top: -30svh;
+}
+
+.hero [class~='sticky'] {
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  height: calc(100svh - var(--header-h));
+}
+
+@media (max-height: 780px) {
+  .facts {
+    margin-top: 28px;
+  }
+
+  .facts__row {
+    padding: 7px 0;
+  }
+
+  .hero__rail {
+    height: 34px;
+  }
+}
+
+@media (max-width: 1279px) {
+  .row__title {
+    width: 240px;
+  }
+
+  .row__client {
+    width: 180px;
+  }
+}
+
+@media (max-width: 767px) {
+  .logo {
+    font-size: 22px;
+  }
+
+  .site-header__inner {
+    height: 60px;
+  }
+
+  .site-nav {
+    gap: 18px;
+  }
+
+  .hero__track {
+    height: 150vh;
+  }
+
+  .meta-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .row__no,
+  .row__title,
+  .row__client,
+  .row__scope,
+  .row__out {
+    width: 100%;
+  }
+
+  .row__out {
+    text-align: left;
+    padding-top: 8px;
+  }
+
+  .progress {
+    width: 110px;
+  }
+
+  /* docs/04-UIUX-BRIEF.md §8: mobile is a single column and §5.6 warns the
+     sequence must not feel like a wall. The entries drop; the total stays, and
+     the full metadata row is a few hundred pixels below in any case. */
+  .facts__row {
+    display: none;
+  }
+
+  .facts {
+    margin-top: 26px;
+    border-top: 0;
+  }
+
+  .tally > dt {
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The grain is static, but the hover lift and theme fade are not. */
+  .masthead span > span,
+  body {
+    transition: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
