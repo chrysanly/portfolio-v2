@@ -61,49 +61,6 @@ export const site = {
     'Senior full-stack developer with 5+ years building scalable web applications, REST APIs and enterprise ERP systems. Laravel, Node.js and modern JavaScript frameworks. Strongest in role-based access control, service-repository architecture, database optimisation and real-time system integration. Leads development teams, mentors engineers, and uses AI-assisted workflows to accelerate delivery without loosening code quality.',
 } as const;
 
-/**
- * The marquee list. Flattened from docs/07-SOURCE-CONTENT.md §3 — every entry
- * appears in that document; nothing has been added to pad the row.
- *
- * These render as wordmarks: docs/02-TRD.md §1 forbids an icon package and
- * inline SVG has to be authored by hand, so real brand logos wait on files from
- * Chrys. Swapping one in is a per-entry change, not a rewrite.
- */
-export const techStack: readonly string[] = [
-  'PHP',
-  'Laravel',
-  'JavaScript',
-  'TypeScript',
-  'Node.js',
-  'Vue 3',
-  'React',
-  'Angular',
-  '.NET Web API',
-  'Dart',
-  'Flutter',
-  'Ionic 5',
-  'MySQL',
-  'MariaDB',
-  'PostgreSQL',
-  'MongoDB',
-  'Firebase Firestore',
-  'Laravel Sanctum',
-  'Laravel Passport',
-  'JWT',
-  'Twilio',
-  'Docker',
-  'AWS',
-  'Azure',
-  'Git',
-  'Postman',
-  'JIRA',
-  'Figma',
-  'Vite',
-  'Webpack',
-  'PHPUnit',
-  'Pest',
-];
-
 /** docs/07-SOURCE-CONTENT.md §3. Order is fixed; do not rank by proficiency. */
 export const skillGroups = [
   {

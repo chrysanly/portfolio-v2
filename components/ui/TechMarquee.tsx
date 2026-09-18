@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { techStack } from '@/content/site';
+import { techIcons } from '@/content/tech-icons';
 
 /**
  * The stack, as a row that drifts on its own and can also be dragged, wheeled
@@ -98,16 +98,20 @@ export function TechMarquee() {
         aria-label="Technologies, scrollable"
       >
         <ul className="marquee__row">
-          {techStack.map((name) => (
-            <li key={name} className="marquee__item">
-              {name}
+          {techIcons.map((icon) => (
+            <li key={icon.label} className="marquee__item">
+              <svg viewBox="0 0 24 24" role="img" aria-label={icon.label} focusable="false">
+                <path d={icon.path} />
+              </svg>
             </li>
           ))}
         </ul>
         <ul className="marquee__row" aria-hidden="true">
-          {techStack.map((name) => (
-            <li key={`${name}-echo`} className="marquee__item">
-              {name}
+          {techIcons.map((icon) => (
+            <li key={`${icon.label}-echo`} className="marquee__item">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d={icon.path} />
+              </svg>
             </li>
           ))}
         </ul>
