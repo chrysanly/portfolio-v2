@@ -4,6 +4,7 @@ import { useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { contactSchema, type ContactInput } from '@/lib/schema';
+import { hideVeil, showVeil } from './RouteVeil';
 
 type Status = 'idle' | 'submitting' | 'success' | 'error';
 
@@ -32,6 +33,13 @@ export function ContactForm({ email }: { email: string }) {
   const onSubmit = handleSubmit(async (values) => {
     setStatus('submitting');
     setFormError(null);
+
+    /*
+     * Sending replaces the whole form with the sent state, which is a bigger
+     * change than a route swap and happened with no transition at all. The veil
+     * covers it, and is closed in `finally` so a failure cannot leave it up.
+     */
+    showVeil();
 
     try {
       const response = await fetch('/api/contact', {
@@ -62,114 +70,151 @@ export function ContactForm({ email }: { email: string }) {
     } catch {
       setFormError('Message could not be sent.');
       setStatus('error');
+    } finally {
+      hideVeil();
     }
   });
 
   if (status === 'success') {
     return (
-      <div className="prose-body" role="status">
-        <p style={{ color: 'var(--color-ink)' }}>Message sent.</p>
-        <p>
-          It goes straight to {email} and I read it myself. Expect a reply within two
-          working days.
+      <div className="sent" role="status">
+        <span className="sent__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M4 12.5 9.5 18 20 7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="square"
+            />
+          </svg>
+        </span>
+        <p className="sent__title">Message sent.</p>
+        <p className="sent__body">
+          It goes straight to {email} and I read it myself. Expect a reply within two working
+          days.
         </p>
       </div>
     );
   }
 
-  const field = (name: keyof ContactInput) => ({
-    'data-invalid': errors[name] ? 'true' : undefined,
-  });
+  const busy = status === 'submitting';
 
   const describe = (name: keyof ContactInput) =>
     errors[name] ? `${ids}-${name}-error` : undefined;
 
   return (
-    <form onSubmit={onSubmit} noValidate style={{ maxWidth: '620px' }}>
-      <div className="field" {...field('name')}>
-        <label htmlFor={`${ids}-name`}>Name</label>
-        <input
-          id={`${ids}-name`}
-          type="text"
-          autoComplete="name"
-          aria-invalid={errors.name ? 'true' : undefined}
-          aria-describedby={describe('name')}
-          {...register('name')}
-        />
-        {errors.name ? (
-          <span className="field__error" id={`${ids}-name-error`}>
-            {errors.name.message}
-          </span>
-        ) : null}
-      </div>
+    <form onSubmit={onSubmit} noValidate className="contact-form">
+      {/*
+        Disabled as a set while the request is in flight. Individually disabling
+        each control leaves the form half-live, and a second submit while the
+        first is running is the most common way to send the same message twice.
+      */}
+      <fieldset disabled={busy}>
+        <legend className="visually-hidden">Your message</legend>
 
-      <div className="field" {...field('email')}>
-        <label htmlFor={`${ids}-email`}>Email</label>
-        <input
-          id={`${ids}-email`}
-          type="email"
-          autoComplete="email"
-          aria-invalid={errors.email ? 'true' : undefined}
-          aria-describedby={describe('email')}
-          {...register('email')}
-        />
-        {errors.email ? (
-          <span className="field__error" id={`${ids}-email-error`}>
-            {errors.email.message}
-          </span>
-        ) : null}
-      </div>
+        <div className="field" data-invalid={errors.name ? 'true' : undefined}>
+          <label htmlFor={`${ids}-name`}>Name</label>
+          <input
+            id={`${ids}-name`}
+            type="text"
+            autoComplete="name"
+            aria-invalid={errors.name ? 'true' : undefined}
+            aria-describedby={describe('name')}
+            {...register('name')}
+          />
+          {errors.name ? (
+            <span className="field__error" id={`${ids}-name-error`}>
+              {errors.name.message}
+            </span>
+          ) : null}
+        </div>
 
-      <div className="field" {...field('company')}>
-        <label htmlFor={`${ids}-company`}>Company (optional)</label>
-        <input
-          id={`${ids}-company`}
-          type="text"
-          autoComplete="organization"
-          aria-invalid={errors.company ? 'true' : undefined}
-          aria-describedby={describe('company')}
-          {...register('company')}
-        />
-        {errors.company ? (
-          <span className="field__error" id={`${ids}-company-error`}>
-            {errors.company.message}
-          </span>
-        ) : null}
-      </div>
+        {/* Paired: two short fields side by side keep the form on one screen. */}
+        <div className="field-pair">
+          <div className="field" data-invalid={errors.email ? 'true' : undefined}>
+            <label htmlFor={`${ids}-email`}>Email</label>
+            <input
+              id={`${ids}-email`}
+              type="email"
+              autoComplete="email"
+              aria-invalid={errors.email ? 'true' : undefined}
+              aria-describedby={describe('email')}
+              {...register('email')}
+            />
+            {errors.email ? (
+              <span className="field__error" id={`${ids}-email-error`}>
+                {errors.email.message}
+              </span>
+            ) : null}
+          </div>
 
-      <div className="field" {...field('message')}>
-        <label htmlFor={`${ids}-message`}>Message</label>
-        <textarea
-          id={`${ids}-message`}
-          rows={7}
-          aria-invalid={errors.message ? 'true' : undefined}
-          aria-describedby={describe('message')}
-          {...register('message')}
-        />
-        {errors.message ? (
-          <span className="field__error" id={`${ids}-message-error`}>
-            {errors.message.message}
-          </span>
-        ) : null}
-      </div>
+          <div className="field" data-invalid={errors.company ? 'true' : undefined}>
+            <label htmlFor={`${ids}-company`}>
+              Company <span className="field__optional">optional</span>
+            </label>
+            <input
+              id={`${ids}-company`}
+              type="text"
+              autoComplete="organization"
+              aria-invalid={errors.company ? 'true' : undefined}
+              aria-describedby={describe('company')}
+              {...register('company')}
+            />
+            {errors.company ? (
+              <span className="field__error" id={`${ids}-company-error`}>
+                {errors.company.message}
+              </span>
+            ) : null}
+          </div>
+        </div>
 
-      {/* Honeypot. Hidden from sight and from assistive technology alike. */}
-      <div className="visually-hidden" aria-hidden="true">
-        <label htmlFor={`${ids}-website`}>Website</label>
-        <input id={`${ids}-website`} type="text" tabIndex={-1} autoComplete="off" {...register('website')} />
-      </div>
+        <div className="field" data-invalid={errors.message ? 'true' : undefined}>
+          <label htmlFor={`${ids}-message`}>Message</label>
+          <textarea
+            id={`${ids}-message`}
+            rows={6}
+            placeholder="What are you building, and what is in the way?"
+            aria-invalid={errors.message ? 'true' : undefined}
+            aria-describedby={describe('message')}
+            {...register('message')}
+          />
+          {errors.message ? (
+            <span className="field__error" id={`${ids}-message-error`}>
+              {errors.message.message}
+            </span>
+          ) : null}
+        </div>
 
-      <div aria-live="polite" style={{ marginTop: '22px' }}>
+        {/* Honeypot. Hidden from sight and from assistive technology alike. */}
+        <div className="visually-hidden" aria-hidden="true">
+          <label htmlFor={`${ids}-website`}>Website</label>
+          <input
+            id={`${ids}-website`}
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            {...register('website')}
+          />
+        </div>
+      </fieldset>
+
+      <div aria-live="polite" className="contact-form__status">
         {formError ? (
           <p className="field__error">
-            {formError} You can also email{' '}
-            <a href={`mailto:${email}`}>{email}</a> directly.
+            {formError} You can also email <a href={`mailto:${email}`}>{email}</a> directly.
           </p>
         ) : null}
       </div>
 
-      <button className="button" type="submit" disabled={status === 'submitting'}>
-        {status === 'submitting' ? 'Sending' : 'Send message'}
+      <button className="button button--send" type="submit" disabled={busy} data-busy={busy}>
+        {/*
+          Both labels stay in the DOM and one is hidden, so the button does not
+          change width mid-request — a button that resizes under the cursor is
+          the small thing that makes a form feel unreliable.
+        */}
+        <span className="button__label">{busy ? 'Sending' : 'Send message'}</span>
+        {busy ? <span className="spinner" aria-hidden="true" /> : null}
       </button>
     </form>
   );

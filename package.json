@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "check": "tsc --noEmit && next lint"
+    "check": "tsc --noEmit && next lint",
+    "content:pull": "node scripts/pull-content.mjs",
+    "prebuild": "node scripts/pull-content.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

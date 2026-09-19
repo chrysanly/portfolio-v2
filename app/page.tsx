@@ -6,6 +6,7 @@ import { HeroMount } from '@/components/hero/HeroMount';
 import { WorkIndexRow } from '@/components/work/WorkIndexRow';
 import { TechMarquee } from '@/components/ui/TechMarquee';
 import { ExperienceTimeline } from '@/components/work/ExperienceTimeline';
+import { SectionPager } from '@/components/ui/SectionPager';
 import { WorkShowcase } from '@/components/work/WorkShowcase';
 import { attribution, getFeaturedProjects } from '@/lib/projects';
 import { site } from '@/content/site';
@@ -58,9 +59,11 @@ export default function HomePage() {
       <HeroMount />
 
       <main id="content" style={{ paddingBottom: '0' }}>
-        <WorkShowcase projects={showcase} />
+        <div id="showcase" data-section="Selected work">
+          <WorkShowcase projects={showcase} />
+        </div>
 
-        <div className="wrap work-list">
+        <div className="wrap work-list" id="index">
           <h2 className="section-label">Selected work</h2>
           {projects.length === 0 ? (
             <p className="prose-body">Project entries are on their way.</p>
@@ -75,10 +78,18 @@ export default function HomePage() {
             </Link>
           </p>
         </div>
-        <ExperienceTimeline />
-        <TechMarquee />
-        <ContactBand />
+        <div id="journey" data-section="The journey">
+          <ExperienceTimeline />
+        </div>
+        <div id="stack" data-section="Stack">
+          <TechMarquee />
+        </div>
+        <div id="contact" data-section="Contact">
+          <ContactBand />
+        </div>
       </main>
+
+      <SectionPager />
     </>
   );
 }

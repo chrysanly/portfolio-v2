@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Bodoni_Moda, Public_Sans } from 'next/font/google';
 import { site } from '@/content/site';
 import { CursorDot } from '@/components/ui/CursorDot';
+import { RouteVeil } from '@/components/ui/RouteVeil';
 import { Splash } from '@/components/ui/Splash';
 import { SplashDismiss } from '@/components/ui/SplashDismiss';
 import './globals.css';
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         {children}
+        <RouteVeil />
         <CursorDot />
       </body>
     </html>

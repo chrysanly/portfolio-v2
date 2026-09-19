@@ -395,8 +395,17 @@
       border-bottom-color 320ms ease;
   }
 
-  [data-motion='on'] .logo,
-  [data-motion='on'] .site-nav {
+  /*
+   * Hidden only where the hero is going to hand the masthead over. Without the
+   * :has(.hero) guard this applied to every page, so /work, /about and /contact
+   * rendered a header with an invisible logo and invisible navigation — no way
+   * out of the page except the browser's own back button.
+   *
+   * A browser too old for :has() simply shows the logo throughout, which is the
+   * safe way for this to fail.
+   */
+  [data-motion='on']:has(.hero) .logo,
+  [data-motion='on']:has(.hero) .site-nav {
     opacity: 0;
     pointer-events: none;
     transition: opacity 320ms ease;
@@ -1988,6 +1997,407 @@
     cursor: not-allowed;
   }
 
+  /* ----- section pager ----------------------------------------------------
+     Step past the long pinned sections one at a time. Bottom-centre rather
+     than a corner: the corners hold the cursor dot and the badge, and the
+     bottom edge is the one place nothing else on this page occupies.
+  --------------------------------------------------------------------------- */
+  .pager {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-ground) 88%, transparent);
+    backdrop-filter: blur(9px);
+  }
+
+  .pager__step {
+    display: grid;
+    place-items: center;
+    /* 44px is the minimum touch target; the icon inside is smaller. */
+    width: 44px;
+    height: 36px;
+    border: 0;
+    background: none;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  .pager__step svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .pager__step:hover:not(:disabled) {
+    background: var(--color-surface);
+    color: var(--color-accent);
+  }
+
+  .pager__step:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .pager__where {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 132px;
+    padding: 0 6px;
+    /* Fixed width, so the bar does not resize as the label changes under the
+       cursor — the arrows must not move while you are clicking one. */
+    justify-content: center;
+  }
+
+  .pager__where b {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pager__where em {
+    font-style: normal;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pager {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .pager {
+      bottom: 14px;
+    }
+
+    .pager__where {
+      min-width: 0;
+    }
+
+    /* The numeral alone carries the position on a phone; the label is the
+       first thing to go when there is no room for it. */
+    .pager__where em {
+      display: none;
+    }
+  }
+
+  /* ----- route veil --------------------------------------------------------
+     Shown between a click and the next paint, and over the contact form's
+     submit. It borrows the opening splash's language so a navigation reads as
+     the same site, but it is far quicker and it never blocks input for long —
+     RouteVeil.tsx caps it three separate ways.
+  --------------------------------------------------------------------------- */
+  .veil {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    background: var(--color-ground);
+    opacity: 0;
+    /* Not just invisible: a transparent full-screen layer would still swallow
+       every click underneath it. */
+    pointer-events: none;
+    visibility: hidden;
+    transition:
+      opacity 180ms ease,
+      visibility 0s linear 180ms;
+  }
+
+  .veil[data-on='true'] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity 120ms ease,
+      visibility 0s;
+  }
+
+  .veil__mark {
+    display: flex;
+    gap: 0.16em;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: var(--color-ink);
+  }
+
+  .veil__mark span {
+    opacity: 0.18;
+  }
+
+  /* The letters lift in sequence — the same gesture as the opening splash,
+     at about a third of the duration. */
+  .veil[data-on='true'] .veil__mark span {
+    animation: veil-letter 900ms cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  }
+
+  @keyframes veil-letter {
+    0%,
+    100% {
+      opacity: 0.18;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .veil[data-on='true'] .veil__mark span {
+      animation: none;
+      opacity: 0.6;
+    }
+  }
+
+  /* ----- the contact page ------------------------------------------------
+     One screen. Details on the left, form on the right — the two ways of
+     getting in touch are a pair, and a page whose whole job is "get in touch"
+     should not need scrolling to show both.
+  --------------------------------------------------------------------------- */
+  .contact {
+    /* Fills the space the header leaves, so the footer of the form lands on
+       the fold rather than just past it. */
+    min-height: calc(100svh - var(--header-h));
+    display: flex;
+    align-items: center;
+    padding: 24px 0;
+    /* The page is sized to fit exactly; without this a sub-pixel rounding
+       difference puts a scrollbar on a page that has nothing to scroll to. */
+    overflow: clip;
+  }
+
+  .contact__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    gap: clamp(32px, 6vw, 88px);
+    align-items: start;
+    width: 100%;
+  }
+
+  .contact__aside {
+    display: grid;
+    /* The rule under the lead is drawn by the gap, not a border: the direct
+       block is pushed to the bottom so the two edges line up with the form. */
+    align-content: start;
+    gap: 0;
+  }
+
+  .contact__lead {
+    margin-top: 14px;
+    font-family: var(--font-body);
+    font-size: clamp(1.5rem, 2.8vw, 2.125rem);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    color: var(--color-ink);
+    max-width: 11em;
+    text-wrap: balance;
+  }
+
+  .contact__direct {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .contact__direct ul {
+    display: grid;
+    gap: 9px;
+    margin-top: 12px;
+    font-size: var(--text-body);
+  }
+
+  .contact__direct a {
+    color: var(--color-ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-rule);
+    padding-bottom: 1px;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .contact__direct a:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .contact__where {
+    color: var(--color-muted);
+  }
+
+  /* ----- back ------------------------------------------------------------- */
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* Pulled left so the chevron, not the word, aligns with the column edge. */
+    margin: 0 0 26px -3px;
+    padding: 6px 4px;
+    justify-self: start;
+    font-size: var(--text-small);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .back svg {
+    width: 15px;
+    height: 15px;
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .back:hover {
+    color: var(--color-ink);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .back:hover svg {
+      transform: translateX(-3px);
+    }
+  }
+
+  /* ----- the form --------------------------------------------------------- */
+  .contact-form fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    /* A disabled fieldset would otherwise look identical to a live one, and
+       the only feedback that anything is happening would be the button. */
+    transition: opacity 180ms ease;
+  }
+
+  .contact-form fieldset:disabled {
+    opacity: 0.6;
+  }
+
+  .field-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  /* The pair is one row, so its children must not stack their own margins. */
+  .field-pair .field + .field {
+    margin-top: 0;
+  }
+
+  .field__optional {
+    font-weight: 400;
+    color: var(--color-faint);
+  }
+
+  .field textarea::placeholder,
+  .field input::placeholder {
+    color: var(--color-faint);
+  }
+
+  .contact-form__status:not(:empty) {
+    margin-top: 18px;
+  }
+
+  .button--send {
+    margin-top: 24px;
+    gap: 10px;
+  }
+
+  .spinner {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid color-mix(in srgb, var(--color-ground) 35%, transparent);
+    border-top-color: var(--color-ground);
+    border-radius: 50%;
+    animation: spin 620ms linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation-duration: 1800ms;
+    }
+  }
+
+  /* ----- sent ------------------------------------------------------------- */
+  .sent {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    padding: 32px;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+
+  .sent__mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 4px;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 50%;
+  }
+
+  .sent__mark svg {
+    width: 19px;
+    height: 19px;
+    /* Drawn on, rather than appearing. It is the one moment on this page worth
+       a beat, and it happens once. */
+    stroke-dasharray: 26;
+    stroke-dashoffset: 26;
+    animation: draw 420ms cubic-bezier(0.23, 1, 0.32, 1) 80ms forwards;
+  }
+
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sent__mark svg {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .sent__title {
+    font-family: var(--font-display);
+    font-size: var(--text-title);
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .sent__body {
+    font-size: var(--text-body);
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 34em;
+  }
+
   /* ----- contact band ----------------------------------------------------- */
   .contact-band {
     border-top: 1px solid var(--color-ink);
@@ -2303,6 +2713,32 @@
   .row__out {
     text-align: left;
     padding-top: 6px;
+  }
+
+  .contact {
+    min-height: 0;
+    display: block;
+    padding: 8px 0 48px;
+  }
+
+  .contact__grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* The details read better under the form on a phone: the form is what the
+     visitor came to use, and it should not be pushed down by an address. */
+  .contact__aside {
+    display: contents;
+  }
+
+  .contact__direct {
+    order: 3;
+  }
+
+  .field-pair {
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
 
   [data-motion='on'] .journey__strip {

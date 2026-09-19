@@ -332,7 +332,7 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
   if (reduced) return null; // StaticIntro stays; nothing is pinned
 
   return (
-    <section className="hero">
+    <section className="hero" id="top" data-section="Opening">
       <div ref={trackRef} className="h-[180vh] md:h-[180vh] max-md:h-[140vh] relative">
         <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
           <p ref={eyebrowRef} className="hero__eyebrow">

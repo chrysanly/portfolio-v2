@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { contactSchema, type ContactInput } from '@/lib/schema';
 import { pruneRateLimit, rateLimit } from '@/lib/rate-limit';
 import { sendContactMessage } from '@/lib/mail';
+import { archiveContactMessage } from '@/lib/archive';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,9 +63,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, errors }, { status: 422 });
   }
 
-  try {
-    await sendContactMessage(parsed.data);
-  } catch {
+  /*
+   * Two independent paths, and the message survives if either works.
+   *
+   * It used to be email-only, and a missing RESEND_API_KEY therefore lost the
+   * message *and* told the sender it had failed. Now email is attempted first
+   * because it is the one that reaches a human, the archive is attempted
+   * regardless, and only losing both is a failure the sender hears about.
+   */
+  const delivered = await sendContactMessage(parsed.data).then(
+    () => true,
+    (error: Error) => {
+      console.error('[contact] email failed:', error.message);
+      return false;
+    },
+  );
+
+  const archived = await archiveContactMessage(parsed.data);
+
+  if (!delivered && !archived) {
     return NextResponse.json(
       { ok: false, message: 'Message could not be sent.' },
       { status: 500 },

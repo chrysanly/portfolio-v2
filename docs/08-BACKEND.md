@@ -57,14 +57,32 @@ must never fail because the backend is asleep on a free tier.
 |---------|--------|
 | Framework | Laravel 12 |
 | Database | MySQL 8 |
-| Admin auth | Laravel Breeze (session), single user |
+| Admin auth | PIN (session), single user |
 | Build-token auth | Laravel Sanctum, one token for the Next.js build |
-| Admin UI | Blade + Alpine.js, hand-built |
+| Admin UI | Inertia + React + TypeScript, hand-built |
 | Images | Local disk in development, S3-compatible in production |
 | Testing | Pest |
+| PHP | 8.3 minimum (8.4 in development) |
 
 **Do not use Filament or Nova.** They would build the admin for you, which
 defeats purpose #1 — there is nothing to write up if a package generated it.
+
+> **Amended 19 Sep 2026.** This table said "Blade + Alpine.js". Chrys asked for
+> Laravel + React, and the reason for the Filament/Nova ban is auto-generation,
+> not the templating language — a hand-built React admin is still his code, so
+> it does not hit that problem. It serves purpose #1 better, in fact: "Laravel +
+> React" is a more hireable combination to show than "Laravel + Blade + Alpine",
+> and it matches the TypeScript he already writes on the public site.
+>
+> The public site was **not** converted. Moving it to Inertia would have turned
+> 27 prerendered static pages into per-request PHP responses and killed §2's
+> guarantee — the whole reason this backend can be down without the portfolio
+> being down. React is on this side of the line only.
+>
+> Built with the official `laravel/react-starter-kit` (Laravel 12 + Inertia 2 +
+> React 19 + TypeScript + Tailwind 4). That kit's tagged release targets
+> Laravel 12; its `main` branch targets 13 but is untagged, and an unreleased
+> branch is the wrong foundation for something meant to be shown to employers.
 Hand-built Blade CRUD is the artefact here.
 
 Architecture follows Chrys's existing practice: Repository pattern for data
@@ -151,6 +169,18 @@ Where they differ, the TypeScript wins and the API resource adapts.
 Never expose date of birth, civil status, or the phone number in this payload —
 `07-SOURCE-CONTENT.md` §1.
 
+> **Amended 19 Sep 2026 — authentication.** This said Laravel Breeze with email
+> and password. Chrys asked for a PIN instead: one field, one person, nothing to
+> remember. Implemented with the PIN in `ADMIN_PIN` and stored only as a bcrypt
+> hash in the account's password column, five attempts a minute per IP, and
+> constant-time comparison. Registration, password reset, email verification and
+> password confirmation routes are **deleted**, not unlinked.
+>
+> This is a real reduction in strength — six digits is a million combinations —
+> and the throttle is the only thing that makes it acceptable. Do not remove it,
+> and do not add a second admin account without replacing the mechanism: a PIN
+> carries no identifier, so it cannot tell two people apart.
+
 ### Contact relay (public, rate-limited)
 
 ```
@@ -164,6 +194,19 @@ email, returns 200.
 
 If you keep the Phase 6 email-only handler instead, that is a valid choice —
 say so explicitly rather than leaving both wired up.
+
+> **Decided 19 Sep 2026: both, in a defined order.** The Next.js handler still
+> owns delivery — moving the form to Laravel would make a static site depend on
+> a PHP host at runtime for the one thing a visitor can actually do, which
+> contradicts §2. But an inbox that is always empty is not worth building.
+>
+> So `app/api/contact/route.ts` sends the email first, then posts a copy to
+> `/api/v1/messages` through `lib/archive.ts`. The copy is awaited — a
+> serverless function can be frozen the moment it responds, so a floating
+> promise would be cut off — and its failure is swallowed and logged. The
+> message has already been delivered; telling the sender otherwise because a
+> database was asleep would be a lie. With `PORTFOLIO_API_URL` unset it does
+> nothing at all.
 
 ### Publish trigger
 

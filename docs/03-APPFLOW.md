@@ -76,6 +76,37 @@ at-rest geometry is written into the markup, so the cord is drawn correctly
 before the solver's first frame. The solver does not start until the splash has
 cleared and does not run while the hero is off screen.
 
+### The contact page
+
+One screen, no scrolling: the heading and the direct details on the left, the
+form on the right. They are a pair — a page whose entire job is "get in touch"
+should not need scrolling to show both ways of doing it. Below 1280px they
+stack, with the form above the address, because the form is what the visitor
+came to use.
+
+A **Back** control sits above the heading. It uses history when the previous
+entry is one of ours — checked by referrer origin, because `history.length > 1`
+is true for any tab that has been anywhere — and otherwise falls back to a plain
+link to `/`, which is also what it is before hydration and with JavaScript off.
+
+**Two delivery paths.** The form emails through Resend *and* posts a copy to the
+Laravel inbox, and it only reports failure when both fail. It used to be
+email-only, so a missing `RESEND_API_KEY` lost the message and told the sender
+it had failed. See `08-BACKEND.md` §5.
+
+### Feedback on every click
+
+`RouteVeil` covers the gap between a click and the next paint. Chrys's words:
+"it looks like nothing happened when I click something." It borrows the opening
+splash's language so a navigation reads as the same site, and it is capped three
+ways — path change, explicit done event, and a hard 1400ms ceiling. A veil that
+could strand someone behind it would be worse than no veil.
+
+It listens for link clicks on the document in the capture phase, so it still
+sees a click that a component then calls `preventDefault` on, and it is told
+explicitly about the two transitions that are not link clicks: the Back
+control's `router.back()`, and the contact form's submit.
+
 ### Refresh returns to the top
 
 `history.scrollRestoration` is set to `'manual'` in the head script, and the
