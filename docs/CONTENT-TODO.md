@@ -56,7 +56,7 @@ One or two sentences per role, in `content/site.ts`:
 | Role | Field |
 |------|-------|
 | Senior Full-Stack Developer, Almutakamela | `employment[0].learned` |
-| Senior PHP Developer, OmniQuest PH | `employment[1].learned` |
+| Senior Software Engineer, OmniQuest PH | `employment[1].learned` |
 | Web Developer, ThinkBit | `employment[2].learned` |
 | Mid Software Developer, TourismoPH | `employment[3].learned` |
 | Junior Web Developer, V. Zuniga | `employment[4].learned` |

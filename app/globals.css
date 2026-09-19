@@ -39,6 +39,25 @@
  * The grain is inverted here: a dark noise over a dark ground is invisible, so
  * it screens instead of multiplying.
  */
+/* The palette swap, crossfaded. ThemeToggle drives this through the View
+   Transition API; these rules only set its pace. The default root transition is
+   already a crossfade of the old and new frames, so nothing needs naming — it
+   just needs to be quicker than the 500ms default and to use the site's curve.
+   Unlayered on purpose: pseudo-elements this specific must not be reordered
+   under a Tailwind layer. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 :root[data-theme='dark'] {
   --color-ink: #eceae4;
   --color-ground: #14130f;
@@ -679,251 +698,206 @@
   }
 
   /* ----- hanging identity badge -----------------------------------------
-     A lanyard from the top of the stage, a clip, and a card that swings from
-     it. The card is the only element on the site with a radius other than zero
-     and with depth — it is a physical object being depicted, not a panel, and
+     A lanyard from the top of the stage, a swivel clip, and a card that hangs
+     off it. The geometry is written by the Verlet solver in IdCard.tsx — this
+     file only styles what that draws, and gives the at-rest appearance for the
+     case where the solver never runs.
+
+     The card is the only element on the site with a radius other than zero and
+     with depth. It is a physical object being depicted, not a panel, and
      docs/04-UIUX-BRIEF.md §4's flat rule is about the page's own surfaces.
   --------------------------------------------------------------------------- */
   .badge-mount {
     position: absolute;
     top: 0;
-    right: calc(var(--page-x) + 40px);
-    width: 250px;
+    /* Wider than the card so it can be pulled well off-centre and thrown. */
+    right: calc(var(--page-x) - 25px);
+    width: 380px;
     height: 100%;
     opacity: 0;
     pointer-events: none;
     will-change: transform, opacity;
   }
 
-  .badge {
+  .lanyard {
+    position: absolute;
+    inset: 0;
+    perspective: 1100px;
+  }
+
+  .lanyard__cord {
     position: absolute;
     top: 0;
-    left: 50%;
-    width: 250px;
-    margin-left: -125px;
-    perspective: 900px;
-  }
-
-  .badge__strap {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 86px;
-    height: 200px;
-    margin-left: -43px;
-    transform-origin: 50% 0;
-  }
-
-  /*
-   * Two tapes converging on the clip, with a seam down each so they read as
-   * woven webbing rather than two bars. They start above the stage and are
-   * clipped by it, which is what sells the lace as continuing off-screen.
-   */
-  .badge__tape {
-    position: absolute;
-    top: -40px;
-    width: 15px;
-    height: 226px;
-    background:
-      linear-gradient(
-        to right,
-        color-mix(in srgb, var(--color-ink) 78%, transparent) 0 38%,
-        color-mix(in srgb, var(--color-ink) 92%, transparent) 38% 62%,
-        color-mix(in srgb, var(--color-ink) 78%, transparent) 62% 100%
-      );
-  }
-
-  .badge__tape--l {
-    left: 14px;
-    transform-origin: 50% 0;
-    transform: rotate(9deg);
-  }
-
-  .badge__tape--r {
-    right: 14px;
-    transform-origin: 50% 0;
-    transform: rotate(-9deg);
-  }
-
-  /* The swivel clip the card actually hangs from. */
-  .badge__ring {
-    position: absolute;
-    top: 166px;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin-left: -10px;
-    border: 2.5px solid var(--color-muted);
-    border-radius: 50%;
-  }
-
-  .badge__ring::after {
-    content: '';
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    width: 11px;
-    height: 16px;
-    margin-left: -5.5px;
-    border: 2px solid var(--color-muted);
-    border-radius: 2px;
-    background: var(--color-ground);
-  }
-
-  .badge__pivot {
-    position: absolute;
-    top: 186px;
-    left: 50%;
-    width: 1px;
-    height: 1px;
-  }
-
-  .badge__card {
-    position: absolute;
-    top: 186px;
     left: 0;
-    width: 250px;
-    padding: 26px 0 0;
     overflow: hidden;
-    background: var(--color-surface);
-    border: 1px solid var(--color-rule);
-    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .lanyard__tape {
+    fill: var(--color-ink);
+  }
+
+  /* The wordmark printed along the webbing, riding the cord as it bends. */
+  .lanyard__print {
+    fill: var(--color-ground);
+    font-family: var(--font-body);
+    font-size: 7px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    opacity: 0.58;
+  }
+
+  .lanyard__clip {
+    fill: none;
+    stroke: var(--color-muted);
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+  }
+
+  .lanyard__clip rect:first-of-type {
+    fill: var(--color-ink);
+    stroke: none;
+  }
+
+  .lanyard__card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    /* minmax(0,...) or the body's min-content width overrides the 250px
+       and the card inflates to fit the longest line. */
+    grid-template-columns: 34px minmax(0, 1fr);
+    width: 250px;
+    padding-top: 22px;
+    background: var(--color-ink);
+    border-radius: 12px;
+    box-shadow:
+      0 2px 0 rgb(255 255 255 / 6%) inset,
+      0 22px 46px rgb(0 0 0 / 30%);
     transform-origin: 50% 0;
     transform-style: preserve-3d;
-    box-shadow: 0 18px 38px rgb(0 0 0 / 14%);
     cursor: grab;
     touch-action: none;
     user-select: none;
     pointer-events: auto;
+    /* At rest before the solver's first frame, so it is never mid-air. */
+    transform: translate3d(65px, 208px, 0);
   }
 
-  .badge__card[data-held='true'] {
+  .lanyard__card[data-held='true'] {
     cursor: grabbing;
   }
 
-  .badge__punch {
+  .lanyard__slot {
     position: absolute;
-    top: 11px;
+    top: 9px;
     left: 50%;
-    width: 46px;
-    height: 9px;
-    margin-left: -23px;
-    border: 1px solid var(--color-rule);
-    border-radius: 5px;
+    width: 44px;
+    height: 8px;
+    margin-left: -22px;
+    border-radius: 4px;
     background: var(--color-ground);
+    opacity: 0.16;
   }
 
-  /* Header band: the part that makes it read as a credential, not a note. */
-  .badge__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 7px 14px;
-    background: var(--color-ink);
-  }
-
-  .badge__wordmark {
+  /* Down the edge, as on the badges Chrys sent through. */
+  .lanyard__spine-mark {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    align-self: end;
+    padding: 0 0 18px 13px;
     font-family: var(--font-display);
     font-size: 0.9375rem;
-    font-weight: 400;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.3em;
     color: var(--color-ground);
   }
 
-  .badge__issue {
-    font-size: 0.625rem;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-ground);
-    opacity: 0.72;
+  .lanyard__body {
+    padding: 4px 16px 0 0;
   }
 
-  .badge__id {
+  .lanyard__id {
     display: grid;
-    grid-template-columns: 62px 1fr;
-    gap: 12px;
+    grid-template-columns: 56px 1fr;
+    gap: 11px;
     align-items: start;
-    padding: 14px;
+    padding-bottom: 13px;
   }
 
   /* Portrait frame. 4:5, the ratio an ID photo is actually shot at. */
-  .badge__photo {
+  .lanyard__photo {
     position: relative;
     aspect-ratio: 4 / 5;
     overflow: hidden;
-    background: var(--color-ground);
-    border: 1px solid var(--color-rule);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-ground) 14%, transparent);
     display: grid;
     place-items: center;
   }
 
-  .badge__photo img {
+  .lanyard__photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
   }
 
-  .badge__monogram {
+  .lanyard__monogram {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 400;
-    letter-spacing: 0.04em;
-    color: var(--color-faint);
+    font-size: 1.375rem;
+    color: var(--color-ground);
+    opacity: 0.5;
   }
 
-  .badge__name {
+  .lanyard__name {
     font-family: var(--font-display);
     font-size: 0.9375rem;
     font-weight: 600;
-    line-height: 1.22;
-    color: var(--color-ink);
+    line-height: 1.2;
+    color: var(--color-ground);
   }
 
-  .badge__role {
+  .lanyard__role {
     margin-top: 5px;
     font-size: 0.6875rem;
     line-height: 1.35;
-    color: var(--color-muted);
+    color: color-mix(in srgb, var(--color-ground) 68%, transparent);
   }
 
-  .badge__list {
+  .lanyard__list {
     display: grid;
     gap: 9px;
-    padding: 12px 14px;
-    border-top: 1px solid var(--color-rule);
+    padding: 12px 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-ground) 16%, transparent);
   }
 
   /* Stacked, not columnar: "Experience" and "Languages" are too long at this
      letter-spacing to sit beside their values in a 250px card. */
-  .badge__list > div {
+  .lanyard__list > div {
     display: grid;
     gap: 2px;
   }
 
-  .badge__list dt {
+  .lanyard__list dt {
     font-size: 0.5625rem;
     font-weight: 500;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-faint);
+    color: color-mix(in srgb, var(--color-ground) 55%, transparent);
   }
 
-  .badge__list dd {
+  .lanyard__list dd {
     font-size: 0.75rem;
     line-height: 1.35;
-    color: var(--color-ink);
+    color: var(--color-ground);
   }
 
-  .badge__foot {
-    padding: 9px 14px;
-    border-top: 1px solid var(--color-rule);
-    background: var(--color-ground);
+  .lanyard__foot {
+    padding: 9px 0 14px;
+    border-top: 1px solid color-mix(in srgb, var(--color-ground) 16%, transparent);
     font-size: 0.625rem;
     letter-spacing: 0.08em;
-    color: var(--color-faint);
+    color: color-mix(in srgb, var(--color-ground) 55%, transparent);
   }
 
   @media (max-width: 1279px) {

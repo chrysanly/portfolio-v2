@@ -154,7 +154,7 @@ export const employment = [
     period: 'Nov 2025 – present',
   },
   {
-    role: 'Senior PHP Developer',
+    role: 'Senior Software Engineer',
     company: 'OmniQuest PH (Unilab)',
     phase: 'Senior software engineer',
     learned: '[what I learned here]',

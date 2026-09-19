@@ -30,6 +30,14 @@ export function SplashDismiss() {
     const clear = () => {
       if (done) return;
       done = true;
+      /*
+       * The page starts at the beginning, every time. `history.scrollRestoration`
+       * is already 'manual' (see the head script in app/layout.tsx), but a
+       * reload can still leave an offset behind, and being dropped half way
+       * into a pinned scroll sequence reads as a broken page. A deep link to a
+       * fragment is the one case where the visitor did ask for a position.
+       */
+      if (!window.location.hash) window.scrollTo(0, 0);
       document.documentElement.dataset.ready = 'true';
     };
 

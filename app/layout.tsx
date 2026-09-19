@@ -51,10 +51,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           The theme is read from localStorage, falling back to the operating
           system preference, so the first paint is already correct and there is
           no flash of the wrong palette.
+
+          Scroll restoration is switched off here rather than on load. The
+          browser restores the old offset before anything of ours runs, and a
+          reload half way down a pinned hero drops you into the middle of a
+          scroll sequence with no context. Setting it to 'manual' in the head
+          means the restore never happens in the first place, so there is
+          nothing to undo and nothing to see being undone.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var d=document.documentElement.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off'}var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t}catch(e){}`,
+            __html: `try{if('scrollRestoration' in history)history.scrollRestoration='manual';var d=document.documentElement.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off'}var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t}catch(e){}`,
           }}
         />
       </head>

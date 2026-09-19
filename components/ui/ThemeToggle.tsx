@@ -24,13 +24,43 @@ export function ThemeToggle() {
 
   function toggle() {
     const target: Theme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(target);
-    document.documentElement.dataset.theme = target;
+
+    const apply = () => {
+      setTheme(target);
+      document.documentElement.dataset.theme = target;
+    };
+
     try {
       localStorage.setItem('theme', target);
     } catch {
       // Private mode or blocked storage: the choice simply will not persist.
     }
+
+    /*
+     * Swapping the palette changes eight custom properties on :root, which
+     * invalidates style for the whole document — every rule, the two grain
+     * layers, the atmosphere and the masthead all repaint in one frame, and on
+     * this page that is long enough to see.
+     *
+     * A view transition hands that to the compositor instead: the browser
+     * snapshots the old frame, applies the change while nothing is on screen,
+     * and crossfades two bitmaps. The repaint still happens, but it happens
+     * behind a still image rather than in front of the visitor.
+     *
+     * Where the API is missing the swap is simply instant, which is the right
+     * fallback — an instant change is not laggy, it is just abrupt.
+     */
+    const start = (
+      document as Document & {
+        startViewTransition?: (cb: () => void) => unknown;
+      }
+    ).startViewTransition;
+
+    if (!start || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      apply();
+      return;
+    }
+    start.call(document, apply);
   }
 
   // Nothing is rendered until the applied theme is known, so the button never

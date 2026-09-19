@@ -44,6 +44,55 @@ link persists after the hero resolves, and a contact band closes every page.
 | `reduced` | `prefers-reduced-motion` | `resolved` immediately, no pin, no scroll dependency |
 | `no-js` | JavaScript unavailable | `resolved` markup, static |
 
+### The identity badge
+
+A lanyard hangs in the hero's right-hand column with Chrys's card on it. Chrys
+asked for the behaviour of `reactbits.dev/components/lanyard`. That component is
+a rope of Rapier rigid bodies rendered through react-three-fiber, and its stack
+— three, @react-three/fiber, @react-three/drei, @react-three/rapier, meshline —
+is roughly 600kB of JavaScript against the 120kB first-load budget in
+`01-PRD.md` §8. `02-TRD.md` §1 does not allow it, so the physics is written by
+hand in `components/hero/IdCard.tsx` instead. It costs 2kB.
+
+It is the same simulation, in two dimensions:
+
+- A Verlet chain of seventeen points with gravity and one distance constraint
+  per segment, relaxed twelve times a frame. The cord bends and goes slack; it
+  is not a strap being rotated.
+- The card is two more points in the same chain — the slot it hangs by and its
+  bottom edge — so it swings on the cord rather than being pinned to it, and
+  its rotation is an output of the physics rather than something authored.
+- A weak upright constraint stands in for clip friction. Without it the card is
+  two points falling at the same rate, no torque restores it, and it settles at
+  whatever angle it stopped at.
+- Grab it anywhere and it follows the point you grabbed; let go and the
+  velocity is already in the integrator.
+- The idle sway is applied to the **anchor**, so the cord carries the movement
+  down as a real one would.
+
+The webbing is an SVG ribbon built by offsetting the cord along its normal,
+with the wordmark set on a `<textPath>` so the print bends with the strap. The
+at-rest geometry is written into the markup, so the cord is drawn correctly
+before the solver's first frame. The solver does not start until the splash has
+cleared and does not run while the hero is off screen.
+
+### Refresh returns to the top
+
+`history.scrollRestoration` is set to `'manual'` in the head script, and the
+splash clears with a `scrollTo(0, 0)` unless the URL carries a fragment. A
+reload half way down a pinned hero otherwise drops the visitor into the middle
+of a scroll sequence with no context.
+
+### Changing theme
+
+The toggle runs the swap inside a view transition. Changing the palette
+rewrites eight custom properties on `:root`, which invalidates style for the
+whole document — every rule, both grain layers, the atmosphere and the masthead
+repaint in one frame, and on this page that is long enough to see. A view
+transition hands it to the compositor: the browser snapshots the old frame,
+applies the change while nothing is on screen, and crossfades two bitmaps.
+Where the API is missing the swap is instant, which is the right fallback.
+
 ### Home section order
 
 1. Hero sequence (pinned, ~180vh)

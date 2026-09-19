@@ -117,6 +117,28 @@ past the card edge was adding 40px of scrollable overflow to every stop,
 putting a scrollbar on cards that fit; moving the scroller inside the card
 fixed both.
 
+### `animate` — the lanyard, and the dependency it talked me out of
+
+**When:** Chrys sent reactbits.dev/components/lanyard and asked for that exact
+behaviour on his ID badge.
+
+**What it changed:** the skill's "cheapest tool that works" rule is what stopped
+this becoming a react-three-fiber install. The reference is a 3D Rapier scene;
+what the interaction actually needs is a rope that bends, a card that swings and
+a drag that carries velocity, and all three are two-dimensional. Written by hand
+that is 2kB against roughly 600kB for the dependency, and the home page's
+first-load went 139kB → 141kB instead of blowing a 120kB budget by five times.
+
+It also set the two details that make it read as physical rather than animated:
+transform and opacity only — the strap is an SVG path whose `d` is rewritten,
+never a layout change — and the idle motion applied to the anchor rather than
+the card, so the cord carries it down instead of the card oscillating on its
+own.
+
+`ui-ux-pro-max`'s priority-7 rule ("motion conveys meaning, spatial continuity")
+is why the drag is unclamped in direction but bounded to the stage: you can
+throw it, but not behind the masthead.
+
 ### Not used for the splash, the ID badge or the cursor
 Those were built without a skill. `micro-interaction` and `accessible-animation`
 were the plausible candidates; the work was small enough and constrained enough

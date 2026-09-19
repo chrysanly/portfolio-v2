@@ -96,7 +96,13 @@ Used for the About page timeline. Not every role becomes a project.
 | Role | Company | Location | Period |
 |------|---------|----------|--------|
 | Senior Full-Stack Developer | Almutakamela Vehicle Testing and Registration | Dubai, UAE | Nov 2025 – present |
-| Senior PHP Developer | OmniQuest PH (Unilab) | Philippines | Mar 2025 – Aug 2025 |
+| Senior Software Engineer | OmniQuest PH (Unilab) | Philippines | Mar 2025 – Aug 2025 |
+
+> Chrys corrected this title on 19 Sep 2026: it was given here as
+> "Senior PHP Developer" and is now Senior Software Engineer. The role string
+> is also the key that attaches a project to a post, so it has to match
+> `content/projects/crm-systems-integration.mdx` exactly.
+
 | Web Developer | ThinkBit Solutions Phils. Inc | Philippines | Nov 2022 – Feb 2025 |
 | Mid Software Developer | TourismoPH | Philippines | Sep 2020 – Oct 2022 |
 | Junior Web Developer | V. Zuniga Logistics | Philippines | Nov 2018 – Dec 2020 |
@@ -151,7 +157,7 @@ Service Layer pattern, RBAC
 ```yaml
 type: integration
 year: 2025
-role: Senior PHP Developer
+role: Senior Software Engineer
 confidential: true
 sector: Pharmaceutical
 ```
