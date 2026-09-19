@@ -130,35 +130,58 @@ export const skillGroups = [
   },
 ] as const;
 
-/** docs/07-SOURCE-CONTENT.md §4. */
+/**
+ * docs/07-SOURCE-CONTENT.md §4, newest first.
+ *
+ * `phase` is the arc Chrys asked the journey to tell — web developer through
+ * to senior full-stack. It sits *beside* the real title rather than replacing
+ * it: the titles in §4 are verifiable employment facts that a recruiter will
+ * cross-check, and rewriting them would be a claim about his history rather
+ * than a framing of it. Edit these freely; they are editorial, not sourced.
+ *
+ * `learned` is a placeholder in the same spirit as [METRIC]: the source
+ * document records what Chrys built at each place but says nothing about what
+ * he took from it, and inventing that would be putting words in his mouth.
+ * One sentence each, from him, before launch. See docs/CONTENT-TODO.md.
+ */
 export const employment = [
   {
     role: 'Senior Full-Stack Developer',
     company: 'Almutakamela Vehicle Testing and Registration',
+    phase: 'Senior full-stack engineer',
+    learned: '[what I learned here]',
     location: 'Dubai, UAE',
     period: 'Nov 2025 – present',
   },
   {
     role: 'Senior PHP Developer',
     company: 'OmniQuest PH (Unilab)',
+    phase: 'Senior software engineer',
+    learned: '[what I learned here]',
     location: 'Philippines',
     period: 'Mar 2025 – Aug 2025',
   },
   {
     role: 'Web Developer',
     company: 'ThinkBit Solutions Phils. Inc',
+    phase: 'Full-stack developer',
+    learned: '[what I learned here]',
     location: 'Philippines',
     period: 'Nov 2022 – Feb 2025',
   },
   {
     role: 'Mid Software Developer',
     company: 'TourismoPH',
+    phase: 'Software engineer',
+    learned: '[what I learned here]',
     location: 'Philippines',
     period: 'Sep 2020 – Oct 2022',
   },
   {
     role: 'Junior Web Developer',
     company: 'V. Zuniga Logistics',
+    phase: 'Web developer',
+    learned: '[what I learned here]',
     location: 'Philippines',
     period: 'Nov 2018 – Dec 2020',
   },

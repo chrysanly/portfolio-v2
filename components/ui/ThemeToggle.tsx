@@ -18,16 +18,16 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-    setTheme(current);
+    const applied = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    setTheme(applied);
   }, []);
 
   function toggle() {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
+    const target: Theme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(target);
+    document.documentElement.dataset.theme = target;
     try {
-      localStorage.setItem('theme', next);
+      localStorage.setItem('theme', target);
     } catch {
       // Private mode or blocked storage: the choice simply will not persist.
     }
@@ -37,17 +37,36 @@ export function ThemeToggle() {
   // claims the wrong state during hydration.
   if (theme === null) return null;
 
+  const next: Theme = theme === 'dark' ? 'light' : 'dark';
+  const label = next === 'dark' ? 'Dark' : 'Light';
+
+  /*
+   * Sun and moon, drawn inline — docs/02-TRD.md §1 allows no icon package. Both
+   * glyphs stay in the DOM and crossfade, so the header never reflows on a
+   * swap. The visible word stays too: an icon-only control gives voice control
+   * nothing to say, and the accessible name has to contain the visible text or
+   * "click Light" fails.
+   */
   return (
     <button
       type="button"
       className="theme-toggle"
+      data-theme-next={next}
       onClick={toggle}
-      aria-pressed={theme === 'dark'}
-      aria-label="Dark theme"
-      title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-label={`${label} theme`}
     >
-      <span className="theme-toggle__dot" aria-hidden="true" />
-      <span className="theme-toggle__text">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+      <span className="theme-toggle__glyphs" aria-hidden="true">
+        <svg className="theme-toggle__sun" viewBox="0 0 24 24" focusable="false">
+          <circle cx="12" cy="12" r="4.4" />
+          <g strokeLinecap="round">
+            <path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+          </g>
+        </svg>
+        <svg className="theme-toggle__moon" viewBox="0 0 24 24" focusable="false">
+          <path d="M20.7 14.6A9 9 0 1 1 9.4 3.3a7.2 7.2 0 0 0 11.3 11.3Z" />
+        </svg>
+      </span>
+      <span className="theme-toggle__text">{label}</span>
     </button>
   );
 }

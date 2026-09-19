@@ -20,6 +20,13 @@
 beyond Framer Motion, icon package (inline SVG only), or analytics beyond a
 single privacy-preserving script. Ask first.
 
+**Brand marks** in the stack row are inline SVG path data in
+`content/tech-icons.ts`, generated once by `scripts/generate-tech-icons.mjs`
+from `simple-icons` and committed. The package is **not** a dependency — the
+rule above holds. They render in `currentColor`, never brand colours. AWS,
+Azure and Twilio have been withdrawn from simple-icons and are absent rather
+than approximated.
+
 A dependency that is strictly required to implement a choice already made in
 this table (a parser for the MDX content layer, a security patch release of a
 listed package) is pre-approved. Name it in your summary; do not stop to ask.
@@ -67,6 +74,44 @@ lib/
 | INP | ≤ 200ms |
 | JS shipped to the home route | ≤ 120KB gzipped |
 | Lighthouse Accessibility | 100, no exceptions |
+
+**The splash is a loading state, not a timer.** It was a fixed 1s hold, which
+delayed fast loads without waiting for slow ones — the worst of both. It now
+clears when the fonts and the document have finished loading, with a 420ms
+floor so a fast connection sees a deliberate beat rather than a flash, and a
+2.6s ceiling so a stalled asset cannot strand anyone. With scripting off a CSS
+animation clears it at the ceiling.
+
+Measured on the home route, same build:
+
+| Splash | Perf | LCP | Speed Index |
+|--------|------|-----|-------------|
+| Fixed 1s timer (old) | 89 | 3.1s | 4.5s |
+| Load-gated (current) | **94–95** | 2.8s | 2.4s |
+| Removed entirely | 100 | 1.1s | 0.9s |
+
+Speed Index nearly halved. What remains is inherent: while the hold is up it
+*is* the largest contentful paint, so LCP cannot land before it clears, and
+under Lighthouse's throttling the fonts take ~2.4s. LCP stays over this table's
+1.8s budget for as long as there is an opening hold at all.
+
+**Earlier measurement, for reference** (mobile, `next start`):
+
+| Route | Perf | A11y | BP | SEO | CLS |
+|-------|------|------|----|-----|-----|
+| `/` | 91 | 100 | 100 | 100 | 0.015 |
+| others | 97–98 | 100 | 100 | 100 | ≤0.004 |
+
+The home route misses `01-PRD.md` §8's ≥95 and this table's LCP ≤1.8s (it is
+~2.8s). The cause is the splash: for its first second the hold *is* the largest
+contentful paint, so LCP cannot land before it clears. Removing the hold
+returns home to 96–99 and LCP to ~1.5s; scoping it to the first visit per
+session would limit the cost to first loads. Chrys's call — currently it runs
+on every load, as asked.
+
+Home first-load JS is **124KB** against the 120KB budget. Framer Motion has to
+ship for the hero to server-render its markup, which is what keeps CLS at 0.015
+instead of 1.49.
 
 Framer Motion is imported only in the hero module so it stays out of every
 other route's bundle.

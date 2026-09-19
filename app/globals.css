@@ -9,7 +9,9 @@
   --color-ground: #eceae4;
   --color-surface: #f5f3ee;
   --color-muted: #55524b;
-  --color-faint: #83807a;
+  /* 4.68:1 on --ground. The previous #83807A measured 3.27:1 and was the one
+     thing keeping the light theme off a perfect accessibility score. */
+  --color-faint: #6a6762;
   --color-rule: #cfccc3;
   --color-accent: #7b2d2d;
 
@@ -298,18 +300,47 @@
     color: var(--color-accent);
   }
 
-  .theme-toggle__dot {
-    width: 9px;
-    height: 9px;
-    border: 1px solid currentColor;
-    background: transparent;
-    transition:
-      background-color 200ms ease,
-      border-color 200ms ease;
+  /*
+   * Both glyphs occupy the same cell and crossfade, so the header never
+   * reflows on a theme change and the swap reads as one object turning over.
+   */
+  .theme-toggle__glyphs {
+    position: relative;
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex: none;
   }
 
-  .theme-toggle[aria-pressed='true'] .theme-toggle__dot {
-    background: currentColor;
+  .theme-toggle__glyphs svg {
+    position: absolute;
+    inset: 0;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    transition:
+      opacity 260ms ease,
+      transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .theme-toggle__moon {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  /* Show the glyph for the theme the press will switch you to. */
+  .theme-toggle[data-theme-next='dark'] .theme-toggle__sun,
+  .theme-toggle[data-theme-next='light'] .theme-toggle__moon {
+    opacity: 0;
+    transform: rotate(-70deg) scale(0.6);
+  }
+
+  .theme-toggle[data-theme-next='dark'] .theme-toggle__moon,
+  .theme-toggle[data-theme-next='light'] .theme-toggle__sun {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
   }
 
   .site-nav {
@@ -422,10 +453,21 @@
     overflow: hidden;
   }
 
+  /*
+   * Fixed, not absolute: the location line reads as the left-hand counterpart
+   * to the theme toggle, so it has to sit on the header's centre line. The
+   * stage starts below the header and clips its overflow, so an absolutely
+   * positioned line inside it can never reach that row.
+   */
   .hero__eyebrow {
-    position: absolute;
-    top: 44px;
+    position: fixed;
+    top: 0;
     left: var(--page-x);
+    z-index: 19;
+    display: flex;
+    align-items: center;
+    height: var(--header-h);
+    margin: 0;
     font-size: var(--text-meta);
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -666,42 +708,66 @@
     position: absolute;
     top: 0;
     left: 50%;
-    width: 64px;
+    width: 86px;
     height: 200px;
-    margin-left: -32px;
+    margin-left: -43px;
     transform-origin: 50% 0;
   }
 
+  /*
+   * Two tapes converging on the clip, with a seam down each so they read as
+   * woven webbing rather than two bars. They start above the stage and are
+   * clipped by it, which is what sells the lace as continuing off-screen.
+   */
   .badge__tape {
     position: absolute;
-    top: 0;
-    width: 11px;
-    height: 174px;
-    background: var(--color-ink);
-    opacity: 0.88;
+    top: -40px;
+    width: 15px;
+    height: 226px;
+    background:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-ink) 78%, transparent) 0 38%,
+        color-mix(in srgb, var(--color-ink) 92%, transparent) 38% 62%,
+        color-mix(in srgb, var(--color-ink) 78%, transparent) 62% 100%
+      );
   }
 
   .badge__tape--l {
-    left: 6px;
+    left: 14px;
     transform-origin: 50% 0;
-    transform: rotate(7.5deg);
+    transform: rotate(9deg);
   }
 
   .badge__tape--r {
-    right: 6px;
+    right: 14px;
     transform-origin: 50% 0;
-    transform: rotate(-7.5deg);
+    transform: rotate(-9deg);
   }
 
+  /* The swivel clip the card actually hangs from. */
   .badge__ring {
     position: absolute;
-    top: 168px;
+    top: 166px;
     left: 50%;
-    width: 22px;
-    height: 22px;
-    margin-left: -11px;
-    border: 3px solid var(--color-muted);
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+    border: 2.5px solid var(--color-muted);
     border-radius: 50%;
+  }
+
+  .badge__ring::after {
+    content: '';
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    width: 11px;
+    height: 16px;
+    margin-left: -5.5px;
+    border: 2px solid var(--color-muted);
+    border-radius: 2px;
+    background: var(--color-ground);
   }
 
   .badge__pivot {
@@ -866,6 +932,714 @@
     }
   }
 
+  /* ----- scroll showcase --------------------------------------------------
+     One project at a time, pinned. The plain list underneath is what a visitor
+     gets with JavaScript off or reduced motion set, so this is additive: it is
+     hidden until the document is in motion mode, and the list is hidden once
+     the showcase can take over.
+  --------------------------------------------------------------------------- */
+  .showcase {
+    display: none;
+  }
+
+  [data-motion='on'] .showcase {
+    display: block;
+  }
+
+  [data-motion='on'] .work-list {
+    display: none;
+  }
+
+  .showcase__track {
+    position: relative;
+  }
+
+  .showcase__stage {
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100svh - var(--header-h));
+    overflow: hidden;
+  }
+
+  .panel {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-content: center;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .panel__count {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .panel__count span {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 600;
+    line-height: 0.9;
+    color: var(--color-ink);
+  }
+
+  .panel__count em {
+    font-style: normal;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+  }
+
+  .panel__count b {
+    margin-left: auto;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .panel__body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 48px;
+    align-items: center;
+    padding-top: 28px;
+  }
+
+  /* No screenshots yet: the text takes the full measure rather than sitting
+     beside an empty box. docs/04-UIUX-BRIEF.md forbids placeholder graphics. */
+  .panel[data-shots='false'] .panel__body {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 62rem;
+  }
+
+  .panel[data-shots='false'] .panel__figure {
+    display: none;
+  }
+
+  .panel__title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.6vw, 3.5rem);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  .panel__attr {
+    margin-top: 12px;
+    font-size: var(--text-body);
+    color: var(--color-faint);
+  }
+
+  .panel__summary {
+    margin-top: 20px;
+    max-width: 34em;
+    font-size: clamp(1.0625rem, 1.5vw, 1.375rem);
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .panel__meta {
+    display: grid;
+    gap: 10px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--color-rule);
+    max-width: 40em;
+  }
+
+  .panel__meta > div {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    align-items: baseline;
+  }
+
+  .panel__meta dt {
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .panel__meta dd {
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+
+  .panel__out {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .panel__out b {
+    font-family: var(--font-display);
+    font-size: clamp(1.875rem, 3.4vw, 2.75rem);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  .panel__out em {
+    font-style: normal;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+  }
+
+  /* ----- device rig -------------------------------------------------------
+     Laptop behind, phone overlapping at the left, tablet at the right — the
+     arrangement in the reference. Drawn in CSS so it recolours with the theme;
+     a mockup PNG would be stuck in one palette and would not survive dark mode.
+  --------------------------------------------------------------------------- */
+  .panel__figure {
+    display: grid;
+    place-items: center;
+    height: min(62svh, 620px);
+    will-change: transform;
+  }
+
+  .rig {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    aspect-ratio: 3 / 2;
+  }
+
+  .rig__laptop,
+  .rig__tablet,
+  .rig__phone {
+    position: absolute;
+    will-change: transform, opacity;
+  }
+
+  .rig__screen {
+    overflow: hidden;
+    background: var(--color-surface);
+    width: 100%;
+    height: 100%;
+  }
+
+  .rig__screen img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* --- laptop: lid, bezel, camera, base with a trackpad notch --- */
+  .rig__laptop {
+    left: 14%;
+    top: 4%;
+    width: 72%;
+  }
+
+  .rig__lid {
+    position: relative;
+    padding: 9px 9px 11px;
+    border: 1px solid var(--color-ink);
+    border-radius: 10px 10px 3px 3px;
+    background: var(--color-ink);
+  }
+
+  .rig__lid .rig__screen {
+    aspect-ratio: 1440 / 900;
+    border-radius: 2px;
+  }
+
+  .rig__cam {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-ground) 45%, transparent);
+  }
+
+  .rig__base {
+    position: relative;
+    height: 11px;
+    margin: 0 -7%;
+    border-radius: 0 0 7px 7px;
+    background: linear-gradient(
+      to bottom,
+      var(--color-ink) 0 55%,
+      color-mix(in srgb, var(--color-ink) 72%, var(--color-ground)) 55% 100%
+    );
+  }
+
+  .rig__notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 16%;
+    height: 3px;
+    margin-left: -8%;
+    border-radius: 0 0 4px 4px;
+    background: color-mix(in srgb, var(--color-ground) 55%, transparent);
+  }
+
+  /* --- tablet: right, portrait, sitting in front of the laptop --- */
+  .rig__tablet {
+    right: 0;
+    bottom: 2%;
+    width: 30%;
+    padding: 7px;
+    border: 1px solid var(--color-ink);
+    border-radius: 12px;
+    background: var(--color-ink);
+  }
+
+  .rig__tablet .rig__screen {
+    aspect-ratio: 768 / 1024;
+    border-radius: 6px;
+  }
+
+  /* --- phone: front left, the nearest object --- */
+  .rig__phone {
+    left: 0;
+    bottom: 0;
+    width: 17%;
+    padding: 5px;
+    border: 1px solid var(--color-ink);
+    border-radius: 14px;
+    background: var(--color-ink);
+  }
+
+  .rig__phone .rig__screen {
+    aspect-ratio: 390 / 844;
+    border-radius: 10px;
+  }
+
+  .rig__island {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    width: 30%;
+    height: 5px;
+    margin-left: -15%;
+    border-radius: 3px;
+    background: var(--color-ink);
+    z-index: 1;
+  }
+
+  @media (max-width: 1023px) {
+    .panel__body {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .panel__figure {
+      height: min(36svh, 320px);
+    }
+
+    .rig {
+      max-width: 460px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .panel__meta > div {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+
+    .panel__figure {
+      display: none;
+    }
+  }
+
+  /* ----- the journey, walked sideways --------------------------------------
+     Vertical scroll drives horizontal travel. The strip is translated, never
+     scrolled, so nothing reflows. With JS off or reduced motion the same cards
+     stack — the pin, the travel and the rail are all gated on [data-motion],
+     so there is one component and one set of markup.
+  --------------------------------------------------------------------------- */
+  .track-band {
+    padding-top: 8px;
+  }
+
+  .journey__strip {
+    display: grid;
+    gap: 22px;
+  }
+
+  .journey__stop {
+    position: relative;
+    padding: 26px 0;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .journey__ghost,
+  .journey__rail {
+    display: none;
+  }
+
+  [data-motion='on'] .journey {
+    position: relative;
+    height: calc(var(--stops) * 64vh);
+  }
+
+  [data-motion='on'] .journey__stage {
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100svh - var(--header-h));
+    display: flex;
+    /* Cards sit above the rail, not centred in the whole stage. */
+    align-items: center;
+    padding-bottom: 92px;
+    overflow: hidden;
+  }
+
+  [data-motion='on'] .journey__strip {
+    display: flex;
+    grid-template-columns: none;
+    /* Each card is its own height. Stretching them to match the tallest left
+       the short stops — the first job, the degree — as mostly empty panels. */
+    align-items: center;
+    gap: 26px;
+    width: max-content;
+    /* Half a card of lead-in and run-out, so the first stop opens at the centre
+       and the last one closes there. With a flat page gutter the degree and the
+       current post sat at the edges and never became the card being read. */
+    --card-w: min(560px, 82vw);
+    padding-inline: max(var(--page-x), calc(50vw - var(--card-w) / 2));
+    will-change: transform;
+  }
+
+  [data-motion='on'] .journey__stop {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--card-w);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-top: 3px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+    will-change: transform, opacity;
+    transition:
+      border-top-color 320ms ease,
+      background-color 320ms ease;
+  }
+
+  /* The card at the centre is the one being read. */
+  [data-motion='on'] .journey__stop[data-current='true'] {
+    border-top-color: var(--color-accent);
+    background: var(--color-surface);
+  }
+
+  /* A short laptop screen cannot hold the longest stop whatever the budget,
+     and silently cutting the last contributions off the bottom is worse than a
+     scrollbar. Contained, so the wheel cannot escape and skip the whole run. */
+  [data-motion='on'] .journey__body {
+    max-height: calc(100svh - var(--header-h) - 130px);
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding: 26px 28px 28px;
+  }
+
+  /* A chapter numeral behind the card — depth without a shadow. */
+  [data-motion='on'] .journey__ghost {
+    display: block;
+    position: absolute;
+    right: 14px;
+    /* Bleeds past the bottom edge and is clipped by the card. Safe now that
+       the scroller is the body: a decorative glyph no longer puts a scrollbar
+       on stops that fit. */
+    bottom: -18px;
+    font-family: var(--font-display);
+    font-size: 8rem;
+    font-weight: 600;
+    line-height: 0.8;
+    color: var(--color-ink);
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  /* ----- the rail: pinned to the stage, with a tick per stop --------------- */
+  [data-motion='on'] .journey__rail {
+    display: block;
+    position: absolute;
+    left: var(--page-x);
+    right: var(--page-x);
+    bottom: 26px;
+  }
+
+  .journey__line {
+    display: block;
+    height: 2px;
+    background: var(--color-rule);
+  }
+
+  .journey__bar {
+    display: block;
+    height: 2px;
+    background: var(--color-accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
+  .journey__ticks {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    margin-top: 12px;
+  }
+
+  /* The inactive ticks are quietened with colour, not opacity. Dimming a 9px
+     caption to 40% put it at 1.7:1 — unreadable, and a contrast failure on a
+     label that is meant to tell you where you are. */
+  .journey__ticks li {
+    display: grid;
+    gap: 3px;
+    padding-right: 14px;
+  }
+
+  .journey__ticks b {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+    transition: color 320ms ease;
+  }
+
+  .journey__ticks li[data-current='true'] b {
+    color: var(--color-accent);
+  }
+
+  .journey__ticks em {
+    font-style: normal;
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    transition: color 320ms ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .journey__ticks li[data-current='true'] em {
+    color: var(--color-ink);
+  }
+
+  /* ----- card contents ---------------------------------------------------- */
+  .journey__mark {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .journey__mark b {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-ink);
+  }
+
+  .journey__mark span {
+    font-size: var(--text-small);
+    color: var(--color-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The arc Chrys asked for, beside the real title rather than instead of it. */
+  .journey__phase {
+    margin-top: 14px;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .journey__title {
+    margin-top: 5px;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.22;
+    color: var(--color-ink);
+  }
+
+  .journey__place {
+    margin-top: 4px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  /*
+   * The degree opens the run and is deliberately plain: no card, no rule, no
+   * chapter numeral. It is where the story starts, not a post held — giving it
+   * the same panel treatment as a job overstated it and left a mostly empty
+   * box, which is what the first pass looked like.
+   */
+  [data-motion='on'] .journey__stop[data-kind='education'] {
+    width: min(360px, 74vw);
+    /* The lead-in reserves a full card's width; this recentres the narrower
+       education stop inside it so it opens on the middle of the screen. */
+    margin-left: calc((var(--card-w) - min(360px, 74vw)) / 2);
+    border: 0;
+    background: none;
+  }
+
+  [data-motion='on'] .journey__stop[data-kind='education'] .journey__body {
+    padding: 0 28px 0 0;
+  }
+
+  [data-motion='on'] .journey__stop[data-kind='education'] .journey__ghost {
+    display: none;
+  }
+
+  .journey__stop[data-kind='education'] .journey__mark {
+    border-bottom: 0;
+    padding-bottom: 4px;
+  }
+
+  .journey__stop[data-kind='education'] .journey__title {
+    margin-top: 10px;
+    font-family: var(--font-display);
+    font-size: clamp(1.625rem, 3vw, 2.25rem);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .journey__stop[data-kind='education'] .journey__place {
+    margin-top: 8px;
+    font-size: var(--text-body);
+  }
+
+  .journey__tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 14px;
+  }
+
+  .journey__tech li {
+    padding: 3px 8px;
+    border: 1px solid var(--color-rule);
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    color: var(--color-muted);
+  }
+
+  .journey__work {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .journey__work-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+
+  .journey__work-head b {
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  /* The marker is on the work, not the employer: docs/07-SOURCE-CONTENT.md
+     §5.8 is explicit that employment is public and detail is what is closed. */
+  .journey__work-head em {
+    font-style: normal;
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border: 1px solid var(--color-rule);
+    color: var(--color-faint);
+  }
+
+  .journey__work-head em[data-nda='true'] {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+    color: var(--color-accent);
+  }
+
+  .journey__did {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  /* The contributions are what make the late stops tall enough to clip on a
+     short screen. Two columns halves that without dropping a single line. */
+  [data-motion='on'] .journey__did {
+    display: block;
+    columns: 2;
+    column-gap: 22px;
+  }
+
+  [data-motion='on'] .journey__did li {
+    break-inside: avoid;
+    margin-bottom: 7px;
+  }
+
+  .journey__did li {
+    position: relative;
+    padding-left: 15px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+
+  /* A rule, not a bullet glyph — the index already uses rules to mean "entry". */
+  .journey__did li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 8px;
+    height: 1px;
+    background: var(--color-rule);
+  }
+
+  .journey__learned {
+    margin-top: 16px;
+    padding: 11px 13px;
+    border-left: 2px solid var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+
+  .journey__learned span {
+    display: block;
+    margin-bottom: 3px;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .track__foot {
+    padding-top: 22px;
+    font-size: var(--text-body);
+    color: var(--color-muted);
+  }
+
   /* ----- stack marquee ---------------------------------------------------- */
   .stack-band {
     padding: 8px 0 44px;
@@ -982,11 +1756,17 @@
   }
 
   /* ----- work index row — docs/04-UIUX-BRIEF.md §4 ------------------------ */
+  /*
+   * A grid, not a flex row: with flex, a title that wraps to two lines drops
+   * its neighbours out of alignment and every row finds its own rhythm. Grid
+   * columns line up across the whole index however the content falls.
+   */
   .row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 44px minmax(220px, 300px) minmax(160px, 240px) 1fr 132px;
     gap: 22px;
-    align-items: baseline;
-    padding: 24px 0;
+    align-items: start;
+    padding: 26px 0;
     border-top: 1px solid var(--color-rule);
     transition: background-color 120ms ease;
   }
@@ -1004,55 +1784,85 @@
     background: var(--color-surface);
   }
 
+  /*
+   * The title sets the first baseline; everything else is nudged down to meet
+   * it. Top-aligning alone leaves the small text floating above the title's
+   * cap height, which is what made the rows read as a misaligned table.
+   */
+  .row > *:not(.row__title) {
+    padding-top: 7px;
+  }
+
   .row__no {
-    width: 44px;
-    flex: none;
     font-size: var(--text-small);
+    font-variant-numeric: tabular-nums;
     color: var(--color-faint);
   }
 
   .row__title {
-    width: 300px;
-    flex: none;
     font-family: var(--font-display);
     font-size: 27px;
     font-weight: 600;
     line-height: 1.15;
+    text-wrap: balance;
   }
 
   .row__client {
-    width: 240px;
-    flex: none;
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--color-muted);
   }
 
-  .row__client em {
+  .row__client em,
+  .row__role,
+  .row__stack {
     display: block;
     font-style: normal;
     font-size: 0.75rem;
+    line-height: 1.45;
     color: var(--color-faint);
   }
 
+  .row__role {
+    margin-top: 6px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  .row__stack {
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .row__scope {
-    flex: 1 1 auto;
+    max-width: 46ch;
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--color-muted);
   }
 
   .row__out {
-    width: 132px;
-    flex: none;
     text-align: right;
   }
 
+  /*
+   * docs/03-APPFLOW.md §4: the outcome figure takes the accent colour on
+   * hover and focus. At rest it is ink — four accent figures stacked down the
+   * index is the loudest thing on the page, and §2 caps oxblood at roughly 5%
+   * of a screen.
+   */
   .row__out b {
     display: block;
     font-family: var(--font-display);
     font-size: var(--text-figure);
     font-weight: 600;
+    color: var(--color-ink);
+    transition: color 120ms ease;
+  }
+
+  .row:hover .row__out b,
+  .row:focus-visible .row__out b {
     color: var(--color-accent);
   }
 
@@ -1266,6 +2076,112 @@
   }
 }
 
+@layer components {
+  /*
+   * The opening hold. Dismissed entirely in CSS so it clears with scripting
+   * off, and `visibility: hidden` at the end of the keyframes takes it out of
+   * hit-testing — pointer-events is not animatable, visibility is.
+   *
+   * It sits above everything except nothing: the cursor spot is z-index 90, so
+   * 200 keeps the hold over it too.
+   */
+  /*
+   * The opening hold is a loading state, not a timer. It clears the moment the
+   * fonts and the document are ready — SplashDismiss sets data-ready — with a
+   * floor so a fast load still reads as a deliberate beat and a ceiling so a
+   * stalled asset cannot strand anyone.
+   *
+   * The animation below is the no-JS path only: it fires after the ceiling, so
+   * the hold always clears even with scripting off. `visibility` is used rather
+   * than pointer-events because only the former is animatable, and a hidden
+   * element is not hit-tested.
+   */
+  .splash {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 28px;
+    background: var(--color-ground);
+    animation: splash-out 1ms linear 2600ms forwards;
+    transition:
+      opacity 420ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 420ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :root[data-ready] .splash {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .splash__mark {
+    display: flex;
+    gap: 0.09em;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(38px, 7vw, 76px);
+    line-height: 1;
+    color: var(--color-ink);
+  }
+
+  .splash__mark span {
+    display: block;
+    opacity: 0;
+    animation: splash-letter 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .splash__rule {
+    width: clamp(120px, 18vw, 200px);
+    height: 1px;
+    background: var(--color-rule);
+    overflow: hidden;
+  }
+
+  /* Eases toward full while loading, then completes the moment it is ready —
+     so the rule reports progress rather than counting down a fixed second. */
+  .splash__rule span {
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: var(--color-accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    animation: splash-fill 2400ms cubic-bezier(0.12, 0.8, 0.25, 1) forwards;
+  }
+
+  :root[data-ready] .splash__rule span {
+    animation: none;
+    transform: scaleX(1);
+    transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @keyframes splash-out {
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  @keyframes splash-letter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.22em, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes splash-fill {
+    to {
+      transform: scaleX(0.92);
+    }
+  }
+}
+
 @layer utilities {
   .visually-hidden {
     position: absolute;
@@ -1307,14 +2223,54 @@
  * first paint and costs no layout shift. With JS off or reduced motion set the
  * attribute is never added and the document keeps its natural flow.
  */
+/*
+ * The pinned stage is a full viewport, and once the ledger clears it is a
+ * screenful of nothing between the masthead docking and Selected Work. Pulling
+ * the work index up over that dead stage removes it — but at this overlap it
+ * would otherwise sit on top of the sequence the whole way down, so it is held
+ * at zero opacity and revealed as the hero resolves. `--work-in` is written by
+ * the hero's paint function.
+ *
+ * With JS off or reduced motion set, neither the margin nor the opacity applies
+ * and the document keeps its natural flow.
+ */
 [data-motion='on'] .hero + main {
-  margin-top: -30svh;
+  margin-top: -88svh;
+  opacity: var(--work-in, 1);
+  transform: translate3d(0, calc((1 - var(--work-in, 1)) * 26px), 0);
+}
+
+[data-motion='on'] .hero + main[data-veiled='true'] {
+  pointer-events: none;
 }
 
 .hero [class~='sticky'] {
   top: var(--header-h);
   height: calc(100vh - var(--header-h));
   height: calc(100svh - var(--header-h));
+}
+
+/* A laptop screen is often 720–800 tall. The journey's tallest stops need the
+   vertical budget back, or the last of the contributions gets clipped off the
+   bottom of the card — measured, not guessed: at 720 the current post overran
+   by 31px before this block. */
+@media (max-height: 800px) {
+  [data-motion='on'] .journey__stage {
+    padding-bottom: 80px;
+  }
+
+  [data-motion='on'] .journey__body {
+    max-height: calc(100svh - var(--header-h) - 108px);
+    padding: 20px 22px 22px;
+  }
+
+  [data-motion='on'] .journey__stop[data-kind='education'] .journey__body {
+    padding: 0 22px 0 0;
+  }
+
+  .journey__ticks em {
+    display: none;
+  }
 }
 
 @media (max-height: 780px) {
@@ -1332,12 +2288,9 @@
 }
 
 @media (max-width: 1279px) {
-  .row__title {
-    width: 240px;
-  }
-
-  .row__client {
-    width: 180px;
+  .row {
+    grid-template-columns: 40px minmax(180px, 240px) minmax(140px, 180px) 1fr 120px;
+    gap: 18px;
   }
 }
 
@@ -1364,21 +2317,39 @@
   }
 
   .row {
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
     gap: 8px;
+    padding: 22px 0;
   }
 
-  .row__no,
-  .row__title,
-  .row__client,
-  .row__scope,
-  .row__out {
-    width: 100%;
+  .row > *:not(.row__title) {
+    padding-top: 0;
   }
 
   .row__out {
     text-align: left;
-    padding-top: 8px;
+    padding-top: 6px;
+  }
+
+  [data-motion='on'] .journey__strip {
+    --card-w: 84vw;
+  }
+
+  /* One column on a phone — 84vw is not wide enough to pair the bullets. */
+  [data-motion='on'] .journey__did {
+    columns: 1;
+  }
+
+  [data-motion='on'] .journey__body {
+    padding: 22px 20px 24px;
+  }
+
+  [data-motion='on'] .journey__ghost {
+    font-size: 5rem;
+  }
+
+  .journey__ticks em {
+    display: none;
   }
 
   .progress {
@@ -1403,6 +2374,24 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /*
+   * The hold still happens — it is a deliberate beat, not decoration — but it
+   * cuts rather than fades, and the letters and rule simply appear.
+   */
+  .splash {
+    transition: none !important;
+  }
+
+  .splash__mark span {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  .splash__rule span {
+    transform: scaleX(1) !important;
+    animation: none !important;
+  }
+
   /* The grain is static, but the hover lift and theme fade are not. */
   .masthead span > span,
   body {

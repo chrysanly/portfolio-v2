@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Bodoni_Moda, Public_Sans } from 'next/font/google';
 import { site } from '@/content/site';
 import { CursorDot } from '@/components/ui/CursorDot';
+import { Splash } from '@/components/ui/Splash';
+import { SplashDismiss } from '@/components/ui/SplashDismiss';
 import './globals.css';
 
 const bodoni = Bodoni_Moda({
@@ -57,6 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <Splash />
+        <SplashDismiss />
         <a className="skip" href="#content">
           Skip to content
         </a>

@@ -11,10 +11,36 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   integration: 'Integration',
 };
 
+export const DEVICES = ['laptop', 'tablet', 'mobile'] as const;
+export type Device = (typeof DEVICES)[number];
+
+/**
+ * The exact pixel box each frame expects, so a screenshot drops in without
+ * being letterboxed and a backend can generate the right crop.
+ *
+ * These are real viewport sizes, not arbitrary ratios: a 16:10 laptop, a 4:3
+ * tablet and a 390x844 phone. The frame's CSS aspect-ratio is derived from
+ * these numbers — change them here and the frames follow.
+ */
+export const DEVICE_SIZES: Record<Device, { width: number; height: number }> = {
+  laptop: { width: 1440, height: 900 },
+  tablet: { width: 1024, height: 768 },
+  mobile: { width: 390, height: 844 },
+};
+
 export const projectImageSchema = z.object({
   src: z.string().min(1),
   alt: z.string().min(1, 'alt is required — never generate it from the filename'),
   caption: z.string().optional(),
+  /** Which frame the showcase renders this in. */
+  device: z.enum(DEVICES).default('laptop'),
+  /**
+   * Intrinsic size. Optional because DEVICE_SIZES supplies the default, but
+   * worth setting when a backend serves the file: the browser reserves the box
+   * before the image arrives, so a slow image cannot shift the layout.
+   */
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
 });
 
 export const outcomeSchema = z.object({
@@ -45,6 +71,12 @@ export const projectFrontmatterSchema = z
     summary: z.string().min(1).max(200),
     outcome: outcomeSchema,
     stack: z.array(z.string().min(1)).min(1).max(12),
+    /**
+     * What was actually built, verbatim from that project's "Approach
+     * material" bullets in docs/07-SOURCE-CONTENT.md §5. Shown in the journey
+     * under the role it was built in.
+     */
+    contributions: z.array(z.string().min(1)).max(8).default([]),
     images: z.array(projectImageSchema).default([]),
     featured: z.boolean(),
     order: z.number().int().min(0),

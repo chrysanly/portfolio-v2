@@ -49,7 +49,10 @@ and availability. Needs those visible without scrolling far.
 | F9 | Projects added by editing a content file, no code changes | Must |
 | F10 | Filter the work index by project type, as static routes | Should |
 | F11 | Résumé download | Should |
-| F12 | Dark theme | Could |
+| F12 | Dark theme | **Shipped** — light and dark with a header toggle |
+| F14 | Experience timeline on the home route | **Shipped** |
+| F15 | Technology marquee on the home route | **Shipped** |
+| F16 | Opening splash hold, 1s | **Shipped** — costs the §8.4 performance target, see `02-TRD.md` §4 |
 | F13 | Arabic localisation | Won't (this version) |
 
 ## 6. Content requirements

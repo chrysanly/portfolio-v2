@@ -29,6 +29,10 @@ export function HeroMount() {
     const root = document.documentElement;
     return () => {
       delete root.dataset.heroHandoff;
+      // The work index reveal is driven from the hero; leaving it set would
+      // strand the index at whatever opacity the sequence last wrote.
+      root.style.removeProperty('--work-in');
+      document.getElementById('content')?.removeAttribute('data-veiled');
     };
   }, []);
 

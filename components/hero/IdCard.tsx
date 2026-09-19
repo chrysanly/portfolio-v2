@@ -51,6 +51,16 @@ export function IdCard() {
     const TWIST_SPRING = 0.02;
     const TWIST_DAMP = 0.94;
 
+    /*
+     * A lanyard never hangs perfectly still. Two slow sines at unrelated
+     * periods keep it drifting without ever repeating visibly, so the badge
+     * stays alive after the physics has settled instead of freezing straight.
+     * It is additive, so a drag still reads as a drag.
+     */
+    const started = performance.now();
+    const idleSwing = (t: number) => Math.sin(t * 0.55) * 0.75 + Math.sin(t * 0.31) * 0.42;
+    const idleTwist = (t: number) => Math.sin(t * 0.42 + 1.1) * 2.6 + Math.sin(t * 0.23) * 1.4;
+
     const pivotPoint = () => {
       const r = pivot.getBoundingClientRect();
       return { x: r.left + r.width / 2, y: r.top };
@@ -109,8 +119,13 @@ export function IdCard() {
       twist += twistVel;
       twist = Math.max(-38, Math.min(38, twist));
 
-      card.style.transform = `rotate(${swing.toFixed(2)}deg) rotateY(${twist.toFixed(2)}deg)`;
-      if (strap) strap.style.transform = `rotate(${(swing * 0.42).toFixed(2)}deg)`;
+      const t = (performance.now() - started) / 1000;
+      const drift = dragging ? 0 : 1;
+      const z = swing + idleSwing(t) * drift;
+      const y = twist + idleTwist(t) * drift;
+
+      card.style.transform = `rotate(${z.toFixed(2)}deg) rotateY(${y.toFixed(2)}deg)`;
+      if (strap) strap.style.transform = `rotate(${(z * 0.42).toFixed(2)}deg)`;
       frame = requestAnimationFrame(tick);
     };
 

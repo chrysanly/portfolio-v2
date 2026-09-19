@@ -35,9 +35,20 @@ before writing code.
 4. **NDA is a hard constraint.** Several projects cannot name their client or
    show screenshots. Every component that displays a project must render
    correctly with `client: null` and `images: []`. See `05-DATA-SCHEMA.md`,
-   and `07-SOURCE-CONTENT.md` §5.7 for which projects are affected.
+   and `07-SOURCE-CONTENT.md` §5.8 for which projects are affected.
 5. **Ask before adding dependencies** beyond those listed in `02-TRD.md`.
 6. **State assumptions** in your response, not in code comments that will rot.
+
+## The spec has been amended
+
+`01-PRD.md`, `02-TRD.md`, `03-APPFLOW.md` and `04-UIUX-BRIEF.md` were updated
+after the build to match what was actually shipped, with Chrys's authorisation.
+`04-UIUX-BRIEF.md` §8b is the list of design decisions that differ from the
+original direction and why. Rule 3 below still stands for everything else.
+
+Two documents record open work rather than settled decisions:
+`CONTENT-TODO.md` (every placeholder still in the built output, and the résumé
+PDF that must not be published as-is) and `SKILLS-USED.md`.
 
 ## One-line summary
 

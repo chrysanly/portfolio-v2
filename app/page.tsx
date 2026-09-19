@@ -5,7 +5,9 @@ import { StaticIntro } from '@/components/hero/StaticIntro';
 import { HeroMount } from '@/components/hero/HeroMount';
 import { WorkIndexRow } from '@/components/work/WorkIndexRow';
 import { TechMarquee } from '@/components/ui/TechMarquee';
-import { getFeaturedProjects } from '@/lib/projects';
+import { ExperienceTimeline } from '@/components/work/ExperienceTimeline';
+import { WorkShowcase } from '@/components/work/WorkShowcase';
+import { attribution, getFeaturedProjects } from '@/lib/projects';
 import { site } from '@/content/site';
 
 /**
@@ -30,18 +32,35 @@ function personJsonLd() {
 export default function HomePage() {
   const projects = getFeaturedProjects();
 
+  // Only what the showcase renders — the MDX body would otherwise be serialised
+  // into the client payload for no reason.
+  const showcase = projects.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    type: p.type,
+    year: p.year,
+    role: p.role,
+    summary: p.summary,
+    stack: p.stack,
+    outcome: p.outcome,
+    images: p.images,
+    attribution: attribution(p),
+  }));
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd()) }}
       />
-      <SiteHeader />
+      <SiteHeader minimal />
       <StaticIntro />
       <HeroMount />
 
       <main id="content" style={{ paddingBottom: '0' }}>
-        <div className="wrap">
+        <WorkShowcase projects={showcase} />
+
+        <div className="wrap work-list">
           <h2 className="section-label">Selected work</h2>
           {projects.length === 0 ? (
             <p className="prose-body">Project entries are on their way.</p>
@@ -56,6 +75,7 @@ export default function HomePage() {
             </Link>
           </p>
         </div>
+        <ExperienceTimeline />
         <TechMarquee />
         <ContactBand />
       </main>

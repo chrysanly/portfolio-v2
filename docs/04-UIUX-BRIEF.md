@@ -147,6 +147,39 @@ Focus ring: 2px `--accent`, 2px offset, on every interactive element.
 | 768–1279px | Margins to 40px, masthead 150px → 26px |
 | < 768px | Single column, margins 20px, index rows stack, masthead 84px → 22px |
 
+## 8b. Changes made during the build
+
+This document was settled before the first build. These are the points where
+the built site now differs, each with its reason. They are decisions Chrys
+approved, not drift.
+
+| Item | Spec said | Built | Why |
+|------|-----------|-------|-----|
+| Hero track | ~200vh | **180vh** | §5.6 warns the sequence must not be a wall; the shorter track ends into Selected Work instead of dead scroll |
+| Masthead in stages A–B | moves centre to upper-left | stays **horizontally centred**, docks left only in stage C | Chrys's direction |
+| Outcome figure | accent (§2) | **ink at rest, accent on hover** | `03-APPFLOW.md` §4 already specified accent on hover; four accent figures down the index broke the ~5% oxblood cap in §2 |
+| Ground | flat colour | flat colour **plus a two-layer inline grain**, the coarse layer drifting | Chrys's direction; no gradient, no image dependency |
+| Cursor | not specified | a spot that inverts by `mix-blend-mode: difference` | Chrys's direction; one treatment legible on both themes |
+| Border radius | 0 everywhere | 0 everywhere **except** the cursor spot and the identity badge | A round cursor is an affordance, not visual language; the badge depicts a physical object |
+| Shadows | none | none **except** the identity badge | Same reason |
+| Theme | light only | **light and dark, with a toggle** | `01-PRD.md` F12, brought forward from the post-launch backlog |
+| Opening | none | **A load-gated splash** | Chrys's direction. Clears when fonts and document are ready, 420ms floor, 2.6s ceiling — see `02-TRD.md` §4 |
+| Home header | logo, nav, contact | **Logo and theme toggle only** | Chrys's direction; home carries its own links. Other routes keep the nav |
+| Experience | not specified | **A horizontal journey**, vertical scroll driving sideways travel | Chrys's direction; a career is a path, and an axis says that better than a stack of rows |
+
+### Dark palette
+
+Measured against its own ground: ink 15.5:1, muted 7.5:1, faint 5.2:1,
+accent 5.4:1. The accent is oxblood lifted toward terracotta because `#7B2D2D`
+sits at 1.5:1 on a dark ground and fails as a link colour.
+
+**The light `--faint` in §2 is annotated 4.6:1 but measures 3.27:1 on
+`--ground`.** It is the only WCAG failure left on the site and the only reason
+light mode scores 95 rather than 100 for accessibility. `--muted`'s 7.1:1 is
+also its ratio against `--surface`, not `--ground` (6.48:1). Both figures look
+to have been taken against the wrong background. Unresolved — see
+`CONTENT-TODO.md`.
+
 ## 9. Honest note for the build
 
 This direction sits close to a recognisable "editorial AI portfolio" look —

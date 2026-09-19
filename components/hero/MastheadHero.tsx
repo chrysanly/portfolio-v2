@@ -67,6 +67,16 @@ const CARD_START = 0.24;
 const HANDOVER_FROM = 0.78;
 const HANDOVER_TO = 0.86;
 
+/*
+ * The work index is pulled up over the emptied stage (see globals.css), so it
+ * has to stay invisible until the sequence has resolved or it would sit on top
+ * of the ledger the whole way down. This is the one section reveal on the site;
+ * docs/04-UIUX-BRIEF.md §6 rules out scroll-triggered fades elsewhere, and that
+ * still holds — it exists to hide an overlap, not to decorate an entrance.
+ */
+const WORK_IN_FROM = 0.8;
+const WORK_IN_TO = 0.95;
+
 /** Two-segment ease: hold, travel to the stage B value, then on to 1. */
 const stage = (p: number, atB: number) =>
   p <= HOLD_END
@@ -299,7 +309,16 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
     if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
 
     // Hand the masthead over to the real sticky header at the very end.
-    document.documentElement.dataset.heroHandoff = handover > 0.35 ? 'on' : 'off';
+    const root = document.documentElement;
+    root.dataset.heroHandoff = handover > 0.35 ? 'on' : 'off';
+
+    const workIn = ease(span(p, WORK_IN_FROM, WORK_IN_TO));
+    root.style.setProperty('--work-in', workIn.toFixed(3));
+    const main = document.getElementById('content');
+    if (main) {
+      if (workIn < 0.02) main.dataset.veiled = 'true';
+      else delete main.dataset.veiled;
+    }
   }, []);
 
   paintRef.current = paint;

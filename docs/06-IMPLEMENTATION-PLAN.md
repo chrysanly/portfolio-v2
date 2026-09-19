@@ -144,8 +144,8 @@ The site does not go live while any of these remain:
 4. Any project has fewer than two real sentences under `## Problem`.
 5. Zero screenshots across the entire site — at minimum the document parsing
    engine and devio need visual evidence, since both permit it.
-6. The NDA decision in `07-SOURCE-CONTENT.md` §5.7 has not been made for each
-   client project.
+6. The NDA decision in `07-SOURCE-CONTENT.md` **§5.8** has not been made for
+   each client project. (§5.7 is now `portfolio-backend`.)
 7. Date of birth or civil status appears anywhere in the built output. Grep
    for them before deploying.
 

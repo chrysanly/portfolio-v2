@@ -21,6 +21,8 @@ Mapped to the launch blockers in `06-IMPLEMENTATION-PLAN.md`:
 | 5 — zero screenshots site-wide | §6 |
 | 6 — NDA decision not made per project | §7 |
 | 7 — date of birth or civil status in the output | **clear in the built site**; NOT clear in `docs/resume.pdf` — see §5 |
+| — placeholders on every project | **live now, intentional until the backend lands** — see §6a |
+| — `[what I learned here]` x5 | see §1b |
 
 §4 (devio's stack) and §5 (the missing résumé) are not numbered blockers but
 both must be resolved before launch.
@@ -39,6 +41,29 @@ appear in any built page — nothing on the site links to LinkedIn. Supplying th
 URL alone will not make it visible. Tell me where it should go (About, the
 contact page, the `Person` JSON-LD `sameAs` array, or all three) and I will wire
 it up. I did not choose a placement for you.
+
+---
+
+## 1b. `[what I learned here]` — five roles
+
+The journey on the home route asks a question the source document cannot
+answer. `07-SOURCE-CONTENT.md` §4 records where you worked and §5 records what
+you built, but nothing records what you *took* from each place — so it ships as
+a placeholder rather than being invented.
+
+One or two sentences per role, in `content/site.ts`:
+
+| Role | Field |
+|------|-------|
+| Senior Full-Stack Developer, Almutakamela | `employment[0].learned` |
+| Senior PHP Developer, OmniQuest PH | `employment[1].learned` |
+| Web Developer, ThinkBit | `employment[2].learned` |
+| Mid Software Developer, TourismoPH | `employment[3].learned` |
+| Junior Web Developer, V. Zuniga | `employment[4].learned` |
+
+This is the part of the journey a hiring manager actually reads for judgement —
+"what I built" is on the CV, "what I took from it" is not. Worth writing
+carefully.
 
 ---
 
@@ -123,7 +148,60 @@ Re-scan at any time with the extractor in the session scratchpad, or simply
 search the PDF text for "Date of Birth" and "Civil Status" before handing it
 over.
 
+## 5b. Portrait for the hero badge — optional
+
+The hanging ID badge shows a `CR` monogram where a photo goes. To use a real
+one: drop the file in `public/` (4:5 crops best — it is framed at an ID photo's
+ratio) and set `portrait` in `content/site.ts` to its path, e.g.
+`portrait: '/portrait.jpg'`.
+
+It is `null` rather than pointing at a missing file on purpose: a 404 on every
+page load costs a Lighthouse Best Practices point.
+
+---
+
+## 6a. Placeholders are live on every project
+
+Every project now carries placeholder images so no showcase panel is blank
+while the backend is being built. Split by whether a real screenshot could ever
+be published:
+
+- **The four confidential projects** use `placehold.co` labelled boxes in the
+  palette. A realistic photo framed as a client system is the one placeholder
+  that could genuinely mislead, so these are unmistakably boxes.
+- **`document-parsing-engine` and `devio`** use seeded `picsum.photos` images,
+  since those two may legitimately show screenshots.
+
+Each MDX file says so in a comment at `images:`. Full detail in `IMAGES.md`.
+
+**Still launch blocker 5.** For the confidential four the likely end state is
+`images: []`, not a real screenshot — §5.8 says client screenshots are "almost
+certainly not" permitted, and the panel reads as finished without them.
+
+---
+
 ## 6. Screenshots — two projects
+
+**This is now the biggest visual gap.** The home route has a pinned showcase
+that steps through the featured projects one at a time, with desktop, tablet
+and phone frames built and waiting. With no images the panel falls back to a
+full-width typographic composition — `04-UIUX-BRIEF.md` forbids empty
+placeholder boxes — so the device views simply never appear.
+
+To turn them on, add entries to a project's `images` and tag each with a
+device:
+
+```yaml
+images:
+  - src: /shots/devio-desktop.png
+    alt: devio home page on a desktop browser
+    device: desktop          # desktop | tablet | mobile
+```
+
+`alt` is required by the schema and the build fails without it. Files go in
+`public/`. One image per device per project is enough; the frames size
+themselves from the stage height.
+
 
 `images: []` on every project, so the Evidence section is omitted entirely
 everywhere. That is correct behaviour, not a gap to patch — but launch blocker 5
@@ -168,6 +246,11 @@ These are open items that are **not** placeholders, listed so they are not lost:
   robots and OG image URLs fall back to `https://chrys.dev`, which is a guess.
 - **End-to-end email delivery** is unproven — no Resend key has ever been set,
   so the send path has only been exercised to its failure branch.
+- **Brand logos in the stack row** come from `content/tech-icons.ts`, generated
+  once by `scripts/generate-tech-icons.mjs` from simple-icons and committed as
+  inline path data — the package is not a dependency. AWS, Azure and Twilio have
+  been withdrawn from simple-icons, so they are absent rather than wrong. Supply
+  SVGs for those three and they can be added by hand.
 - **`06-IMPLEMENTATION-PLAN.md` launch blocker 6 cites `07-SOURCE-CONTENT.md`
   §5.7** for the NDA decision. That moved to §5.8 when `portfolio-backend` took
   §5.7. A stale cross-reference in the spec, not in the code.
