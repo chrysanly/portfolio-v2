@@ -5,3 +5,6 @@ out/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+
+# Contains DOB + civil status — never in the repo (CLAUDE.md rule 2)
+*.pdf

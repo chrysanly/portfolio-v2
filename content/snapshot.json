@@ -1,0 +1,460 @@
+{
+  "generated_at": "2026-09-20T18:02:09Z",
+  "site": {
+    "name": "Chrys",
+    "fullName": "Chrysanly John Corpuz Roma",
+    "role": "Senior Full-Stack Developer",
+    "location": "Dubai, UAE",
+    "yearsExperience": "5+",
+    "availability": "[X] days weekly",
+    "email": "chrys.romao21@gmail.com",
+    "languages": [
+      "English",
+      "Filipino"
+    ],
+    "portrait": null,
+    "links": {
+      "github": "https://github.com/chrysanly",
+      "linkedin": ""
+    },
+    "intro": [
+      "Senior full-stack developer",
+      "building ERP and automation systems",
+      "for companies in Dubai."
+    ],
+    "notes": [
+      "Strongest in role-based access control, service-repository architecture, database optimisation and real-time system integration.",
+      "Leads development teams, mentors engineers, and uses AI-assisted workflows to accelerate delivery without loosening code quality."
+    ],
+    "positioning": "Senior full-stack developer with 5+ years building scalable web applications, REST APIs and enterprise ERP systems. Laravel, Node.js and modern JavaScript frameworks. Strongest in role-based access control, service-repository architecture, database optimisation and real-time system integration. Leads development teams, mentors engineers, and uses AI-assisted workflows to accelerate delivery without loosening code quality.",
+    "meta": {
+      "discipline": "ERP platforms, automation, integrations",
+      "architecture": "SOLID, Repository and Service Layer patterns, RESTful API design, RBAC",
+      "principalStack": "Laravel, Node.js, Vue, React, MySQL, TypeScript",
+      "databases": "MySQL, MariaDB, PostgreSQL, MongoDB, Firebase Firestore",
+      "security": "Laravel Sanctum, Laravel Passport OAuth, Twilio OTP, JWT",
+      "currentRole": "Senior Full-Stack Developer, Almutakamela Vehicle Testing and Registration"
+    }
+  },
+  "projects": [
+    {
+      "slug": "modular-erp-platform",
+      "title": "Modular ERP Platform",
+      "type": "erp",
+      "confidential": true,
+      "client": null,
+      "sector": "Vehicle testing and registration",
+      "year": 2025,
+      "role": "Senior Full-Stack Developer",
+      "summary": "Four-module Laravel ERP — Dashboard, Finance, Mobile CIS and API App — on one codebase with role-based middleware throughout.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "Laravel",
+        "MySQL",
+        "Laravel Sanctum",
+        "REST API",
+        "Repository pattern",
+        "Service Layer pattern",
+        "RBAC"
+      ],
+      "contributions": [
+        "Role-based middleware for authentication and permission management across all four modules",
+        "Finance module: role-permissioned accounting pages, financial aging logic for debit and credit balances, asset depreciation tracking",
+        "Mobile CIS module: client service appointment management driven by customer information",
+        "Secure REST APIs with Laravel Sanctum powering mobile app authentication",
+        "Core business logic refactored onto Repository and Service Layer patterns, improving reusability and Eloquent query performance",
+        "Code review and mentoring to hold clean architecture standards"
+      ],
+      "images": [
+        {
+          "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
+          "alt": "Placeholder — no laptop screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
+          "alt": "Placeholder — no tablet screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
+          "alt": "Placeholder — no mobile screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": true,
+      "order": 1,
+      "body": "## Problem\r\n\r\nOperations spanning vehicle testing, registration, finance and field service had\r\nno single system. Access control and financial tracking were the weak points.\r\n\r\n## Approach\r\n\r\nRole-based middleware handles authentication and permission management across all\r\nfour modules.\r\n\r\nThe Finance module carries role-permissioned accounting pages, financial aging\r\nlogic for debit and credit balances, and asset depreciation tracking. The Mobile\r\nCIS module manages client service appointments driven by customer information.\r\nThe Dashboard module configures mobile API data categories and service listings.\r\n\r\nSecure REST APIs built on Laravel Sanctum power mobile app authentication.\r\n\r\nCore business logic was refactored onto the Repository and Service Layer\r\npatterns, improving reusability and Eloquent query performance. Code review and\r\nmentoring held the clean architecture standard in place.\r\n\r\n## Stack notes\r\n\r\nLaravel with MySQL. Laravel Sanctum issues the tokens the mobile app\r\nauthenticates with. The Repository and Service Layer patterns separate business\r\nlogic from the framework, and RBAC middleware is applied at the module boundary\r\nrather than per controller.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    },
+    {
+      "slug": "crm-systems-integration",
+      "title": "CRM Systems Integration",
+      "type": "integration",
+      "confidential": true,
+      "client": null,
+      "sector": "Pharmaceutical",
+      "year": 2025,
+      "role": "Senior Software Engineer",
+      "summary": "Four interconnected systems integrated with a central CRM, with a reusable event registration module.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "PHP",
+        "Laravel",
+        "SQL",
+        "Stored procedures",
+        "CRM integration"
+      ],
+      "contributions": [
+        "Managed one project spanning four interconnected systems feeding a central CRM, keeping data flow consistent across platforms",
+        "Built a dynamic CRM registration module reusable across multiple events, cutting setup time for new campaigns",
+        "Authored technical documentation establishing a local, beta and live deployment workflow, improving release stability",
+        "Updated stored procedures and database functions as client requirements evolved"
+      ],
+      "images": [
+        {
+          "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
+          "alt": "Placeholder — no laptop screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
+          "alt": "Placeholder — no tablet screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
+          "alt": "Placeholder — no mobile screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": true,
+      "order": 2,
+      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nOne project spanned four interconnected systems feeding a central CRM, and the\r\nwork was keeping data flow consistent across all of them.\r\n\r\nA dynamic CRM registration module was built to be reusable across multiple\r\nevents, cutting setup time for new campaigns.\r\n\r\nTechnical documentation established a local → beta → live deployment workflow,\r\nwhich improved release stability. Stored procedures and database functions were\r\nupdated as client requirements evolved.\r\n\r\n## Stack notes\r\n\r\nPHP and Laravel against SQL, with a meaningful share of the logic living in\r\nstored procedures and database functions rather than application code.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    },
+    {
+      "slug": "realtime-platform-suite",
+      "title": "Real-time Platform Suite",
+      "type": "web",
+      "confidential": true,
+      "client": null,
+      "sector": "Software services",
+      "year": 2024,
+      "role": "Web Developer / Full-stack lead",
+      "summary": "Production Laravel applications with real-time features, third-party integrations and secure authentication, plus a legacy Laravel 5 modernisation.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "Laravel",
+        "Pusher",
+        "Firebase",
+        "Twilio",
+        "AWS S3",
+        "Laravel Passport",
+        "MySQL"
+      ],
+      "contributions": [
+        "Full-stack Laravel across several high-performance applications",
+        "Real-time backends with Pusher, Firebase and Twilio",
+        "Integrations: Google Maps, Monday.com, AWS S3",
+        "Legacy Laravel 5 systems refactored to current versions, with API and database performance work",
+        "Authentication: Twilio OTP and Laravel Passport OAuth",
+        "Proof-of-concept facial recognition login with activity logging",
+        "Ran Agile ceremonies and mentored junior developers"
+      ],
+      "images": [
+        {
+          "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
+          "alt": "Placeholder — no laptop screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
+          "alt": "Placeholder — no tablet screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
+          "alt": "Placeholder — no mobile screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": true,
+      "order": 3,
+      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nFull-stack Laravel work across several high-performance applications, with\r\nreal-time backends on Pusher, Firebase and Twilio.\r\n\r\nIntegrations covered Google Maps, Monday.com and AWS S3. Legacy Laravel 5 systems\r\nwere refactored to current versions alongside API and database performance work.\r\n\r\nAuthentication used Twilio OTP and Laravel Passport OAuth. A proof-of-concept\r\nfacial recognition login with activity logging was also built.\r\n\r\nAgile ceremonies were run from this role, and junior developers were mentored\r\nthrough it.\r\n\r\n## Stack notes\r\n\r\nLaravel and MySQL at the centre. Pusher and Firebase carry the real-time\r\nchannels, Twilio handles OTP delivery, Laravel Passport issues OAuth tokens, and\r\nAWS S3 stores uploaded assets.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    },
+    {
+      "slug": "document-parsing-engine",
+      "title": "Document Parsing Engine",
+      "type": "automation",
+      "confidential": false,
+      "client": "Personal project",
+      "sector": null,
+      "year": 2026,
+      "role": "Solo build",
+      "summary": "Structured extraction from supplier PDFs with dynamic per-company branding applied to generated output.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "Python",
+        "Laravel",
+        "PDF parsing"
+      ],
+      "contributions": [],
+      "images": [
+        {
+          "src": "https://picsum.photos/seed/dpe-laptop/1440/900",
+          "alt": "Placeholder standing in for the parsing engine on a laptop browser",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://picsum.photos/seed/dpe-tablet/1024/768",
+          "alt": "Placeholder standing in for the parsing engine on a tablet",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://picsum.photos/seed/dpe-mobile/390/844",
+          "alt": "Placeholder standing in for the parsing engine on a phone",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        },
+        {
+          "src": "https://portfolio-api.test/storage/projects/7VD6siQfkK6F5Yx2j22O9h1OXSEdMw0tEPc63YNC.mp4",
+          "alt": "test only",
+          "caption": "test",
+          "kind": "video",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": true,
+      "order": 4,
+      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nStructured data is extracted from supplier PDFs, and the generated output carries\r\ndynamic per-company branding.\r\n\r\n## Stack notes\r\n\r\nPython does the parsing; Laravel handles the surrounding application and the\r\nbranded output generation.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    },
+    {
+      "slug": "booking-vendor-platform",
+      "title": "Booking and Vendor Platform",
+      "type": "web",
+      "confidential": true,
+      "client": null,
+      "sector": "Travel and tourism",
+      "year": 2022,
+      "role": "Mid Software Developer",
+      "summary": "JWT-secured booking system with real-time availability, plus a vendor management platform migrated from a Laravel CMS to Node.js.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "Laravel",
+        "Node.js",
+        "React",
+        "Angular",
+        "JWT",
+        "Swagger",
+        "MySQL"
+      ],
+      "contributions": [
+        "Booking system with real-time availability, REST APIs and a React front end",
+        "Vendor management system: Laravel CMS migrated to Node.js, subscription features, Angular dashboards documented with Swagger",
+        "Membership system for a government site with bulk CSV upload and dynamic region and category reporting"
+      ],
+      "images": [
+        {
+          "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
+          "alt": "Placeholder — no laptop screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
+          "alt": "Placeholder — no tablet screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
+          "alt": "Placeholder — no mobile screenshot is published for this confidential project",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": false,
+      "order": 5,
+      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nA booking system with real-time availability, REST APIs and a React front end.\r\n\r\nA vendor management system was migrated from a Laravel CMS to Node.js, gaining\r\nsubscription features and Angular dashboards documented with Swagger.\r\n\r\nA membership system for a government site handled bulk CSV upload and dynamic\r\nregion and category reporting.\r\n\r\n## Stack notes\r\n\r\nLaravel and Node.js on the server, React and Angular on the front ends, JWT for\r\nsession security, Swagger for the dashboard API documentation, MySQL throughout.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    },
+    {
+      "slug": "devio",
+      "title": "devio",
+      "type": "web",
+      "confidential": false,
+      "client": "devio",
+      "sector": null,
+      "year": 2026,
+      "role": "Founder",
+      "summary": "Own web development practice in Dubai — product sites and internal tooling for small businesses.",
+      "outcome": {
+        "value": "[METRIC]",
+        "label": "[what it improved]"
+      },
+      "stack": [
+        "[stack]"
+      ],
+      "contributions": [],
+      "images": [
+        {
+          "src": "https://picsum.photos/seed/devio-laptop/1440/900",
+          "alt": "Placeholder image standing in for a laptop screenshot",
+          "kind": "image",
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "https://picsum.photos/seed/devio-tablet/1024/768",
+          "alt": "Placeholder image standing in for a tablet screenshot",
+          "kind": "image",
+          "device": "tablet",
+          "width": 1024,
+          "height": 768
+        },
+        {
+          "src": "https://picsum.photos/seed/devio-mobile/390/844",
+          "alt": "Placeholder image standing in for a mobile screenshot",
+          "kind": "image",
+          "device": "mobile",
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "featured": false,
+      "order": 6,
+      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nOwn web development practice in Dubai, building product sites and internal\r\ntooling for small businesses.\r\n\r\n## Stack notes\r\n\r\n[stack notes]\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
+      "problem": "",
+      "stackNotes": null
+    }
+  ],
+  "journey": [
+    {
+      "kind": "education",
+      "title": "BS Information Technology",
+      "organisation": "Our Lady of Lourdes College",
+      "location": "Valenzuela City",
+      "period": "2020",
+      "phase": null,
+      "learned": null,
+      "order": 1
+    },
+    {
+      "kind": "work",
+      "title": "Junior Web Developer",
+      "organisation": "V. Zuniga Logistics",
+      "location": "Philippines",
+      "period": "Nov 2018 – Dec 2020",
+      "phase": "Web developer",
+      "learned": "[what I learned here]",
+      "order": 2
+    },
+    {
+      "kind": "work",
+      "title": "Mid Software Developer",
+      "organisation": "TourismoPH",
+      "location": "Philippines",
+      "period": "Sep 2020 – Oct 2022",
+      "phase": "Software engineer",
+      "learned": "[what I learned here]",
+      "order": 3
+    },
+    {
+      "kind": "work",
+      "title": "Web Developer",
+      "organisation": "ThinkBit Solutions Phils. Inc",
+      "location": "Philippines",
+      "period": "Nov 2022 – Feb 2025",
+      "phase": "Full-stack developer",
+      "learned": "[what I learned here]",
+      "order": 4
+    },
+    {
+      "kind": "work",
+      "title": "Senior Software Engineer",
+      "organisation": "OmniQuest PH (Unilab)",
+      "location": "Philippines",
+      "period": "Mar 2025 – Aug 2025",
+      "phase": "Senior software engineer",
+      "learned": "[what I learned here]",
+      "order": 5
+    },
+    {
+      "kind": "work",
+      "title": "Senior Full-Stack Developer",
+      "organisation": "Almutakamela Vehicle Testing and Registration",
+      "location": "Dubai, UAE",
+      "period": "Nov 2025 – present",
+      "phase": "Senior full-stack engineer",
+      "learned": "[what I learned here]",
+      "order": 6
+    }
+  ]
+}

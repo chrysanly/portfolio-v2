@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { Profile } from '@/lib/profile';
 import { MastheadHero } from './MastheadHero';
 
 /**
@@ -15,7 +16,7 @@ import { MastheadHero } from './MastheadHero';
  * With JavaScript off, or reduced motion set, `data-motion` is never set: CSS
  * keeps `.hero` hidden and the resolved static intro is what the visitor gets.
  */
-export function HeroMount() {
+export function HeroMount({ profile }: { profile: Profile }) {
   const logoRef = useRef<HTMLElement | null>(null);
 
   // Resolved during render, not in an effect: a child's layout effect runs
@@ -36,5 +37,5 @@ export function HeroMount() {
     };
   }, []);
 
-  return <MastheadHero logoRef={logoRef} />;
+  return <MastheadHero logoRef={logoRef} profile={profile} />;
 }

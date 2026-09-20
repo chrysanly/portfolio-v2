@@ -1,4 +1,5 @@
-import { education, employment, site } from '@/content/site';
+import { site } from '@/content/site';
+import { getJourney, getRoles } from '@/lib/journey';
 import { getAllProjects } from '@/lib/projects';
 import { JourneyTimeline, type JourneyStop } from './JourneyTimeline';
 
@@ -25,46 +26,33 @@ import { JourneyTimeline, type JourneyStop } from './JourneyTimeline';
 export function ExperienceTimeline() {
   const projects = getAllProjects();
 
-  const roles: JourneyStop[] = employment.map((job) => ({
-    kind: 'role' as const,
-    period: job.period,
-    title: job.role,
-    place: `${job.company}, ${job.location}`,
-    learned: job.learned,
-    phase: job.phase,
-    // Everything he worked with there, de-duplicated across that role's
-    // projects and kept in the order the source lists it.
-    tech: Array.from(
-      new Set(
-        projects
-          .filter((p) => p.role === job.role || p.role.startsWith(`${job.role} `))
-          .flatMap((p) => p.stack),
-      ),
-    ),
-    work: projects
-      .filter((p) => p.role === job.role || p.role.startsWith(`${job.role} `))
-      .map((p) => ({
+  // Already oldest-first, whether it came from the admin or from the
+  // hardcoded fallback — lib/journey.ts reconciles the two.
+  const stops: JourneyStop[] = getJourney().map((stop) => {
+    const mine =
+      stop.kind === 'education'
+        ? []
+        : projects.filter((p) => p.role === stop.title || p.role.startsWith(`${stop.title} `));
+
+    return {
+      kind: stop.kind === 'education' ? 'education' : 'role',
+      period: stop.period,
+      title: stop.title,
+      place: `${stop.organisation}, ${stop.location}`,
+      learned: stop.learned ?? undefined,
+      phase: stop.phase ?? undefined,
+      // Everything he worked with there, de-duplicated across that stop's
+      // projects and kept in the order the source lists it.
+      tech: Array.from(new Set(mine.flatMap((p) => p.stack))),
+      work: mine.map((p) => ({
         slug: p.slug,
         title: p.title,
         summary: p.summary,
         confidential: p.confidential,
         contributions: p.contributions,
       })),
-  }));
-
-  // §4 is newest first; the journey reads the other way.
-  const oldestFirst = [...roles].reverse();
-
-  const degree: JourneyStop = {
-    kind: 'education',
-    period: String(education.year),
-    title: education.degree,
-    place: `${education.school}, ${education.location}`,
-    tech: [],
-    work: [],
-  };
-
-  const stops: JourneyStop[] = [degree, ...oldestFirst];
+    };
+  });
 
   return (
     <section className="track-band" aria-labelledby="experience-heading">
@@ -76,8 +64,7 @@ export function ExperienceTimeline() {
         <JourneyTimeline stops={stops} />
 
         <p className="track__foot">
-          {site.yearsExperience} years, {employment.length} companies. Based in{' '}
-          {site.location}.
+          {site.yearsExperience} years, {getRoles().length} companies. Based in {site.location}.
         </p>
       </div>
     </section>

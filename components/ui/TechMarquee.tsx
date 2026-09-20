@@ -45,7 +45,7 @@ export function TechMarquee() {
         <defs>
           {techIcons.map((icon) => (
             <symbol key={icon.label} id={`ti-${slug(icon.label)}`} viewBox="0 0 24 24">
-              <path d={icon.path} />
+              <path d={icon.path} fillRule={icon.fillRule} />
             </symbol>
           ))}
         </defs>

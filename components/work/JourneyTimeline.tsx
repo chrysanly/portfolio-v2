@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 
 /**
@@ -59,6 +59,81 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
     damping: 28,
     restDelta: 0.001,
   });
+
+  /*
+   * Same treatment as the showcase's panels: the section pager steps
+   * through one stop per card instead of jumping straight from one end of
+   * the strip to the other. Cards vary in width — a stop with contributions
+   * and a tech list is wider than the plain-text degree stop — so unlike
+   * the showcase's equal slots, each card's centred position has to be
+   * measured from its actual `offsetLeft`/`offsetWidth` rather than divided
+   * evenly. `offsetLeft` is unaffected by the `transform` `paint()` applies
+   * below, so it's a stable read regardless of scroll position.
+   *
+   * `data-journey-active`/`data-journey-stop` are kept by a plain scroll
+   * listener against this same geometry, not the spring-smoothed `progress`
+   * paint() uses — the pager needs the immediate position, not the same
+   * trailing motion the cards animate with.
+   */
+  const journeyGeometry = useRef({ trackTop: 0, scrollable: 0, travel: 0, centers: [] as number[] });
+
+  const measureJourneyGeometry = useCallback(() => {
+    const track = trackRef.current;
+    const stage = stageRef.current;
+    const strip = stripRef.current;
+    if (!track || !stage || !strip) return;
+
+    const trackTop = track.getBoundingClientRect().top + window.scrollY;
+    const scrollable = track.offsetHeight - stage.offsetHeight;
+    const travel = Math.max(0, strip.scrollWidth - stage.clientWidth);
+    const centers = cardRefs.current.map((card) =>
+      card ? card.offsetLeft + card.offsetWidth / 2 : 0,
+    );
+    journeyGeometry.current = { trackTop, scrollable, travel, centers };
+
+    const mid = window.innerWidth / 2;
+    cardRefs.current.forEach((card, i) => {
+      if (!card || travel === 0) return;
+      const pAtCentre = clamp((centers[i] - mid) / travel);
+      card.dataset.substepY = String(Math.round(trackTop + pAtCentre * scrollable));
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (reduced) return;
+
+    measureJourneyGeometry();
+    window.addEventListener('resize', measureJourneyGeometry);
+
+    const onScroll = () => {
+      const { trackTop, scrollable, travel, centers } = journeyGeometry.current;
+      const y = window.scrollY;
+      const active = scrollable > 0 && y >= trackTop - 4 && y <= trackTop + scrollable + 4;
+      document.documentElement.dataset.journeyActive = active ? 'on' : 'off';
+      if (!active) return;
+
+      const p = clamp((y - trackTop) / scrollable);
+      const mid = window.innerWidth / 2;
+      let closest = 0;
+      let best = Infinity;
+      centers.forEach((centre, i) => {
+        const distance = Math.abs(centre - travel * p - mid);
+        if (distance < best) {
+          best = distance;
+          closest = i;
+        }
+      });
+      document.documentElement.dataset.journeyStop = String(closest);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    return () => {
+      window.removeEventListener('resize', measureJourneyGeometry);
+      window.removeEventListener('scroll', onScroll);
+      delete document.documentElement.dataset.journeyActive;
+    };
+  }, [reduced, measureJourneyGeometry]);
 
   const paint = useCallback((p: number) => {
     const strip = stripRef.current;
@@ -131,6 +206,7 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
               key={`${stop.title}-${stop.period}`}
               className="journey__stop"
               data-kind={stop.kind}
+              data-substep-title={stop.title}
               ref={(el) => {
                 cardRefs.current[i] = el;
               }}

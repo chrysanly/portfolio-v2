@@ -16,14 +16,21 @@ export const site = {
   email: 'chrys.romao21@gmail.com',
   phone: '+971 52 925 8013', // render on /contact only, never in footer or JSON-LD
   /**
-   * Portrait for the hero's identity badge. Null until Chrys supplies one:
-   * pointing at a file that does not exist would 404 on every load and cost a
-   * Lighthouse Best Practices point, so the badge shows a monogram instead.
-   * To enable it, drop the file in public/ and set this to its path.
+   * The same number on WhatsApp, supplied 2026-09-20. It *is* the phone
+   * number, so it carries the phone number's rule with it: `/contact` only,
+   * never the footer, never structured data — docs/07-SOURCE-CONTENT.md §1
+   * "Do not publish". Digits only, which is the form wa.me requires.
    */
-  portrait: null as string | null,
+  whatsapp: '971529258013',
+  /**
+   * Portrait for the hero's identity badge. `public/portrait.jpg`, supplied
+   * 2026-09-20 — docs/cj-portrait.jpeg, copied in per the instruction below.
+   */
+  portrait: '/portrait.jpg' as string | null,
   links: {
-    linkedin: '[linkedin-url]', // placeholder — still unknown, docs/07 §6
+    // Supplied 2026-09-20, closing launch blocker 3. Unlike the phone number
+    // this one is public by design — it may appear anywhere, footer included.
+    linkedin: 'https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/',
     github: 'https://github.com/chrysanly',
     // Not rendered anywhere yet: public/resume.pdf does not exist. Wire the
     // About link back up once Chrys supplies the file. docs/CONTENT-TODO.md.

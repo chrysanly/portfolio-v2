@@ -23,6 +23,62 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+/*
+ * Load .env.local, then .env, the way Next does — because this script runs
+ * as bare `node` from `prebuild`, outside Next entirely, so nothing has
+ * loaded them yet. Without this the credentials sit in .env.local and the
+ * pull silently reports "not set" and builds from the MDX instead, which
+ * looks exactly like a working build until you notice the content is stale.
+ *
+ * `process.loadEnvFile` is built into Node (20.12+) — no dotenv dependency,
+ * per docs/02-TRD.md §1. First file wins: loadEnvFile does not overwrite a
+ * variable that is already set, so a real environment variable (Vercel, CI)
+ * still beats anything on disk.
+ */
+const caBefore = process.env.NODE_EXTRA_CA_CERTS;
+
+for (const file of ['.env.local', '.env']) {
+  const at = path.join(process.cwd(), file);
+  if (!fs.existsSync(at)) continue;
+  try {
+    process.loadEnvFile(at);
+  } catch {
+    // A malformed env file is not worth failing a build over: the checks
+    // below already handle "no credentials" as a normal state.
+  }
+}
+
+/*
+ * One exception to "an env file is as good as an environment variable":
+ * NODE_EXTRA_CA_CERTS is read by Node once, while it starts, so setting it
+ * from a file here is already too late and every HTTPS call still fails
+ * verification. Re-running ourselves with it in place is the only way to
+ * honour it without asking whoever runs `npm run build` to export it first.
+ *
+ * This exists for local development against Herd or Valet, which serve
+ * .test domains over HTTPS with their own certificate authority. The
+ * alternative — NODE_TLS_REJECT_UNAUTHORIZED=0 — turns verification off for
+ * every connection the process makes, including the ones to the real
+ * internet. Pointing at the one extra CA keeps it on.
+ */
+if (process.env.NODE_EXTRA_CA_CERTS && !caBefore) {
+  const ca = process.env.NODE_EXTRA_CA_CERTS;
+
+  if (!fs.existsSync(ca)) {
+    console.warn(`[content] NODE_EXTRA_CA_CERTS points at ${ca}, which does not exist. Ignoring it.`);
+  } else {
+    const { spawnSync } = await import('node:child_process');
+    const { fileURLToPath } = await import('node:url');
+
+    const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+
+    process.exit(result.status ?? 1);
+  }
+}
+
 const BASE = (process.env.PORTFOLIO_API_URL ?? '').trim().replace(/\/+$/, '');
 const TOKEN = (process.env.PORTFOLIO_API_TOKEN ?? '').trim();
 const TIMEOUT_MS = Number(process.env.PORTFOLIO_API_TIMEOUT ?? 15000);
@@ -43,6 +99,65 @@ if (!TOKEN) {
   warn('The endpoint requires a token, so this would 401. Skipping the pull.');
   warn('Issue one with: php artisan portfolio:build-token --email=you@example.com');
   process.exit(0);
+}
+
+/**
+ * Brings the portrait into the site's own public/ directory and rewrites the
+ * payload to point at the local copy.
+ *
+ * The API sends an absolute URL, because the admin and the site are separate
+ * origins. Shipping that URL as-is would mean the published identity card
+ * hot-links whatever machine the admin happens to be on — a laptop running
+ * Herd, in development — and shows a broken image to everyone else. It would
+ * also put a third-party request in front of an above-the-fold image.
+ *
+ * A failure here is not fatal: the key is dropped and the site falls back to
+ * the portrait committed in content/site.ts, which is the same thing that
+ * happens when the profile has no photograph at all.
+ */
+async function localisePortrait(payload) {
+  const remote = payload?.site?.portrait;
+
+  if (typeof remote !== 'string' || !/^https?:\/\//i.test(remote)) return;
+
+  try {
+    const response = await fetch(remote, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+    const type = response.headers.get('content-type') ?? '';
+    const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+    const bytes = Buffer.from(await response.arrayBuffer());
+
+    /*
+     * The filename carries a hash of the image, so a new photograph is a new
+     * URL. A fixed name looked tidier and was wrong: the page kept pointing
+     * at /portrait-api.jpg, so every cache between the file and the visitor
+     * — the browser's most of all — was free to keep serving the old face
+     * long after it had been replaced. Changing the name is the only way to
+     * be certain, and it costs nothing.
+     */
+    const { createHash } = await import('node:crypto');
+    const hash = createHash('sha1').update(bytes).digest('hex').slice(0, 8);
+
+    const file = `portrait-${hash}.${ext}`;
+    const dir = path.join(process.cwd(), 'public');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, file), bytes);
+
+    // Sweep up the ones this script wrote on earlier pulls. Matched strictly,
+    // so the committed fallback (public/portrait.jpg) is never touched.
+    for (const old of fs.readdirSync(dir)) {
+      if (old !== file && /^portrait-[0-9a-f]{8}\.(jpg|png|webp)$/.test(old)) {
+        fs.rmSync(path.join(dir, old), { force: true });
+      }
+    }
+
+    payload.site.portrait = `/${file}`;
+    say(`Saved the portrait to public/${file}`);
+  } catch (error) {
+    warn(`Could not download the portrait (${error.message}). Using the committed one instead.`);
+    delete payload.site.portrait;
+  }
 }
 
 const url = `${BASE}/api/v1/content`;
@@ -79,6 +194,8 @@ try {
   if (!payload || !Array.isArray(payload.projects)) {
     throw new Error('response had no projects array — is this really the content endpoint?');
   }
+
+  await localisePortrait(payload);
 
   fs.mkdirSync(path.dirname(SNAPSHOT), { recursive: true });
   fs.writeFileSync(SNAPSHOT, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');

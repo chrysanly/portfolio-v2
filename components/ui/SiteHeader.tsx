@@ -37,7 +37,17 @@ export function SiteHeader({ current, minimal }: { current?: string; minimal?: b
           ))}
         </Link>
         <div className="site-header__end">
-          {minimal ? null : (
+          {minimal ? (
+            // The home route's nav is the page itself, but contact still needs a
+            // permanent route in once the hero has handed the masthead over —
+            // reuses the same [data-hero-handoff] reveal as the logo, so it
+            // appears at exactly the moment the header becomes the way around
+            // the page rather than sitting on top of the hero.
+            <Link href="/contact" className="header-cta">
+              <span className="cta-dot" aria-hidden="true" />
+              Send a message
+            </Link>
+          ) : (
             <nav className="site-nav" aria-label="Main">
               {NAV.map((item) => (
                 <Link

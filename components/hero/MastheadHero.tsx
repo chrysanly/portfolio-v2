@@ -19,10 +19,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
-import { site } from '@/content/site';
+import type { Profile } from '@/lib/profile';
 import { IdCard } from './IdCard';
 
-const LETTERS = site.name.toUpperCase().split('');
 
 /*
  * Timeline. Stage A holds the masthead alone, stage B reveals the statement
@@ -47,12 +46,18 @@ const LETTER_STAGGER = 0.035;
 const LINE_STARTS = [0.14, 0.21, 0.28];
 const NOTE_STARTS = [0.33, 0.38];
 const FACT_STARTS = [0.42, 0.46, 0.5, 0.54, 0.58, 0.62];
-const TALLY_START = 0.66;
 const WIPE_SPAN = 0.08;
 
-/** Everything in stage B clears before the masthead finishes docking. */
-const CLEAR_FROM = 0.78;
-const CLEAR_TO = 0.86;
+/*
+ * The last FACT_STARTS entry + WIPE_SPAN (0.7) is when everything has
+ * finished revealing — the last ledger row and the card are fully in.
+ * CLEAR_FROM used to be 0.78, a bare 8% (~51px) after that, which read as
+ * "look at everything, it's already leaving" rather than a moment to
+ * actually take it in. Pushed out to give that a real pause before the
+ * fade-out starts.
+ */
+const CLEAR_FROM = 0.83;
+const CLEAR_TO = 0.9;
 
 /*
  * The logo the masthead docks into lives in the header, above the stage, and
@@ -64,8 +69,32 @@ const CLEAR_TO = 0.86;
 /** The card arrives once the statement has landed, not with it. */
 const CARD_START = 0.24;
 
-const HANDOVER_FROM = 0.78;
-const HANDOVER_TO = 0.86;
+const HANDOVER_FROM = CLEAR_FROM;
+const HANDOVER_TO = CLEAR_TO;
+
+/*
+ * The section pager treats the hold-then-reveal sequence as three stops it
+ * can read off `data-hero-stage` — "Hero" and "Details" — but everything in
+ * it shares one pinned DOM position, so there is no real scroll offset the
+ * pager can read the way it does for a normal section.
+ *
+ * DETAILS_START: past it, enough of the ledger and the card have revealed
+ * that "Details" is an accurate label rather than a still-mostly-masthead
+ * view, and it's also where the pager's own "jump to Details" lands.
+ * Exposed as `--hero-details-y` (measure) and `data-hero-stage` (paint).
+ *
+ * The third value, 'done', is written once CLEAR_TO is reached — i.e. once
+ * the ledger has actually finished fading out, not merely once the header
+ * has started fading in (`data-hero-handoff`, a different, earlier
+ * threshold tuned for the header's own crossfade). The pager used to read
+ * `data-hero-handoff` for this and called "Selected work" current while the
+ * ledger was still up to ~65% opaque, for the stretch between the two
+ * thresholds — the ledger and the showcase's label disagreeing with each
+ * other again, the same shape of bug as the pulled-up-showcase one, just
+ * one signal removed. `data-hero-stage` is scoped to exactly what the pager
+ * needs and nothing else depends on it.
+ */
+const DETAILS_START = 0.3;
 
 /*
  * The work index is pulled up over the emptied stage (see globals.css), so it
@@ -73,9 +102,14 @@ const HANDOVER_TO = 0.86;
  * of the ledger the whole way down. This is the one section reveal on the site;
  * docs/04-UIUX-BRIEF.md §6 rules out scroll-triggered fades elsewhere, and that
  * still holds — it exists to hide an overlap, not to decorate an entrance.
+ *
+ * Starts exactly at HANDOVER_TO/CLEAR_TO rather than earlier: the two used to
+ * overlap by 6% of the track, which put the ledger and the showcase panel on
+ * screen at once, each at partial opacity — two unrelated layouts ghosting
+ * into each other rather than a clean handoff. Sequential, not simultaneous.
  */
-const WORK_IN_FROM = 0.8;
-const WORK_IN_TO = 0.95;
+const WORK_IN_FROM = HANDOVER_TO;
+const WORK_IN_TO = 0.98;
 
 /** Two-segment ease: hold, travel to the stage B value, then on to 1. */
 const stage = (p: number, atB: number) =>
@@ -91,13 +125,13 @@ const stage = (p: number, atB: number) =>
  * The availability placeholder is deliberately not among them: it belongs in
  * the resolved metadata row, not as the closing figure of the sequence.
  */
-const FACTS: ReadonlyArray<readonly [string, string]> = [
-  ['Discipline', site.meta.discipline],
-  ['Architecture', site.meta.architecture],
-  ['Principal stack', site.meta.principalStack],
-  ['Databases', site.meta.databases],
-  ['Auth & security', site.meta.security],
-  ['Current role', site.meta.currentRole],
+const factsFor = (profile: Profile): ReadonlyArray<readonly [string, string]> => [
+  ['Discipline', profile.meta.discipline],
+  ['Architecture', profile.meta.architecture],
+  ['Principal stack', profile.meta.principalStack],
+  ['Databases', profile.meta.databases],
+  ['Auth & security', profile.meta.security],
+  ['Current role', profile.meta.currentRole],
 ];
 
 const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -116,8 +150,16 @@ interface Geometry {
 
 const ZERO: Geometry = { spread: 0, tx: 0, ty: 0, scale: 0.133, width: 0, mastH: 0 };
 
-export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement | null> }) {
+export function MastheadHero({
+  logoRef,
+  profile,
+}: {
+  logoRef: React.RefObject<HTMLElement | null>;
+  profile: Profile;
+}) {
   const reduced = useReducedMotion();
+  const LETTERS = profile.name.toUpperCase().split('');
+  const FACTS = factsFor(profile);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const mastheadRef = useRef<HTMLDivElement>(null);
@@ -126,7 +168,6 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
   const bodyRef = useRef<HTMLDivElement>(null);
   const noteRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const factRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const tallyRef = useRef<HTMLDivElement>(null);
   const eyebrowRef = useRef<HTMLParagraphElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
@@ -161,7 +202,27 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
   const measure = useCallback(() => {
     const masthead = mastheadRef.current;
     const logo = logoRef.current;
-    if (!masthead || !logo) return;
+    const track = trackRef.current;
+    if (!masthead || !logo || !track) return;
+
+    /*
+     * The pixel scrollY at which the sequence reaches DETAILS_START — the
+     * only way the pager can jump straight to "Details" without duplicating
+     * the scroll-progress maths `useScroll` does internally.
+     *
+     * Landing a little past the threshold rather than exactly on it: pixel
+     * rounding here and the spring's own rounding on the way back to a `p`
+     * can land a hair under DETAILS_START even when the intent was exactly
+     * on it, which read back as "Hero" the instant the next real scroll
+     * event recomputed the stage — a jump to "Details" that silently
+     * reverted itself.
+     */
+    const trackTop = track.getBoundingClientRect().top + window.scrollY;
+    const scrollable = track.offsetHeight - window.innerHeight;
+    document.documentElement.style.setProperty(
+      '--hero-details-y',
+      String(Math.round(trackTop + (DETAILS_START + 0.06) * scrollable)),
+    );
 
     /*
      * Every transform that displaces the masthead has to be cleared, not just
@@ -287,7 +348,6 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
     factRefs.current.forEach((el, i) =>
       wipe(el, ease(span(p, FACT_STARTS[i], FACT_STARTS[i] + WIPE_SPAN)), out, 0),
     );
-    wipe(tallyRef.current, ease(span(p, TALLY_START, TALLY_START + WIPE_SPAN)), out, 0);
 
     /*
      * The card drifts up a little slower than the ledger, which is what makes
@@ -311,6 +371,15 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
     // Hand the masthead over to the real sticky header at the very end.
     const root = document.documentElement;
     root.dataset.heroHandoff = handover > 0.35 ? 'on' : 'off';
+    // The section pager's "Hero" / "Details" / "done" stop — see
+    // DETAILS_START. Strictly less-than at the low end: the pager's
+    // jump-to-Details lands exactly at DETAILS_START, and it has to read as
+    // "details" immediately on arrival, or the next scroll tick flips the
+    // label straight back. 'done' at CLEAR_TO, not at the handover
+    // threshold above — see the comment on DETAILS_START for why the two
+    // can't share a signal.
+    root.dataset.heroStage =
+      p < DETAILS_START ? 'hero' : p < CLEAR_TO ? 'details' : 'done';
 
     const workIn = ease(span(p, WORK_IN_FROM, WORK_IN_TO));
     root.style.setProperty('--work-in', workIn.toFixed(3));
@@ -332,15 +401,15 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
   if (reduced) return null; // StaticIntro stays; nothing is pinned
 
   return (
-    <section className="hero" id="top" data-section="Opening">
+    <section className="hero" id="top" data-section="Hero">
       <div ref={trackRef} className="h-[180vh] md:h-[180vh] max-md:h-[140vh] relative">
         <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
           <p ref={eyebrowRef} className="hero__eyebrow">
-            {site.location}
+            {profile.location}
           </p>
 
           <div className="wrap">
-            <div ref={mastheadRef} className="masthead" role="img" aria-label={site.name}>
+            <div ref={mastheadRef} className="masthead" role="img" aria-label={profile.name}>
               {LETTERS.map((ch, i) => (
                 <span
                   key={i}
@@ -354,9 +423,9 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
               ))}
             </div>
 
-            <div className="hero__body" ref={bodyRef}>
+            <div className="hero__body" ref={bodyRef} data-section="Details">
               <div className="intro">
-                {site.intro.map((line, i) => (
+                {profile.intro.map((line, i) => (
                   <div
                     key={i}
                     className="intro__line"
@@ -369,7 +438,7 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
                 ))}
               </div>
 
-              {site.notes.map((note, i) => (
+              {profile.notes.map((note, i) => (
                 <p
                   key={i}
                   className="intro__note"
@@ -394,12 +463,6 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
                     <dd>{value}</dd>
                   </div>
                 ))}
-                <div className="tally" ref={tallyRef}>
-                  <dt>Experience</dt>
-                  <dd>
-                    <b>{site.yearsExperience}</b> years
-                  </dd>
-                </div>
               </dl>
             </div>
           </div>
@@ -407,7 +470,7 @@ export function MastheadHero({ logoRef }: { logoRef: React.RefObject<HTMLElement
           {/* Hanging identity badge. Nothing beyond docs/07-SOURCE-CONTENT.md §1,
               and deliberately no phone number: that belongs on /contact only. */}
           <div ref={cardRef} className="badge-mount">
-            <IdCard />
+            <IdCard profile={profile} />
           </div>
 
           <div ref={footRef} className="hero__foot">

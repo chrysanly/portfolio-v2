@@ -1,0 +1,212 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { mediaKind, type ProjectFrontmatter } from '@/lib/schema';
+
+type Item = ProjectFrontmatter['images'][number];
+
+/**
+ * Evidence, as a contact sheet rather than a column of full-bleed images.
+ *
+ * Stacked at full width, four screenshots pushed everything below them off
+ * the page and gave a reader no way to see the set at a glance. Thumbnails
+ * show the whole set at once; the one you want opens over the page at the
+ * size it deserves.
+ *
+ * Built by hand rather than with a lightbox package — docs/02-TRD.md §1
+ * allows no new dependencies, and what is actually needed here is one
+ * dialog, two arrows and a keyboard handler.
+ *
+ * Video is a first-class case, not an image with a different tag: it gets
+ * controls, it is never autoplayed with sound, and moving to the next item
+ * stops whatever was playing.
+ */
+export function EvidenceGallery({ items }: { items: Item[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const returnTo = useRef<HTMLElement | null>(null);
+
+  // Portals need a DOM, so the dialog cannot exist during the server render.
+  useEffect(() => setMounted(true), []);
+
+  const close = useCallback(() => setOpen(null), []);
+
+  const step = useCallback(
+    (delta: number) =>
+      setOpen((current) => {
+        if (current === null) return current;
+        // Wraps, because a gallery that dead-ends at the last item makes you
+        // walk all the way back to see the first one again.
+        return (current + delta + items.length) % items.length;
+      }),
+    [items.length],
+  );
+
+  useEffect(() => {
+    if (open === null) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowRight') step(1);
+      if (event.key === 'ArrowLeft') step(-1);
+    };
+
+    document.addEventListener('keydown', onKey);
+
+    // The page behind must not scroll while a full-screen dialog is over it.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, close, step]);
+
+  // Focus moves into the dialog on open and back to the thumbnail on close —
+  // without this, closing drops the keyboard at the top of the document.
+  useEffect(() => {
+    if (open !== null) {
+      returnTo.current = document.activeElement as HTMLElement | null;
+      dialogRef.current?.focus();
+    } else {
+      returnTo.current?.focus?.();
+    }
+  }, [open]);
+
+  if (items.length === 0) return null;
+
+  const current = open === null ? null : items[open];
+
+  return (
+    <>
+      <ul className="evidence">
+        {items.map((item, i) => {
+          const kind = mediaKind(item);
+
+          return (
+            <li key={item.src}>
+              <button
+                type="button"
+                className="evidence__thumb"
+                onClick={() => setOpen(i)}
+                aria-label={`Open: ${item.alt}`}
+                aria-haspopup="dialog"
+              >
+                {kind === 'video' ? (
+                  <>
+                    {/* A muted first frame is the honest thumbnail for a
+                        video: any still we invented would be a guess. */}
+                    <video src={item.src} muted playsInline preload="metadata" />
+                    <span className="evidence__play" aria-hidden="true" />
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.src} alt="" loading="lazy" decoding="async" />
+                )}
+                <span className="evidence__device">{item.device}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/*
+       * Portalled to <body>, and this is not a nicety: rendered where it
+       * sits in the page, the dialog is inside the article's stacking
+       * context, and the sticky site header — a higher context — lands on
+       * top of it. The close button was underneath the header and could not
+       * be clicked at all, while the backdrop and Escape still worked, which
+       * is exactly the kind of half-broken that is hard to spot.
+       */}
+      {mounted && current &&
+        createPortal(
+        <div
+          className="lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={current.alt}
+          tabIndex={-1}
+          ref={dialogRef}
+          // A click on the backdrop closes; a click on the media does not.
+          onClick={(event) => {
+            if (event.target === event.currentTarget) close();
+          }}
+        >
+          <div className="lightbox__bar">
+            <p className="lightbox__count">
+              {(open ?? 0) + 1} / {items.length}
+            </p>
+            <button type="button" onClick={close} aria-label="Close">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <figure className="lightbox__figure">
+            {mediaKind(current) === 'video' ? (
+              <video
+                // Keyed on src so moving between videos remounts the element
+                // rather than leaving the previous one playing underneath.
+                key={current.src}
+                src={current.src}
+                controls
+                autoPlay
+                playsInline
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={current.src} alt={current.alt} />
+            )}
+
+            <figcaption>{current.caption ?? current.alt}</figcaption>
+          </figure>
+
+          {items.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="lightbox__step lightbox__step--prev"
+                onClick={() => step(-1)}
+                aria-label="Previous"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M15 4 7 12l8 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="lightbox__step lightbox__step--next"
+                onClick={() => step(1)}
+                aria-label="Next"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="m9 4 8 8-8 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>,
+          document.body,
+        )}
+    </>
+  );
+}

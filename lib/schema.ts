@@ -28,10 +28,19 @@ export const DEVICE_SIZES: Record<Device, { width: number; height: number }> = {
   mobile: { width: 390, height: 844 },
 };
 
+/** What the file actually is. Videos cannot go in an `<img>`. */
+export const MEDIA_KINDS = ['image', 'video'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
 export const projectImageSchema = z.object({
   src: z.string().min(1),
   alt: z.string().min(1, 'alt is required — never generate it from the filename'),
   caption: z.string().optional(),
+  /**
+   * Absent on everything uploaded before videos were allowed, so it is
+   * inferred from the extension rather than required — see `mediaKind()`.
+   */
+  kind: z.enum(MEDIA_KINDS).optional(),
   /** Which frame the showcase renders this in. */
   device: z.enum(DEVICES).default('laptop'),
   /**
@@ -42,6 +51,17 @@ export const projectImageSchema = z.object({
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
 });
+
+/**
+ * What to render a piece of evidence with. Trusts an explicit `kind` when
+ * the backend sends one and falls back to the extension, because the
+ * snapshot may predate the field — and because an MDX entry written by hand
+ * will never bother to set it.
+ */
+export function mediaKind(image: { src: string; kind?: MediaKind }): MediaKind {
+  if (image.kind) return image.kind;
+  return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(image.src) ? 'video' : 'image';
+}
 
 export const outcomeSchema = z.object({
   value: z.string().min(1),
@@ -111,6 +131,77 @@ export type ProjectFrontmatter = z.infer<typeof projectFrontmatterSchema>;
 export interface Project extends ProjectFrontmatter {
   body: string;
 }
+
+/**
+ * A stop on the career timeline, as the API sends it — the contract the
+ * backend's `JourneyStopResource` is written against. Validated on the way
+ * in for the same reason projects are: a backend that drifts should fail the
+ * build, not quietly render a broken timeline.
+ *
+ * Deliberately absent: the technologies and projects shown under each stop.
+ * Those are derived here by matching a project's role against `title`, so
+ * carrying them would be carrying the same facts twice.
+ */
+export const journeyStopSchema = z.object({
+  kind: z.enum(['work', 'education']),
+  title: z.string().min(1).max(140),
+  organisation: z.string().min(1).max(160),
+  location: z.string().min(1).max(120),
+  /** Free text — "Nov 2022 – Feb 2025", or just "2020" for a degree. */
+  period: z.string().min(1).max(60),
+  /** The editorial arc beside the real job title. A degree has none. */
+  phase: z.string().max(120).nullable().default(null),
+  learned: z.string().max(400).nullable().default(null),
+  order: z.number().int().min(0),
+});
+
+export type JourneyStopData = z.infer<typeof journeyStopSchema>;
+
+/**
+ * The identity the site is written about: the hero's opening lines, the
+ * ledger beneath them, and the card on the lanyard — the contract the
+ * backend's `ProfileResource` is written against.
+ *
+ * Every field is optional. The payload's `site` key predates this table and
+ * older snapshots carry only a handful of these, so a missing key falls back
+ * to `content/site.ts` rather than failing a build. What is validated is the
+ * shape of whatever *is* there.
+ *
+ * No phone number, deliberately, and no date of birth or civil status —
+ * docs/07-SOURCE-CONTENT.md §1. Those never travel in this payload.
+ */
+export const profileSchema = z.object({
+  name: z.string().min(1).max(60).optional(),
+  fullName: z.string().min(1).max(160).optional(),
+  role: z.string().min(1).max(120).optional(),
+  location: z.string().min(1).max(120).optional(),
+  yearsExperience: z.string().min(1).max(20).optional(),
+  availability: z.string().max(60).nullable().optional(),
+  email: z.string().email().optional(),
+  languages: z.array(z.string().min(1).max(40)).optional(),
+  portrait: z.string().min(1).nullable().optional(),
+  links: z
+    .object({
+      github: z.string().nullable().optional(),
+      linkedin: z.string().nullable().optional(),
+    })
+    .optional(),
+  intro: z.array(z.string().min(1).max(120)).optional(),
+  notes: z.array(z.string().min(1).max(300)).optional(),
+  positioning: z.string().max(1200).optional(),
+  meta: z
+    .object({
+      discipline: z.string().max(200),
+      architecture: z.string().max(240),
+      principalStack: z.string().max(240),
+      databases: z.string().max(240),
+      security: z.string().max(240),
+      currentRole: z.string().max(240),
+    })
+    .optional(),
+});
+
+export type ProfileData = z.infer<typeof profileSchema>;
 
 /** docs/05-DATA-SCHEMA.md §4. One schema, two consumers. */
 export const contactSchema = z.object({

@@ -16,7 +16,7 @@ Mapped to the launch blockers in `06-IMPLEMENTATION-PLAN.md`:
 |---------|---------------|
 | 1 — `[METRIC]` / `[what it improved]` visible | §2 |
 | 2 — `[X] days weekly` unfilled or unwanted | §1 |
-| 3 — `[linkedin-url]` unfilled | §1 |
+| 3 — `[linkedin-url]` unfilled | **resolved 2026-09-20** — see §1 |
 | 4 — fewer than two real sentences under `## Problem` | §3 |
 | 5 — zero screenshots site-wide | §6 |
 | 6 — NDA decision not made per project | §7 |
@@ -34,13 +34,16 @@ both must be resolved before launch.
 | Line | Placeholder | What to supply |
 |------|-------------|----------------|
 | 15 | `availability: '[X] days weekly'` | The number of days a week you want to take on work — or tell me to remove the availability line entirely. It currently renders on **`/about`** and in the home metadata row on **`/`**. Launch blocker 2 says an unfilled value *and* an unwanted-but-still-shown line both block launch. |
-| 19 | `links.linkedin: '[linkedin-url]'` | Your full LinkedIn profile URL. |
+**LinkedIn — done, 2026-09-20.** The URL was supplied and is in
+`content/site.ts`. It renders on `/contact`, in the Direct list, and in the
+"Keep exploring" column of the contact band that closes every page. It is
+deliberately *not* in the `Person` JSON-LD `sameAs` array yet — say the word
+and I will add it.
 
-**Note on the LinkedIn URL:** it is a launch blocker, but it does not currently
-appear in any built page — nothing on the site links to LinkedIn. Supplying the
-URL alone will not make it visible. Tell me where it should go (About, the
-contact page, the `Person` JSON-LD `sameAs` array, or all three) and I will wire
-it up. I did not choose a placement for you.
+**WhatsApp — added 2026-09-20.** `site.whatsapp`, the same number as
+`site.phone`, linked through `wa.me`. Because it is the phone number it
+inherits the phone number's restriction: `/contact` only, never the footer,
+never structured data.
 
 ---
 

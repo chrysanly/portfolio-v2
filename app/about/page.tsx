@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/ui/SiteHeader';
 import { ContactBand } from '@/components/ui/ContactBand';
-import { education, employment, languages, site, skillGroups } from '@/content/site';
+import { BackLink } from '@/components/ui/BackLink';
+import { site, skillGroups } from '@/content/site';
+import { getJourney, getRoles } from '@/lib/journey';
+import { getProfile } from '@/lib/profile';
 
 export const metadata: Metadata = {
   title: 'About',
@@ -9,11 +12,24 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
+  /*
+   * The journey, from the admin when there is one and from content/site.ts
+   * when there is not — lib/journey.ts decides. It arrives oldest first,
+   * which is the order the home page's timeline walks; a CV reads the other
+   * way, so this page reverses it and takes the current post off the end.
+   */
+  const profile = getProfile();
+  const roles = getRoles();
+  const newestFirst = [...roles].reverse();
+  const current = newestFirst[0];
+  const degree = getJourney().find((stop) => stop.kind === 'education');
+
   return (
     <>
       <SiteHeader current="/about" />
       <main id="content">
         <div className="wrap">
+          <BackLink />
           <h1 className="section-label">About</h1>
 
           <p
@@ -25,27 +41,26 @@ export default function AboutPage() {
               maxWidth: '13em',
             }}
           >
-            {site.intro.join(' ')}
+            {profile.intro.join(' ')}
           </p>
 
           <div className="prose-body" style={{ paddingTop: '34px' }}>
-            <p>{site.positioning}</p>
+            <p>{profile.positioning}</p>
           </div>
 
           <section className="detail-section" style={{ paddingTop: '64px' }}>
             <h2>Current role</h2>
             <p className="prose-body">
-              {employment[0].role}, {employment[0].company}, {employment[0].location},{' '}
-              {employment[0].period}.
+              {current.title}, {current.organisation}, {current.location}, {current.period}.
             </p>
           </section>
 
           <section className="detail-section" style={{ paddingTop: '64px' }}>
             <h2>Experience</h2>
             <ul>
-              {employment.map((job) => (
+              {newestFirst.map((job) => (
                 <li
-                  key={`${job.company}-${job.period}`}
+                  key={`${job.organisation}-${job.period}`}
                   style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -59,9 +74,9 @@ export default function AboutPage() {
                     {job.period}
                   </span>
                   <span style={{ flex: '1 1 260px' }}>
-                    <strong style={{ fontWeight: 500 }}>{job.role}</strong>
+                    <strong style={{ fontWeight: 500 }}>{job.title}</strong>
                     <span style={{ display: 'block', color: 'var(--color-muted)' }}>
-                      {job.company}, {job.location}
+                      {job.organisation}, {job.location}
                     </span>
                   </span>
                 </li>
@@ -108,22 +123,24 @@ export default function AboutPage() {
             </dl>
           </section>
 
-          <section className="detail-section" style={{ paddingTop: '64px' }}>
-            <h2>Education</h2>
-            <p className="prose-body">
-              {education.degree}, {education.school}, {education.location}, {education.year}.
-            </p>
-          </section>
+          {degree && (
+            <section className="detail-section" style={{ paddingTop: '64px' }}>
+              <h2>Education</h2>
+              <p className="prose-body">
+                {degree.title}, {degree.organisation}, {degree.location}, {degree.period}.
+              </p>
+            </section>
+          )}
 
           <section className="detail-section" style={{ paddingTop: '64px' }}>
             <h2>Languages</h2>
-            <p className="prose-body">{languages.join(', ')}.</p>
+            <p className="prose-body">{profile.languages.join(', ')}.</p>
           </section>
 
           <section className="detail-section" style={{ paddingTop: '64px' }}>
             <h2>Availability</h2>
             <p className="prose-body">
-              Based in {site.location}, available {site.availability}.
+              Based in {profile.location}, available {profile.availability}.
             </p>
           </section>
         </div>

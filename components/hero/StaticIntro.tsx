@@ -1,4 +1,4 @@
-import { site } from '@/content/site';
+import { getProfile } from '@/lib/profile';
 
 /**
  * The resolved state (stage C), rendered in HTML on the server.
@@ -6,28 +6,30 @@ import { site } from '@/content/site';
  * MastheadHero enhances it; it never replaces it.
  */
 export function StaticIntro() {
+  const profile = getProfile();
+
   return (
     <div className="wrap static-intro">
-      <h1>{site.intro.join(' ')}</h1>
+      <h1>{profile.intro.join(' ')}</h1>
       <dl className="meta-row">
         <div>
           <dt>
             <strong>Discipline</strong>
           </dt>
-          <dd>{site.meta.discipline}</dd>
+          <dd>{profile.meta.discipline}</dd>
         </div>
         <div>
           <dt>
             <strong>Principal stack</strong>
           </dt>
-          <dd>{site.meta.principalStack}</dd>
+          <dd>{profile.meta.principalStack}</dd>
         </div>
         <div>
           <dt>
             <strong>Experience</strong>
           </dt>
           <dd>
-            {site.yearsExperience} years, {site.location} — available {site.availability}
+            {profile.yearsExperience} years, {profile.location} — available {profile.availability}
           </dd>
         </div>
       </dl>

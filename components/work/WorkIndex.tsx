@@ -1,9 +1,4 @@
-/* eslint-disable @next/next/no-html-link-for-pages --
- * docs/03-APPFLOW.md §4 specifies plain anchors for the filter. These are full
- * document navigations to statically generated pages, by design: no prefetch
- * JS, no client router, identical behaviour with JavaScript disabled. Swapping
- * in next/link would add a client dependency the filter does not need.
- */
+import Link from 'next/link';
 import type { Project, ProjectType } from '@/lib/schema';
 import { PROJECT_TYPE_LABELS, PROJECT_TYPES } from '@/lib/schema';
 import { WorkIndexRow } from './WorkIndexRow';
@@ -11,9 +6,17 @@ import { WorkIndexRow } from './WorkIndexRow';
 /**
  * The work index and its filter bar, shared by /work and /work/type/[type].
  *
- * Filtering is static route segments — docs/03-APPFLOW.md §4. The links are
- * plain anchors to pages generated at build, so the filter is shareable,
- * survives a refresh and works with JavaScript disabled.
+ * Filtering is static route segments — docs/03-APPFLOW.md §4. The filter is
+ * therefore shareable and survives a refresh, which is the part of that
+ * section that matters.
+ *
+ * These were plain anchors, on the reasoning that a full document navigation
+ * to a pre-rendered page needs no client router. True, but it made the
+ * filter the one place on the site that flashed and reloaded while every
+ * other link glided, and the project rows beside it already use next/link.
+ * `Link` renders a real `<a href>` to the same static page, so the
+ * JavaScript-disabled behaviour the section asks for is unchanged — what is
+ * gained is that clicking a filter now behaves like clicking anything else.
  */
 export function WorkIndex({
   projects,
@@ -25,17 +28,17 @@ export function WorkIndex({
   return (
     <>
       <nav className="filters" aria-label="Filter by project type">
-        <a href="/work" aria-current={active ? undefined : 'true'}>
+        <Link href="/work" aria-current={active ? undefined : 'true'}>
           All
-        </a>
+        </Link>
         {PROJECT_TYPES.map((type) => (
-          <a
+          <Link
             key={type}
             href={`/work/type/${type}`}
             aria-current={active === type ? 'true' : undefined}
           >
             {PROJECT_TYPE_LABELS[type]}
-          </a>
+          </Link>
         ))}
       </nav>
 
@@ -48,7 +51,7 @@ export function WorkIndex({
           </p>
           {active ? (
             <p style={{ marginTop: '14px' }}>
-              <a href="/work">Clear the filter</a>
+              <Link href="/work">Clear the filter</Link>
             </p>
           ) : null}
         </div>

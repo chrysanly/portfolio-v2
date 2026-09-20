@@ -20,6 +20,8 @@ placeholder. See §6.
 | Experience | 5+ years |
 | Email | chrys.romao21@gmail.com |
 | Phone | +971 52 925 8013 |
+| WhatsApp | Same number — +971 52 925 8013 |
+| LinkedIn | https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/ |
 | Languages | English, Filipino |
 | Existing portfolio | https://chrysanly.github.io/portfolio_v2/ |
 | GitHub handle | chrysanly |
@@ -33,7 +35,8 @@ JSON-LD, or in the résumé PDF served from the site.** They are an identity
 exposure with no upside for a visitor.
 
 Phone number: publish only on `/contact`, never in the page footer or in
-structured data, to limit scraping.
+structured data, to limit scraping. The WhatsApp link is the same number in
+another form, so the same rule covers it.
 
 ---
 
@@ -312,8 +315,10 @@ Do not change any of these defaults without his explicit instruction.
 |-------------|---------------|
 | `[METRIC]` / `[what it improved]` | One measurable outcome per project. The single highest-value gap on the site. |
 | `[X] days weekly` | Availability, if he wants it public |
-| LinkedIn URL | Full profile URL |
 | Screenshots | For the two projects where they're permitted |
+
+The LinkedIn URL was supplied on 2026-09-20 and is recorded in §1. It is live
+on `/contact` and in the contact band that closes every page.
 
 **Metrics are the priority.** Every bullet in §5 describes what was built. Not
 one says what changed as a result. "Refactored onto Repository and Service

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import type { Device, Project, ProjectImage } from '@/lib/schema';
 import { DEVICE_SIZES, PROJECT_TYPE_LABELS } from '@/lib/schema';
@@ -37,6 +37,23 @@ export type ShowcaseProject = Pick<
 > & { attribution: string };
 
 /**
+ * A stand-in, not a screenshot.
+ *
+ * The seeded content points every project's images at placehold.co — grey
+ * rectangles with "1440 x 900" printed across them. Rendered inside the
+ * shells they read as three flat slabs rather than as three devices, and the
+ * dimension text is the loudest thing on the panel.
+ *
+ * So they are treated as what they are: an absence. The shell still draws,
+ * the screen is left empty, and the composition reads as a laptop, a tablet
+ * and a phone — which is the point of the rig. Real screenshots replace them
+ * with no further change here (docs/CONTENT-TODO.md, blocker 5).
+ */
+function isStandIn(src: string): boolean {
+  return src.trim() === '' || /(^|\/\/|\.)placehold\.co\//.test(src);
+}
+
+/**
  * One screen inside a device shell.
  *
  * `width`/`height` are always emitted — from the image when it declares them,
@@ -44,7 +61,7 @@ export type ShowcaseProject = Pick<
  * file arrives and a slow image cannot shift the panel.
  */
 function Screen({ device, image }: { device: Device; image?: ProjectImage }) {
-  if (!image) return null;
+  if (!image || isStandIn(image.src)) return null;
   const size = DEVICE_SIZES[device];
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
@@ -89,7 +106,10 @@ function DeviceRig({
               <Screen device="laptop" image={laptop} />
             </div>
           </div>
+          {/* The deck, seen foreshortened: keyboard well, trackpad, front lip. */}
           <div className="rig__base">
+            <span className="rig__keys" />
+            <span className="rig__trackpad" />
             <span className="rig__notch" />
           </div>
         </div>
@@ -97,6 +117,9 @@ function DeviceRig({
 
       {tablet ? (
         <div className="rig__tablet" ref={(el) => shellRefs(el, 1)}>
+          <span className="rig__cam rig__cam--edge" />
+          <span className="rig__btn rig__btn--power" />
+          <span className="rig__btn rig__btn--vol" />
           <div className="rig__screen">
             <Screen device="tablet" image={tablet} />
           </div>
@@ -106,6 +129,9 @@ function DeviceRig({
       {mobile ? (
         <div className="rig__phone" ref={(el) => shellRefs(el, 2)}>
           <span className="rig__island" />
+          <span className="rig__btn rig__btn--power" />
+          <span className="rig__btn rig__btn--vol-up" />
+          <span className="rig__btn rig__btn--vol-down" />
           <div className="rig__screen">
             <Screen device="mobile" image={mobile} />
           </div>
@@ -135,6 +161,71 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
   });
 
   const count = projects.length;
+
+  /*
+   * The section pager treats each project as its own stop rather than
+   * jumping straight from one end of the showcase to the other — "Next"
+   * from Details used to skip every panel but the first, which is the
+   * opposite of what a showcase is for. Same problem as the hero's Details
+   * stop: a panel's slot lives inside one pinned track, so nothing about it
+   * has a DOM position that means anything as a scroll offset. Each panel
+   * carries `data-substep-title` (its project's title, set once in the JSX
+   * below) and `data-substep-y` (its slot's midpoint in pixels — past its
+   * entrance, before its exit — written here once geometry is known); the
+   * pager reads both to build one titled stop per project instead of a
+   * single generic one. `data-showcase-active`/`data-showcase-panel`, kept
+   * live by a plain scroll listener rather than the spring-smoothed
+   * `progress` below, say which one is current: the pager needs the raw,
+   * immediate position, not the same trailing motion the panels animate
+   * with.
+   */
+  const showcaseGeometry = useRef({ trackTop: 0, scrollable: 0 });
+
+  const measureShowcaseGeometry = useCallback(() => {
+    const track = trackRef.current;
+    const stage = track?.querySelector<HTMLElement>('.showcase__stage');
+    if (!track || !stage || count === 0) return;
+
+    const trackTop = track.getBoundingClientRect().top + window.scrollY;
+    const scrollable = track.offsetHeight - stage.offsetHeight;
+    showcaseGeometry.current = { trackTop, scrollable };
+
+    for (let i = 0; i < count; i += 1) {
+      const panel = panelRefs.current[i];
+      if (!panel) continue;
+      panel.dataset.substepY = String(
+        Math.round(trackTop + ((i + 0.5) / count) * scrollable),
+      );
+    }
+  }, [count]);
+
+  useLayoutEffect(() => {
+    if (reduced || count === 0) return;
+
+    measureShowcaseGeometry();
+    window.addEventListener('resize', measureShowcaseGeometry);
+
+    const onScroll = () => {
+      const { trackTop, scrollable } = showcaseGeometry.current;
+      const y = window.scrollY;
+      const active = scrollable > 0 && y >= trackTop - 4 && y <= trackTop + scrollable + 4;
+      document.documentElement.dataset.showcaseActive = active ? 'on' : 'off';
+      if (active) {
+        const p = clamp((y - trackTop) / scrollable);
+        document.documentElement.dataset.showcasePanel = String(
+          Math.min(count - 1, Math.floor(p * count)),
+        );
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    return () => {
+      window.removeEventListener('resize', measureShowcaseGeometry);
+      window.removeEventListener('scroll', onScroll);
+      delete document.documentElement.dataset.showcaseActive;
+    };
+  }, [reduced, count, measureShowcaseGeometry]);
 
   const paint = useCallback(
     (p: number) => {
@@ -211,6 +302,13 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
       >
         <div className="showcase__stage">
           {projects.map((project, i) => {
+            /*
+             * Counts stand-ins too, deliberately. `data-shots="false"` hides
+             * the figure altogether and gives the text the full measure —
+             * right for a project with no imagery at all, wrong here, where
+             * the shells are the imagery: empty device chrome is the frame,
+             * not a placeholder graphic sitting in it.
+             */
             const hasShots = project.images.length > 0;
 
             return (
@@ -218,6 +316,7 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
                 key={project.slug}
                 className="panel"
                 data-shots={hasShots ? 'true' : 'false'}
+                data-substep-title={project.title}
                 ref={(el) => {
                   panelRefs.current[i] = el;
                 }}

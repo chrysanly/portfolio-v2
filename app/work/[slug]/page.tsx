@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { SiteHeader } from '@/components/ui/SiteHeader';
 import { ContactBand } from '@/components/ui/ContactBand';
+import { EvidenceGallery } from '@/components/work/EvidenceGallery';
 import { ProjectMeta } from '@/components/work/ProjectMeta';
 import { OutcomeFigure } from '@/components/work/OutcomeFigure';
 import { adjacentProjects, attribution, getAllProjects, getProject } from '@/lib/projects';
@@ -85,27 +86,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           {project.images.length > 0 ? (
             <section className="detail-section" style={{ paddingTop: '44px' }}>
               <h2>Evidence</h2>
-              <ul style={{ display: 'grid', gap: '26px' }}>
-                {project.images.map((image) => (
-                  <li key={image.src}>
-                    <figure>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={image.src} alt={image.alt} style={{ width: '100%' }} />
-                      {image.caption ? (
-                        <figcaption
-                          style={{
-                            marginTop: '10px',
-                            fontSize: 'var(--text-small)',
-                            color: 'var(--color-faint)',
-                          }}
-                        >
-                          {image.caption}
-                        </figcaption>
-                      ) : null}
-                    </figure>
-                  </li>
-                ))}
-              </ul>
+              <EvidenceGallery items={[...project.images]} />
             </section>
           ) : null}
 

@@ -9,29 +9,30 @@ import { ExperienceTimeline } from '@/components/work/ExperienceTimeline';
 import { SectionPager } from '@/components/ui/SectionPager';
 import { WorkShowcase } from '@/components/work/WorkShowcase';
 import { attribution, getFeaturedProjects } from '@/lib/projects';
-import { site } from '@/content/site';
+import { getProfile, type Profile } from '@/lib/profile';
 
 /**
  * Person JSON-LD — docs/02-TRD.md §7.
  * Deliberately excludes the phone number, date of birth and civil status.
  */
-function personJsonLd() {
+function personJsonLd(profile: Profile) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: site.fullName,
-    alternateName: site.name,
-    jobTitle: site.role,
-    email: `mailto:${site.email}`,
+    name: profile.fullName,
+    alternateName: profile.name,
+    jobTitle: profile.role,
+    email: `mailto:${profile.email}`,
     address: { '@type': 'PostalAddress', addressLocality: 'Dubai', addressCountry: 'AE' },
     url: process.env.NEXT_PUBLIC_SITE_URL ?? undefined,
-    sameAs: [site.links.github],
+    sameAs: [profile.links.github],
     knowsAbout: ['ERP systems', 'Automation', 'System integration', 'REST API design'],
   };
 }
 
 export default function HomePage() {
   const projects = getFeaturedProjects();
+  const profile = getProfile();
 
   // Only what the showcase renders — the MDX body would otherwise be serialised
   // into the client payload for no reason.
@@ -52,11 +53,11 @@ export default function HomePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd()) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd(profile)) }}
       />
       <SiteHeader minimal />
       <StaticIntro />
-      <HeroMount />
+      <HeroMount profile={profile} />
 
       <main id="content" style={{ paddingBottom: '0' }}>
         <div id="showcase" data-section="Selected work">
@@ -78,10 +79,10 @@ export default function HomePage() {
             </Link>
           </p>
         </div>
-        <div id="journey" data-section="The journey">
+        <div id="journey" data-section="Journey">
           <ExperienceTimeline />
         </div>
-        <div id="stack" data-section="Stack">
+        <div id="stack" data-section="Tech stack">
           <TechMarquee />
         </div>
         <div id="contact" data-section="Contact">

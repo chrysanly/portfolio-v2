@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { languages, site } from '@/content/site';
+import type { Profile } from '@/lib/profile';
 
 /**
  * The identity badge, hung from a real lanyard.
@@ -33,11 +33,10 @@ import { languages, site } from '@/content/site';
  * Initials stand in for the portrait until one is supplied: first and last
  * name, the way an ID would carry them, not the first two given names.
  */
-const nameParts = site.fullName.split(' ').filter(Boolean);
-const initials = `${nameParts[0]?.[0] ?? ''}${nameParts[nameParts.length - 1]?.[0] ?? ''}`;
-
-/** Printed down the webbing, the way a real lanyard carries its wordmark. */
-const TAPE_TEXT = `${site.name.toUpperCase()} · `.repeat(14);
+function initialsFor(fullName: string): string {
+  const parts = fullName.split(' ').filter(Boolean);
+  return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`;
+}
 
 const POINTS = 17; // cord segments before the clip
 const SEG = 14; // rest length of one segment, px
@@ -60,7 +59,11 @@ interface P {
   w: number; // inverse mass; 0 pins the point
 }
 
-export function IdCard() {
+export function IdCard({ profile }: { profile: Profile }) {
+  /** Printed down the webbing, the way a real lanyard carries its wordmark. */
+  const TAPE_TEXT = `${profile.name.toUpperCase()} · `.repeat(14);
+  const initials = initialsFor(profile.fullName);
+
   const stageRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const tapeRef = useRef<SVGPathElement>(null);
@@ -406,15 +409,15 @@ export function IdCard() {
 
         {/* Set down the edge, as on the badges Chrys sent through. */}
         <span className="lanyard__spine-mark" aria-hidden="true">
-          {site.name.toUpperCase()}
+          {profile.name.toUpperCase()}
         </span>
 
         <div className="lanyard__body">
           <div className="lanyard__id">
             <div className="lanyard__photo">
-              {site.portrait ? (
+              {profile.portrait ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={site.portrait} alt={site.fullName} />
+                <img src={profile.portrait} alt={profile.fullName} />
               ) : (
                 <span className="lanyard__monogram" aria-hidden="true">
                   {initials}
@@ -422,27 +425,27 @@ export function IdCard() {
               )}
             </div>
             <div>
-              <p className="lanyard__name">{site.fullName}</p>
-              <p className="lanyard__role">{site.role}</p>
+              <p className="lanyard__name">{profile.fullName}</p>
+              <p className="lanyard__role">{profile.role}</p>
             </div>
           </div>
 
           <dl className="lanyard__list">
             <div>
               <dt>Based</dt>
-              <dd>{site.location}</dd>
+              <dd>{profile.location}</dd>
             </div>
             <div>
               <dt>Experience</dt>
-              <dd>{site.yearsExperience} years</dd>
+              <dd>{profile.yearsExperience} years</dd>
             </div>
             <div>
               <dt>Languages</dt>
-              <dd>{languages.join(', ')}</dd>
+              <dd>{profile.languages.join(', ')}</dd>
             </div>
           </dl>
 
-          <p className="lanyard__foot">{site.links.github.replace('https://', '')}</p>
+          <p className="lanyard__foot">{profile.links.github.replace('https://', '')}</p>
         </div>
       </div>
     </div>

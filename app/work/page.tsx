@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/ui/SiteHeader';
 import { ContactBand } from '@/components/ui/ContactBand';
+import { BackLink } from '@/components/ui/BackLink';
 import { WorkIndex } from '@/components/work/WorkIndex';
 import { getAllProjects } from '@/lib/projects';
 
@@ -16,6 +17,7 @@ export default function WorkPage() {
       <SiteHeader current="/work" />
       <main id="content">
         <div className="wrap">
+          <BackLink />
           <h1 className="section-label">Work</h1>
           <WorkIndex projects={getAllProjects()} />
         </div>

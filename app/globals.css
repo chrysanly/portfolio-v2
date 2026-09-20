@@ -15,8 +15,21 @@
   --color-rule: #cfccc3;
   --color-accent: #7b2d2d;
 
-  --font-display: var(--font-bodoni), Didot, 'Times New Roman', serif;
-  --font-body: var(--font-public-sans), 'Helvetica Neue', Helvetica, sans-serif;
+  /*
+   * Three families, loaded by next/font in app/layout.tsx and pointed at
+   * here. Every rule in this file asks for `--font-display`, `--font-body`
+   * or `--font-mono` and none of them names a family directly, so this
+   * block is the only place a swap has to happen.
+   *
+   * This replaces the Bodoni Moda / Public Sans pairing that
+   * docs/04-UIUX-BRIEF.md §3 specifies — an editorial serif masthead
+   * against a neutral grotesque. Space Grotesk is a geometric sans, so the
+   * display voice is now technical rather than editorial; the brief is
+   * out of date on this point until it is revised.
+   */
+  --font-display: var(--font-space-grotesk), 'Helvetica Neue', Helvetica, sans-serif;
+  --font-body: var(--font-inter), 'Helvetica Neue', Helvetica, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Scale — docs/04-UIUX-BRIEF.md §3: 11/13/15/17/22/26/30/44/96+ */
   --text-meta: 0.6875rem;
@@ -68,7 +81,14 @@
   --color-accent: #c2766b;
   --grain-blend: screen;
   --grain-opacity: 0.05;
-  --cloud-opacity: 0.07;
+  /* The mesh is near-black now, and `screen` can only add light, so a facet
+     at #040404 contributes almost nothing — the opacity has to come up for
+     the few facets that *do* catch light to still read as structure. */
+  --grid-opacity: 0.55;
+  /* `screen` only ever adds light, which is what "lighting up" a near-black
+     ground needs — `soft-light` (the light-mode blend) would darken here. */
+  --spot-blend: screen;
+  --spot-strength: 72%;
   color-scheme: dark;
 }
 
@@ -76,9 +96,60 @@
   :root {
     --page-x: 64px;
     --header-h: 72px;
+    --grid-cell: 56px;
+    /*
+     * Corner radius. docs/04-UIUX-BRIEF.md §4 specified zero radius
+     * everywhere and the reset above used to enforce it; softened corners
+     * were asked for instead. Three tokens and one block (see "corner
+     * radius" near the end of this layer) rather than a radius scattered
+     * through eighty component rules — set these to 0 and the site is back
+     * to the brief exactly as it was.
+     */
+    --radius: 8px;
+    --radius-sm: 5px;
+    --radius-lg: 14px;
+    --radius-pill: 999px;
+    /*
+     * The accent palette the picker offers. Declared here rather than in
+     * AccentPicker.tsx so there is one list: the picker sets
+     * `--color-accent: var(--accent-teal)` rather than a hex of its own,
+     * and the CTA's status dot cycles through these same tokens. Add a
+     * colour here and it is available to both.
+     */
+    --accent-rust: #a4462f;
+    --accent-brass: #9a7b2f;
+    --accent-moss: #4f6b46;
+    --accent-teal: #356b6b;
+    --accent-indigo: #5559a0;
     --grain-blend: multiply;
     --grain-opacity: 0.055;
-    --cloud-opacity: 0.09;
+    /* Light mode multiplies, so the same near-black mesh bites far harder
+       here than it does under `screen` — at the dark theme's opacity the
+       oyster ground would go to mud and take body-text contrast with it. */
+    --grid-opacity: 0.17;
+    /*
+     * Generated once by scripts/generate-facet-texture.mjs — a seeded,
+     * reproducible low-poly triangle mesh (jittered grid, two triangles per
+     * cell), each facet a near-black grey standing in for a random surface
+     * normal under one light. Border points are jittered *along* the border
+     * so the tile still repeats exactly without a straight seam line giving
+     * the repetition away — see the generator for why.
+     * Grayscale so the *same* mesh works in both themes via `--grain-blend`
+     * (multiply/screen) exactly like the grain does, rather than needing a
+     * separately-coloured asset per theme.
+     */
+    --facet-svg: url("data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%27640%27 height=%27640%27><polygon points=%27-16.3,-9.0 44.1,-9.6 -10.1,35.2%27 fill=%27%23525252%27/><polygon points=%27-16.3,631.0 44.1,630.4 -10.1,675.2%27 fill=%27%23525252%27/><polygon points=%27623.7,-9.0 684.1,-9.6 629.9,35.2%27 fill=%27%23525252%27/><polygon points=%27623.7,631.0 684.1,630.4 629.9,675.2%27 fill=%27%23525252%27/><polygon points=%2744.1,-9.6 48.1,66.3 -10.1,35.2%27 fill=%27%230a0a0a%27/><polygon points=%2744.1,630.4 48.1,706.3 -10.1,675.2%27 fill=%27%230a0a0a%27/><polygon points=%27684.1,-9.6 688.1,66.3 629.9,35.2%27 fill=%27%230a0a0a%27/><polygon points=%27684.1,630.4 688.1,706.3 629.9,675.2%27 fill=%27%230a0a0a%27/><polygon points=%2744.1,-9.6 115.7,-14.1 94.8,32.6%27 fill=%27%23040404%27/><polygon points=%2744.1,630.4 115.7,625.9 94.8,672.6%27 fill=%27%23040404%27/><polygon points=%2744.1,-9.6 94.8,32.6 48.1,66.3%27 fill=%27%23040404%27/><polygon points=%2744.1,630.4 94.8,672.6 48.1,706.3%27 fill=%27%23040404%27/><polygon points=%27115.7,-14.1 181.3,19.0 94.8,32.6%27 fill=%27%230e0e0e%27/><polygon points=%27115.7,625.9 181.3,659.0 94.8,672.6%27 fill=%27%230e0e0e%27/><polygon points=%27181.3,19.0 137.7,54.2 94.8,32.6%27 fill=%27%233b3b3b%27/><polygon points=%27181.3,19.0 220.5,-5.9 225.4,44.2%27 fill=%27%233a3a3a%27/><polygon points=%27181.3,659.0 220.5,634.1 225.4,684.2%27 fill=%27%233a3a3a%27/><polygon points=%27181.3,19.0 225.4,44.2 137.7,54.2%27 fill=%27%23383838%27/><polygon points=%27220.5,-5.9 256.3,-9.7 225.4,44.2%27 fill=%27%23555555%27/><polygon points=%27220.5,634.1 256.3,630.3 225.4,684.2%27 fill=%27%23555555%27/><polygon points=%27256.3,-9.7 261.8,54.6 225.4,44.2%27 fill=%27%23414141%27/><polygon points=%27256.3,630.3 261.8,694.6 225.4,684.2%27 fill=%27%23414141%27/><polygon points=%27256.3,-9.7 306.4,3.1 318.2,36.5%27 fill=%27%230d0d0d%27/><polygon points=%27256.3,630.3 306.4,643.1 318.2,676.5%27 fill=%27%230d0d0d%27/><polygon points=%27256.3,-9.7 318.2,36.5 261.8,54.6%27 fill=%27%23060606%27/><polygon points=%27256.3,630.3 318.2,676.5 261.8,694.6%27 fill=%27%23060606%27/><polygon points=%27306.4,3.1 376.0,-10.0 318.2,36.5%27 fill=%27%23080808%27/><polygon points=%27306.4,643.1 376.0,630.0 318.2,676.5%27 fill=%27%23080808%27/><polygon points=%27376.0,-10.0 367.0,60.9 318.2,36.5%27 fill=%27%23373737%27/><polygon points=%27376.0,630.0 367.0,700.9 318.2,676.5%27 fill=%27%23373737%27/><polygon points=%27376.0,-10.0 447.0,0.8 435.4,47.7%27 fill=%27%23040404%27/><polygon points=%27376.0,630.0 447.0,640.8 435.4,687.7%27 fill=%27%23040404%27/><polygon points=%27376.0,-10.0 435.4,47.7 367.0,60.9%27 fill=%27%23090909%27/><polygon points=%27376.0,630.0 435.4,687.7 367.0,700.9%27 fill=%27%23090909%27/><polygon points=%27447.0,0.8 461.6,2.9 435.4,47.7%27 fill=%27%230a0a0a%27/><polygon points=%27461.6,2.9 465.3,37.4 435.4,47.7%27 fill=%27%23070707%27/><polygon points=%27461.6,2.9 553.4,-9.6 532.7,71.5%27 fill=%27%23232323%27/><polygon points=%27461.6,642.9 553.4,630.4 532.7,711.5%27 fill=%27%23232323%27/><polygon points=%27461.6,2.9 532.7,71.5 465.3,37.4%27 fill=%27%23040404%27/><polygon points=%27553.4,-9.6 590.2,-19.4 532.7,71.5%27 fill=%27%23040404%27/><polygon points=%27553.4,630.4 590.2,620.6 532.7,711.5%27 fill=%27%23040404%27/><polygon points=%27590.2,-19.4 594.5,41.8 532.7,71.5%27 fill=%27%23040404%27/><polygon points=%27590.2,620.6 594.5,681.8 532.7,711.5%27 fill=%27%23040404%27/><polygon points=%27590.2,-19.4 623.7,-9.0 629.9,35.2%27 fill=%27%23040404%27/><polygon points=%27590.2,620.6 623.7,631.0 629.9,675.2%27 fill=%27%23040404%27/><polygon points=%27590.2,-19.4 629.9,35.2 594.5,41.8%27 fill=%27%23181818%27/><polygon points=%27590.2,620.6 629.9,675.2 594.5,681.8%27 fill=%27%23181818%27/><polygon points=%27-10.1,35.2 48.1,66.3 74.8,88.8%27 fill=%27%23111111%27/><polygon points=%27629.9,35.2 688.1,66.3 714.8,88.8%27 fill=%27%23111111%27/><polygon points=%27-10.1,35.2 74.8,88.8 -5.2,120.7%27 fill=%27%23040404%27/><polygon points=%27629.9,35.2 714.8,88.8 634.8,120.7%27 fill=%27%23040404%27/><polygon points=%2748.1,66.3 94.8,32.6 74.8,88.8%27 fill=%27%23080808%27/><polygon points=%2794.8,32.6 90.9,115.4 74.8,88.8%27 fill=%27%23050505%27/><polygon points=%2794.8,32.6 137.7,54.2 179.6,113.4%27 fill=%27%234c4c4c%27/><polygon points=%2794.8,32.6 179.6,113.4 90.9,115.4%27 fill=%27%23060606%27/><polygon points=%27137.7,54.2 225.4,44.2 179.6,113.4%27 fill=%27%230b0b0b%27/><polygon points=%27225.4,44.2 195.6,102.6 179.6,113.4%27 fill=%27%23323232%27/><polygon points=%27225.4,44.2 261.8,54.6 275.2,85.3%27 fill=%27%23040404%27/><polygon points=%27225.4,44.2 275.2,85.3 195.6,102.6%27 fill=%27%230d0d0d%27/><polygon points=%27261.8,54.6 318.2,36.5 275.2,85.3%27 fill=%27%23050505%27/><polygon points=%27318.2,36.5 309.7,102.0 275.2,85.3%27 fill=%27%230c0c0c%27/><polygon points=%27318.2,36.5 367.0,60.9 352.4,123.0%27 fill=%27%232d2d2d%27/><polygon points=%27318.2,36.5 352.4,123.0 309.7,102.0%27 fill=%27%23222222%27/><polygon points=%27367.0,60.9 435.4,47.7 352.4,123.0%27 fill=%27%230a0a0a%27/><polygon points=%27435.4,47.7 429.5,110.1 352.4,123.0%27 fill=%27%23060606%27/><polygon points=%27435.4,47.7 465.3,37.4 502.2,125.5%27 fill=%27%232c2c2c%27/><polygon points=%27435.4,47.7 502.2,125.5 429.5,110.1%27 fill=%27%230a0a0a%27/><polygon points=%27465.3,37.4 532.7,71.5 502.2,125.5%27 fill=%27%230b0b0b%27/><polygon points=%27532.7,71.5 546.4,105.4 502.2,125.5%27 fill=%27%23040404%27/><polygon points=%27532.7,71.5 594.5,41.8 578.2,112.5%27 fill=%27%23151515%27/><polygon points=%27532.7,71.5 578.2,112.5 546.4,105.4%27 fill=%27%23202020%27/><polygon points=%27594.5,41.8 629.9,35.2 578.2,112.5%27 fill=%27%23050505%27/><polygon points=%27629.9,35.2 634.8,120.7 578.2,112.5%27 fill=%27%23101010%27/><polygon points=%27-5.2,120.7 74.8,88.8 3.0,140.6%27 fill=%27%23060606%27/><polygon points=%27634.8,120.7 714.8,88.8 643.0,140.6%27 fill=%27%23060606%27/><polygon points=%2774.8,88.8 75.0,151.4 3.0,140.6%27 fill=%27%230a0a0a%27/><polygon points=%2774.8,88.8 90.9,115.4 111.4,181.4%27 fill=%27%234b4b4b%27/><polygon points=%2774.8,88.8 111.4,181.4 75.0,151.4%27 fill=%27%23040404%27/><polygon points=%2790.9,115.4 179.6,113.4 111.4,181.4%27 fill=%27%23040404%27/><polygon points=%27179.6,113.4 149.3,156.5 111.4,181.4%27 fill=%27%23161616%27/><polygon points=%27179.6,113.4 195.6,102.6 202.1,151.4%27 fill=%27%230b0b0b%27/><polygon points=%27179.6,113.4 202.1,151.4 149.3,156.5%27 fill=%27%23303030%27/><polygon points=%27195.6,102.6 275.2,85.3 202.1,151.4%27 fill=%27%233d3d3d%27/><polygon points=%27275.2,85.3 247.0,138.9 202.1,151.4%27 fill=%27%234e4e4e%27/><polygon points=%27275.2,85.3 309.7,102.0 310.7,153.1%27 fill=%27%231c1c1c%27/><polygon points=%27275.2,85.3 310.7,153.1 247.0,138.9%27 fill=%27%23363636%27/><polygon points=%27309.7,102.0 352.4,123.0 310.7,153.1%27 fill=%27%23424242%27/><polygon points=%27352.4,123.0 351.2,177.4 310.7,153.1%27 fill=%27%230a0a0a%27/><polygon points=%27352.4,123.0 429.5,110.1 407.7,146.5%27 fill=%27%23595959%27/><polygon points=%27352.4,123.0 407.7,146.5 351.2,177.4%27 fill=%27%23050505%27/><polygon points=%27429.5,110.1 502.2,125.5 407.7,146.5%27 fill=%27%23040404%27/><polygon points=%27502.2,125.5 458.5,167.0 407.7,146.5%27 fill=%27%23060606%27/><polygon points=%27502.2,125.5 546.4,105.4 527.0,148.4%27 fill=%27%23040404%27/><polygon points=%27502.2,125.5 527.0,148.4 458.5,167.0%27 fill=%27%230d0d0d%27/><polygon points=%27546.4,105.4 578.2,112.5 527.0,148.4%27 fill=%27%23232323%27/><polygon points=%27578.2,112.5 581.8,147.6 527.0,148.4%27 fill=%27%23070707%27/><polygon points=%27-61.8,112.5 -5.2,120.7 3.0,140.6%27 fill=%27%23070707%27/><polygon points=%27578.2,112.5 634.8,120.7 643.0,140.6%27 fill=%27%23070707%27/><polygon points=%27-61.8,112.5 3.0,140.6 -58.2,147.6%27 fill=%27%23292929%27/><polygon points=%27578.2,112.5 643.0,140.6 581.8,147.6%27 fill=%27%23292929%27/><polygon points=%273.0,140.6 75.0,151.4 64.5,191.2%27 fill=%27%23040404%27/><polygon points=%273.0,140.6 64.5,191.2 0.9,228.1%27 fill=%27%23040404%27/><polygon points=%2775.0,151.4 111.4,181.4 64.5,191.2%27 fill=%27%23131313%27/><polygon points=%27111.4,181.4 110.2,215.4 64.5,191.2%27 fill=%27%23171717%27/><polygon points=%27111.4,181.4 149.3,156.5 148.9,220.4%27 fill=%27%230c0c0c%27/><polygon points=%27111.4,181.4 148.9,220.4 110.2,215.4%27 fill=%27%233d3d3d%27/><polygon points=%27149.3,156.5 202.1,151.4 148.9,220.4%27 fill=%27%23424242%27/><polygon points=%27202.1,151.4 228.1,215.4 148.9,220.4%27 fill=%27%233b3b3b%27/><polygon points=%27202.1,151.4 247.0,138.9 279.3,197.1%27 fill=%27%234e4e4e%27/><polygon points=%27202.1,151.4 279.3,197.1 228.1,215.4%27 fill=%27%23383838%27/><polygon points=%27247.0,138.9 310.7,153.1 279.3,197.1%27 fill=%27%23040404%27/><polygon points=%27310.7,153.1 311.5,230.9 279.3,197.1%27 fill=%27%23303030%27/><polygon points=%27310.7,153.1 351.2,177.4 361.6,220.0%27 fill=%27%23070707%27/><polygon points=%27310.7,153.1 361.6,220.0 311.5,230.9%27 fill=%27%23040404%27/><polygon points=%27351.2,177.4 407.7,146.5 361.6,220.0%27 fill=%27%231b1b1b%27/><polygon points=%27407.7,146.5 415.0,226.0 361.6,220.0%27 fill=%27%230a0a0a%27/><polygon points=%27407.7,146.5 458.5,167.0 498.6,211.5%27 fill=%27%231e1e1e%27/><polygon points=%27407.7,146.5 498.6,211.5 415.0,226.0%27 fill=%27%23292929%27/><polygon points=%27458.5,167.0 527.0,148.4 498.6,211.5%27 fill=%27%234f4f4f%27/><polygon points=%27527.0,148.4 511.0,207.4 498.6,211.5%27 fill=%27%230c0c0c%27/><polygon points=%27527.0,148.4 581.8,147.6 570.6,203.6%27 fill=%27%233d3d3d%27/><polygon points=%27527.0,148.4 570.6,203.6 511.0,207.4%27 fill=%27%23050505%27/><polygon points=%27-58.2,147.6 3.0,140.6 -69.4,203.6%27 fill=%27%23040404%27/><polygon points=%27581.8,147.6 643.0,140.6 570.6,203.6%27 fill=%27%23040404%27/><polygon points=%273.0,140.6 0.9,228.1 -69.4,203.6%27 fill=%27%230e0e0e%27/><polygon points=%27643.0,140.6 640.9,228.1 570.6,203.6%27 fill=%27%230e0e0e%27/><polygon points=%270.9,228.1 64.5,191.2 -21.2,286.7%27 fill=%27%23595959%27/><polygon points=%27640.9,228.1 704.5,191.2 618.8,286.7%27 fill=%27%23595959%27/><polygon points=%2764.5,191.2 72.0,288.8 -21.2,286.7%27 fill=%27%230f0f0f%27/><polygon points=%27704.5,191.2 712.0,288.8 618.8,286.7%27 fill=%27%230f0f0f%27/><polygon points=%2764.5,191.2 110.2,215.4 123.3,275.8%27 fill=%27%23252525%27/><polygon points=%2764.5,191.2 123.3,275.8 72.0,288.8%27 fill=%27%23040404%27/><polygon points=%27110.2,215.4 148.9,220.4 123.3,275.8%27 fill=%27%23202020%27/><polygon points=%27148.9,220.4 154.0,263.9 123.3,275.8%27 fill=%27%23080808%27/><polygon points=%27148.9,220.4 228.1,215.4 194.6,285.5%27 fill=%27%23050505%27/><polygon points=%27148.9,220.4 194.6,285.5 154.0,263.9%27 fill=%27%23060606%27/><polygon points=%27228.1,215.4 279.3,197.1 194.6,285.5%27 fill=%27%23040404%27/><polygon points=%27279.3,197.1 272.5,275.1 194.6,285.5%27 fill=%27%23050505%27/><polygon points=%27279.3,197.1 311.5,230.9 297.6,273.7%27 fill=%27%235a5a5a%27/><polygon points=%27279.3,197.1 297.6,273.7 272.5,275.1%27 fill=%27%23040404%27/><polygon points=%27311.5,230.9 361.6,220.0 297.6,273.7%27 fill=%27%23363636%27/><polygon points=%27361.6,220.0 382.6,288.1 297.6,273.7%27 fill=%27%23484848%27/><polygon points=%27361.6,220.0 415.0,226.0 445.8,259.3%27 fill=%27%230e0e0e%27/><polygon points=%27361.6,220.0 445.8,259.3 382.6,288.1%27 fill=%27%23101010%27/><polygon points=%27415.0,226.0 498.6,211.5 445.8,259.3%27 fill=%27%23080808%27/><polygon points=%27498.6,211.5 468.0,279.9 445.8,259.3%27 fill=%27%23252525%27/><polygon points=%27498.6,211.5 511.0,207.4 543.3,259.4%27 fill=%27%23131313%27/><polygon points=%27498.6,211.5 543.3,259.4 468.0,279.9%27 fill=%27%231c1c1c%27/><polygon points=%27511.0,207.4 570.6,203.6 543.3,259.4%27 fill=%27%23151515%27/><polygon points=%27570.6,203.6 582.5,255.2 543.3,259.4%27 fill=%27%23171717%27/><polygon points=%27-69.4,203.6 0.9,228.1 -21.2,286.7%27 fill=%27%23040404%27/><polygon points=%27570.6,203.6 640.9,228.1 618.8,286.7%27 fill=%27%23040404%27/><polygon points=%27570.6,203.6 618.8,286.7 582.5,255.2%27 fill=%27%23535353%27/><polygon points=%27-21.2,286.7 72.0,288.8 75.1,336.4%27 fill=%27%23080808%27/><polygon points=%27618.8,286.7 712.0,288.8 715.1,336.4%27 fill=%27%23080808%27/><polygon points=%27-21.2,286.7 75.1,336.4 19.6,339.1%27 fill=%27%23040404%27/><polygon points=%27618.8,286.7 715.1,336.4 659.6,339.1%27 fill=%27%23040404%27/><polygon points=%2772.0,288.8 123.3,275.8 75.1,336.4%27 fill=%27%231d1d1d%27/><polygon points=%27123.3,275.8 118.3,338.3 75.1,336.4%27 fill=%27%23090909%27/><polygon points=%27123.3,275.8 154.0,263.9 158.8,325.1%27 fill=%27%23050505%27/><polygon points=%27123.3,275.8 158.8,325.1 118.3,338.3%27 fill=%27%23333333%27/><polygon points=%27154.0,263.9 194.6,285.5 158.8,325.1%27 fill=%27%23080808%27/><polygon points=%27194.6,285.5 196.0,306.9 158.8,325.1%27 fill=%27%23050505%27/><polygon points=%27194.6,285.5 272.5,275.1 253.0,330.6%27 fill=%27%230c0c0c%27/><polygon points=%27194.6,285.5 253.0,330.6 196.0,306.9%27 fill=%27%231f1f1f%27/><polygon points=%27272.5,275.1 297.6,273.7 253.0,330.6%27 fill=%27%23171717%27/><polygon points=%27297.6,273.7 333.3,320.5 253.0,330.6%27 fill=%27%23060606%27/><polygon points=%27297.6,273.7 382.6,288.1 388.5,334.2%27 fill=%27%23040404%27/><polygon points=%27297.6,273.7 388.5,334.2 333.3,320.5%27 fill=%27%23373737%27/><polygon points=%27382.6,288.1 445.8,259.3 388.5,334.2%27 fill=%27%232a2a2a%27/><polygon points=%27445.8,259.3 434.7,327.5 388.5,334.2%27 fill=%27%23040404%27/><polygon points=%27445.8,259.3 468.0,279.9 470.3,299.5%27 fill=%27%234d4d4d%27/><polygon points=%27445.8,259.3 470.3,299.5 434.7,327.5%27 fill=%27%23262626%27/><polygon points=%27468.0,279.9 543.3,259.4 470.3,299.5%27 fill=%27%23060606%27/><polygon points=%27543.3,259.4 551.1,316.3 470.3,299.5%27 fill=%27%230b0b0b%27/><polygon points=%27543.3,259.4 582.5,255.2 587.4,332.1%27 fill=%27%23050505%27/><polygon points=%27543.3,259.4 587.4,332.1 551.1,316.3%27 fill=%27%231c1c1c%27/><polygon points=%27582.5,255.2 618.8,286.7 587.4,332.1%27 fill=%27%23111111%27/><polygon points=%27-21.2,286.7 19.6,339.1 -52.6,332.1%27 fill=%27%230b0b0b%27/><polygon points=%27618.8,286.7 659.6,339.1 587.4,332.1%27 fill=%27%230b0b0b%27/><polygon points=%2719.6,339.1 75.1,336.4 -18.4,382.2%27 fill=%27%23070707%27/><polygon points=%27659.6,339.1 715.1,336.4 621.6,382.2%27 fill=%27%23070707%27/><polygon points=%2775.1,336.4 49.8,373.4 -18.4,382.2%27 fill=%27%23050505%27/><polygon points=%27715.1,336.4 689.8,373.4 621.6,382.2%27 fill=%27%23050505%27/><polygon points=%2775.1,336.4 118.3,338.3 85.5,358.1%27 fill=%27%23444444%27/><polygon points=%2775.1,336.4 85.5,358.1 49.8,373.4%27 fill=%27%23060606%27/><polygon points=%27118.3,338.3 158.8,325.1 85.5,358.1%27 fill=%27%233e3e3e%27/><polygon points=%27158.8,325.1 151.5,375.0 85.5,358.1%27 fill=%27%234b4b4b%27/><polygon points=%27158.8,325.1 196.0,306.9 229.7,351.0%27 fill=%27%23050505%27/><polygon points=%27158.8,325.1 229.7,351.0 151.5,375.0%27 fill=%27%23040404%27/><polygon points=%27196.0,306.9 253.0,330.6 229.7,351.0%27 fill=%27%23191919%27/><polygon points=%27253.0,330.6 287.5,351.5 229.7,351.0%27 fill=%27%231b1b1b%27/><polygon points=%27253.0,330.6 333.3,320.5 325.2,351.8%27 fill=%27%230c0c0c%27/><polygon points=%27253.0,330.6 325.2,351.8 287.5,351.5%27 fill=%27%23505050%27/><polygon points=%27333.3,320.5 388.5,334.2 325.2,351.8%27 fill=%27%23050505%27/><polygon points=%27388.5,334.2 374.5,372.9 325.2,351.8%27 fill=%27%23454545%27/><polygon points=%27388.5,334.2 434.7,327.5 409.4,362.8%27 fill=%27%23050505%27/><polygon points=%27388.5,334.2 409.4,362.8 374.5,372.9%27 fill=%27%232c2c2c%27/><polygon points=%27434.7,327.5 470.3,299.5 409.4,362.8%27 fill=%27%23303030%27/><polygon points=%27470.3,299.5 466.4,385.9 409.4,362.8%27 fill=%27%23040404%27/><polygon points=%27470.3,299.5 551.1,316.3 517.0,395.0%27 fill=%27%23040404%27/><polygon points=%27470.3,299.5 517.0,395.0 466.4,385.9%27 fill=%27%23333333%27/><polygon points=%27551.1,316.3 587.4,332.1 517.0,395.0%27 fill=%27%23040404%27/><polygon points=%27587.4,332.1 568.5,373.6 517.0,395.0%27 fill=%27%23111111%27/><polygon points=%27-52.6,332.1 19.6,339.1 -18.4,382.2%27 fill=%27%234b4b4b%27/><polygon points=%27587.4,332.1 659.6,339.1 621.6,382.2%27 fill=%27%234b4b4b%27/><polygon points=%27587.4,332.1 621.6,382.2 568.5,373.6%27 fill=%27%230d0d0d%27/><polygon points=%27-18.4,382.2 49.8,373.4 32.6,406.8%27 fill=%27%23090909%27/><polygon points=%27621.6,382.2 689.8,373.4 672.6,406.8%27 fill=%27%23090909%27/><polygon points=%27-18.4,382.2 32.6,406.8 20.1,440.2%27 fill=%27%231b1b1b%27/><polygon points=%27621.6,382.2 672.6,406.8 660.1,440.2%27 fill=%27%231b1b1b%27/><polygon points=%2749.8,373.4 85.5,358.1 32.6,406.8%27 fill=%27%23575757%27/><polygon points=%2785.5,358.1 122.3,448.7 32.6,406.8%27 fill=%27%23040404%27/><polygon points=%2785.5,358.1 151.5,375.0 142.5,416.3%27 fill=%27%23191919%27/><polygon points=%2785.5,358.1 142.5,416.3 122.3,448.7%27 fill=%27%23343434%27/><polygon points=%27151.5,375.0 229.7,351.0 142.5,416.3%27 fill=%27%23383838%27/><polygon points=%27229.7,351.0 199.3,432.1 142.5,416.3%27 fill=%27%23131313%27/><polygon points=%27229.7,351.0 287.5,351.5 256.1,406.4%27 fill=%27%23040404%27/><polygon points=%27229.7,351.0 256.1,406.4 199.3,432.1%27 fill=%27%23040404%27/><polygon points=%27287.5,351.5 325.2,351.8 256.1,406.4%27 fill=%27%23040404%27/><polygon points=%27325.2,351.8 322.1,448.8 256.1,406.4%27 fill=%27%23090909%27/><polygon points=%27325.2,351.8 374.5,372.9 381.5,436.7%27 fill=%27%23171717%27/><polygon points=%27325.2,351.8 381.5,436.7 322.1,448.8%27 fill=%27%23090909%27/><polygon points=%27374.5,372.9 409.4,362.8 381.5,436.7%27 fill=%27%23050505%27/><polygon points=%27409.4,362.8 421.1,430.7 381.5,436.7%27 fill=%27%23595959%27/><polygon points=%27409.4,362.8 466.4,385.9 465.5,447.4%27 fill=%27%23070707%27/><polygon points=%27409.4,362.8 465.5,447.4 421.1,430.7%27 fill=%27%23545454%27/><polygon points=%27466.4,385.9 517.0,395.0 465.5,447.4%27 fill=%27%23080808%27/><polygon points=%27517.0,395.0 531.5,407.9 465.5,447.4%27 fill=%27%23040404%27/><polygon points=%27517.0,395.0 568.5,373.6 577.3,429.7%27 fill=%27%23040404%27/><polygon points=%27517.0,395.0 577.3,429.7 531.5,407.9%27 fill=%27%230b0b0b%27/><polygon points=%27568.5,373.6 621.6,382.2 577.3,429.7%27 fill=%27%23242424%27/><polygon points=%27-18.4,382.2 20.1,440.2 -62.7,429.7%27 fill=%27%23353535%27/><polygon points=%27621.6,382.2 660.1,440.2 577.3,429.7%27 fill=%27%23353535%27/><polygon points=%2720.1,440.2 32.6,406.8 19.2,484.2%27 fill=%27%230c0c0c%27/><polygon points=%2732.6,406.8 47.5,460.9 19.2,484.2%27 fill=%27%232b2b2b%27/><polygon points=%2732.6,406.8 122.3,448.7 117.6,499.5%27 fill=%27%23050505%27/><polygon points=%2732.6,406.8 117.6,499.5 47.5,460.9%27 fill=%27%23353535%27/><polygon points=%27122.3,448.7 142.5,416.3 117.6,499.5%27 fill=%27%232e2e2e%27/><polygon points=%27142.5,416.3 175.5,464.8 117.6,499.5%27 fill=%27%23040404%27/><polygon points=%27142.5,416.3 199.3,432.1 217.6,460.6%27 fill=%27%23464646%27/><polygon points=%27142.5,416.3 217.6,460.6 175.5,464.8%27 fill=%27%23262626%27/><polygon points=%27199.3,432.1 256.1,406.4 217.6,460.6%27 fill=%27%23121212%27/><polygon points=%27256.1,406.4 270.0,490.8 217.6,460.6%27 fill=%27%23040404%27/><polygon points=%27256.1,406.4 322.1,448.8 328.1,476.4%27 fill=%27%23060606%27/><polygon points=%27256.1,406.4 328.1,476.4 270.0,490.8%27 fill=%27%23555555%27/><polygon points=%27322.1,448.8 381.5,436.7 328.1,476.4%27 fill=%27%234c4c4c%27/><polygon points=%27381.5,436.7 359.4,487.7 328.1,476.4%27 fill=%27%23040404%27/><polygon points=%27381.5,436.7 421.1,430.7 447.9,495.5%27 fill=%27%23121212%27/><polygon points=%27381.5,436.7 447.9,495.5 359.4,487.7%27 fill=%27%23202020%27/><polygon points=%27421.1,430.7 465.5,447.4 447.9,495.5%27 fill=%27%23050505%27/><polygon points=%27465.5,447.4 463.9,493.7 447.9,495.5%27 fill=%27%23040404%27/><polygon points=%27465.5,447.4 531.5,407.9 537.5,492.4%27 fill=%27%23373737%27/><polygon points=%27465.5,447.4 537.5,492.4 463.9,493.7%27 fill=%27%230c0c0c%27/><polygon points=%27531.5,407.9 577.3,429.7 537.5,492.4%27 fill=%27%23222222%27/><polygon points=%27577.3,429.7 604.3,500.2 537.5,492.4%27 fill=%27%23060606%27/><polygon points=%27-62.7,429.7 20.1,440.2 19.2,484.2%27 fill=%27%23151515%27/><polygon points=%27577.3,429.7 660.1,440.2 659.2,484.2%27 fill=%27%23151515%27/><polygon points=%27-62.7,429.7 19.2,484.2 -35.7,500.2%27 fill=%27%230e0e0e%27/><polygon points=%27577.3,429.7 659.2,484.2 604.3,500.2%27 fill=%27%230e0e0e%27/><polygon points=%2719.2,484.2 47.5,460.9 63.3,538.4%27 fill=%27%232d2d2d%27/><polygon points=%2719.2,484.2 63.3,538.4 -9.5,537.9%27 fill=%27%23131313%27/><polygon points=%27659.2,484.2 703.3,538.4 630.5,537.9%27 fill=%27%23131313%27/><polygon points=%2747.5,460.9 117.6,499.5 63.3,538.4%27 fill=%27%23040404%27/><polygon points=%27117.6,499.5 109.5,528.8 63.3,538.4%27 fill=%27%23040404%27/><polygon points=%27117.6,499.5 175.5,464.8 137.7,537.6%27 fill=%27%23070707%27/><polygon points=%27117.6,499.5 137.7,537.6 109.5,528.8%27 fill=%27%23121212%27/><polygon points=%27175.5,464.8 217.6,460.6 137.7,537.6%27 fill=%27%23101010%27/><polygon points=%27217.6,460.6 209.9,555.6 137.7,537.6%27 fill=%27%23050505%27/><polygon points=%27217.6,460.6 270.0,490.8 276.9,534.2%27 fill=%27%23080808%27/><polygon points=%27217.6,460.6 276.9,534.2 209.9,555.6%27 fill=%27%23101010%27/><polygon points=%27270.0,490.8 328.1,476.4 276.9,534.2%27 fill=%27%23040404%27/><polygon points=%27328.1,476.4 324.6,548.2 276.9,534.2%27 fill=%27%23484848%27/><polygon points=%27328.1,476.4 359.4,487.7 381.1,549.3%27 fill=%27%23060606%27/><polygon points=%27328.1,476.4 381.1,549.3 324.6,548.2%27 fill=%27%23040404%27/><polygon points=%27359.4,487.7 447.9,495.5 381.1,549.3%27 fill=%27%23080808%27/><polygon points=%27447.9,495.5 429.2,516.2 381.1,549.3%27 fill=%27%23333333%27/><polygon points=%27447.9,495.5 463.9,493.7 495.6,546.1%27 fill=%27%23050505%27/><polygon points=%27447.9,495.5 495.6,546.1 429.2,516.2%27 fill=%27%23040404%27/><polygon points=%27463.9,493.7 537.5,492.4 495.6,546.1%27 fill=%27%23111111%27/><polygon points=%27537.5,492.4 514.7,527.5 495.6,546.1%27 fill=%27%23080808%27/><polygon points=%27537.5,492.4 604.3,500.2 565.3,541.9%27 fill=%27%230c0c0c%27/><polygon points=%27537.5,492.4 565.3,541.9 514.7,527.5%27 fill=%27%23212121%27/><polygon points=%27-35.7,500.2 19.2,484.2 -74.7,541.9%27 fill=%27%23060606%27/><polygon points=%27604.3,500.2 659.2,484.2 565.3,541.9%27 fill=%27%23060606%27/><polygon points=%2719.2,484.2 -9.5,537.9 -74.7,541.9%27 fill=%27%23050505%27/><polygon points=%27659.2,484.2 630.5,537.9 565.3,541.9%27 fill=%27%23050505%27/><polygon points=%27-9.5,537.9 63.3,538.4 16.9,590.8%27 fill=%27%23070707%27/><polygon points=%27630.5,537.9 703.3,538.4 656.9,590.8%27 fill=%27%23070707%27/><polygon points=%2763.3,538.4 34.2,583.7 16.9,590.8%27 fill=%27%235a5a5a%27/><polygon points=%2763.3,538.4 109.5,528.8 104.1,576.1%27 fill=%27%23060606%27/><polygon points=%2763.3,538.4 104.1,576.1 34.2,583.7%27 fill=%27%23303030%27/><polygon points=%27109.5,528.8 137.7,537.6 104.1,576.1%27 fill=%27%23040404%27/><polygon points=%27137.7,537.6 164.6,576.0 104.1,576.1%27 fill=%27%23333333%27/><polygon points=%27137.7,537.6 209.9,555.6 215.1,576.8%27 fill=%27%23060606%27/><polygon points=%27137.7,537.6 215.1,576.8 164.6,576.0%27 fill=%27%23343434%27/><polygon points=%27209.9,555.6 276.9,534.2 215.1,576.8%27 fill=%27%231a1a1a%27/><polygon points=%27276.9,534.2 266.8,585.3 215.1,576.8%27 fill=%27%232e2e2e%27/><polygon points=%27276.9,534.2 324.6,548.2 339.9,605.5%27 fill=%27%23090909%27/><polygon points=%27276.9,534.2 339.9,605.5 266.8,585.3%27 fill=%27%231d1d1d%27/><polygon points=%27324.6,548.2 381.1,549.3 339.9,605.5%27 fill=%27%23040404%27/><polygon points=%27381.1,549.3 360.7,586.1 339.9,605.5%27 fill=%27%23323232%27/><polygon points=%27381.1,549.3 429.2,516.2 429.0,573.3%27 fill=%27%23040404%27/><polygon points=%27381.1,549.3 429.0,573.3 360.7,586.1%27 fill=%27%232b2b2b%27/><polygon points=%27429.2,516.2 495.6,546.1 429.0,573.3%27 fill=%27%23202020%27/><polygon points=%27495.6,546.1 489.3,595.6 429.0,573.3%27 fill=%27%23040404%27/><polygon points=%27495.6,546.1 514.7,527.5 542.3,582.2%27 fill=%27%23040404%27/><polygon points=%27495.6,546.1 542.3,582.2 489.3,595.6%27 fill=%27%23080808%27/><polygon points=%27514.7,527.5 565.3,541.9 542.3,582.2%27 fill=%27%23040404%27/><polygon points=%27565.3,541.9 601.4,597.9 542.3,582.2%27 fill=%27%23191919%27/><polygon points=%27-74.7,541.9 -9.5,537.9 16.9,590.8%27 fill=%27%232b2b2b%27/><polygon points=%27565.3,541.9 630.5,537.9 656.9,590.8%27 fill=%27%232b2b2b%27/><polygon points=%27-74.7,541.9 16.9,590.8 -38.6,597.9%27 fill=%27%23060606%27/><polygon points=%27565.3,541.9 656.9,590.8 601.4,597.9%27 fill=%27%23060606%27/><polygon points=%2716.9,590.8 34.2,583.7 44.1,630.4%27 fill=%27%23272727%27/><polygon points=%2716.9,590.8 44.1,630.4 -16.3,631.0%27 fill=%27%23212121%27/><polygon points=%27656.9,590.8 684.1,630.4 623.7,631.0%27 fill=%27%23212121%27/><polygon points=%2734.2,583.7 104.1,576.1 44.1,630.4%27 fill=%27%23040404%27/><polygon points=%27104.1,576.1 115.7,625.9 44.1,630.4%27 fill=%27%23040404%27/><polygon points=%27104.1,-63.9 164.6,-64.0 181.3,19.0%27 fill=%27%23050505%27/><polygon points=%27104.1,576.1 164.6,576.0 181.3,659.0%27 fill=%27%23050505%27/><polygon points=%27104.1,-63.9 181.3,19.0 115.7,-14.1%27 fill=%27%23151515%27/><polygon points=%27104.1,576.1 181.3,659.0 115.7,625.9%27 fill=%27%23151515%27/><polygon points=%27164.6,-64.0 215.1,-63.2 181.3,19.0%27 fill=%27%23111111%27/><polygon points=%27164.6,576.0 215.1,576.8 181.3,659.0%27 fill=%27%23111111%27/><polygon points=%27215.1,-63.2 220.5,-5.9 181.3,19.0%27 fill=%27%23040404%27/><polygon points=%27215.1,576.8 220.5,634.1 181.3,659.0%27 fill=%27%23040404%27/><polygon points=%27215.1,576.8 266.8,585.3 256.3,630.3%27 fill=%27%23040404%27/><polygon points=%27215.1,576.8 256.3,630.3 220.5,634.1%27 fill=%27%230f0f0f%27/><polygon points=%27266.8,585.3 339.9,605.5 256.3,630.3%27 fill=%27%232b2b2b%27/><polygon points=%27339.9,-34.5 306.4,3.1 256.3,-9.7%27 fill=%27%23070707%27/><polygon points=%27339.9,605.5 306.4,643.1 256.3,630.3%27 fill=%27%23070707%27/><polygon points=%27339.9,605.5 360.7,586.1 376.0,630.0%27 fill=%27%23181818%27/><polygon points=%27339.9,-34.5 376.0,-10.0 306.4,3.1%27 fill=%27%230c0c0c%27/><polygon points=%27339.9,605.5 376.0,630.0 306.4,643.1%27 fill=%27%230c0c0c%27/><polygon points=%27360.7,586.1 429.0,573.3 376.0,630.0%27 fill=%27%23040404%27/><polygon points=%27429.0,-66.7 447.0,0.8 376.0,-10.0%27 fill=%27%23090909%27/><polygon points=%27429.0,573.3 447.0,640.8 376.0,630.0%27 fill=%27%23090909%27/><polygon points=%27429.0,-66.7 489.3,-44.4 461.6,2.9%27 fill=%27%23262626%27/><polygon points=%27429.0,573.3 489.3,595.6 461.6,642.9%27 fill=%27%23262626%27/><polygon points=%27429.0,-66.7 461.6,2.9 447.0,0.8%27 fill=%27%23434343%27/><polygon points=%27429.0,573.3 461.6,642.9 447.0,640.8%27 fill=%27%23434343%27/><polygon points=%27489.3,-44.4 542.3,-57.8 461.6,2.9%27 fill=%27%23373737%27/><polygon points=%27489.3,595.6 542.3,582.2 461.6,642.9%27 fill=%27%23373737%27/><polygon points=%27542.3,-57.8 553.4,-9.6 461.6,2.9%27 fill=%27%23040404%27/><polygon points=%27542.3,582.2 553.4,630.4 461.6,642.9%27 fill=%27%23040404%27/><polygon points=%27542.3,582.2 601.4,597.9 590.2,620.6%27 fill=%27%23303030%27/><polygon points=%27542.3,582.2 590.2,620.6 553.4,630.4%27 fill=%27%23424242%27/><polygon points=%27-38.6,597.9 16.9,590.8 -49.8,620.6%27 fill=%27%23040404%27/><polygon points=%27601.4,597.9 656.9,590.8 590.2,620.6%27 fill=%27%23040404%27/><polygon points=%2716.9,590.8 -16.3,631.0 -49.8,620.6%27 fill=%27%231c1c1c%27/><polygon points=%27656.9,590.8 623.7,631.0 590.2,620.6%27 fill=%27%231c1c1c%27/></svg>");
+    /* Same mesh, stroke-only — used to mask the interactive glow so what
+       lights up under the cursor is this mesh's own edges. */
+    --facet-edges-svg: url("data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%27640%27 height=%27640%27><polygon points=%27-16.3,-9.0 44.1,-9.6 -10.1,35.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-16.3,631.0 44.1,630.4 -10.1,675.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27623.7,-9.0 684.1,-9.6 629.9,35.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27623.7,631.0 684.1,630.4 629.9,675.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,-9.6 48.1,66.3 -10.1,35.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,630.4 48.1,706.3 -10.1,675.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27684.1,-9.6 688.1,66.3 629.9,35.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27684.1,630.4 688.1,706.3 629.9,675.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,-9.6 115.7,-14.1 94.8,32.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,630.4 115.7,625.9 94.8,672.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,-9.6 94.8,32.6 48.1,66.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2744.1,630.4 94.8,672.6 48.1,706.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27115.7,-14.1 181.3,19.0 94.8,32.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27115.7,625.9 181.3,659.0 94.8,672.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27181.3,19.0 137.7,54.2 94.8,32.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27181.3,19.0 220.5,-5.9 225.4,44.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27181.3,659.0 220.5,634.1 225.4,684.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27181.3,19.0 225.4,44.2 137.7,54.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27220.5,-5.9 256.3,-9.7 225.4,44.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27220.5,634.1 256.3,630.3 225.4,684.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,-9.7 261.8,54.6 225.4,44.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,630.3 261.8,694.6 225.4,684.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,-9.7 306.4,3.1 318.2,36.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,630.3 306.4,643.1 318.2,676.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,-9.7 318.2,36.5 261.8,54.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.3,630.3 318.2,676.5 261.8,694.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27306.4,3.1 376.0,-10.0 318.2,36.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27306.4,643.1 376.0,630.0 318.2,676.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,-10.0 367.0,60.9 318.2,36.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,630.0 367.0,700.9 318.2,676.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,-10.0 447.0,0.8 435.4,47.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,630.0 447.0,640.8 435.4,687.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,-10.0 435.4,47.7 367.0,60.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27376.0,630.0 435.4,687.7 367.0,700.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27447.0,0.8 461.6,2.9 435.4,47.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27461.6,2.9 465.3,37.4 435.4,47.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27461.6,2.9 553.4,-9.6 532.7,71.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27461.6,642.9 553.4,630.4 532.7,711.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27461.6,2.9 532.7,71.5 465.3,37.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27553.4,-9.6 590.2,-19.4 532.7,71.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27553.4,630.4 590.2,620.6 532.7,711.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,-19.4 594.5,41.8 532.7,71.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,620.6 594.5,681.8 532.7,711.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,-19.4 623.7,-9.0 629.9,35.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,620.6 623.7,631.0 629.9,675.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,-19.4 629.9,35.2 594.5,41.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27590.2,620.6 629.9,675.2 594.5,681.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-10.1,35.2 48.1,66.3 74.8,88.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27629.9,35.2 688.1,66.3 714.8,88.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-10.1,35.2 74.8,88.8 -5.2,120.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27629.9,35.2 714.8,88.8 634.8,120.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2748.1,66.3 94.8,32.6 74.8,88.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2794.8,32.6 90.9,115.4 74.8,88.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2794.8,32.6 137.7,54.2 179.6,113.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2794.8,32.6 179.6,113.4 90.9,115.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27137.7,54.2 225.4,44.2 179.6,113.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27225.4,44.2 195.6,102.6 179.6,113.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27225.4,44.2 261.8,54.6 275.2,85.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27225.4,44.2 275.2,85.3 195.6,102.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27261.8,54.6 318.2,36.5 275.2,85.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27318.2,36.5 309.7,102.0 275.2,85.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27318.2,36.5 367.0,60.9 352.4,123.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27318.2,36.5 352.4,123.0 309.7,102.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27367.0,60.9 435.4,47.7 352.4,123.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27435.4,47.7 429.5,110.1 352.4,123.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27435.4,47.7 465.3,37.4 502.2,125.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27435.4,47.7 502.2,125.5 429.5,110.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27465.3,37.4 532.7,71.5 502.2,125.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27532.7,71.5 546.4,105.4 502.2,125.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27532.7,71.5 594.5,41.8 578.2,112.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27532.7,71.5 578.2,112.5 546.4,105.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27594.5,41.8 629.9,35.2 578.2,112.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27629.9,35.2 634.8,120.7 578.2,112.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-5.2,120.7 74.8,88.8 3.0,140.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27634.8,120.7 714.8,88.8 643.0,140.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2774.8,88.8 75.0,151.4 3.0,140.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2774.8,88.8 90.9,115.4 111.4,181.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2774.8,88.8 111.4,181.4 75.0,151.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2790.9,115.4 179.6,113.4 111.4,181.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27179.6,113.4 149.3,156.5 111.4,181.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27179.6,113.4 195.6,102.6 202.1,151.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27179.6,113.4 202.1,151.4 149.3,156.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27195.6,102.6 275.2,85.3 202.1,151.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27275.2,85.3 247.0,138.9 202.1,151.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27275.2,85.3 309.7,102.0 310.7,153.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27275.2,85.3 310.7,153.1 247.0,138.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27309.7,102.0 352.4,123.0 310.7,153.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27352.4,123.0 351.2,177.4 310.7,153.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27352.4,123.0 429.5,110.1 407.7,146.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27352.4,123.0 407.7,146.5 351.2,177.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.5,110.1 502.2,125.5 407.7,146.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27502.2,125.5 458.5,167.0 407.7,146.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27502.2,125.5 546.4,105.4 527.0,148.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27502.2,125.5 527.0,148.4 458.5,167.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27546.4,105.4 578.2,112.5 527.0,148.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27578.2,112.5 581.8,147.6 527.0,148.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-61.8,112.5 -5.2,120.7 3.0,140.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27578.2,112.5 634.8,120.7 643.0,140.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-61.8,112.5 3.0,140.6 -58.2,147.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27578.2,112.5 643.0,140.6 581.8,147.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%273.0,140.6 75.0,151.4 64.5,191.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%273.0,140.6 64.5,191.2 0.9,228.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2775.0,151.4 111.4,181.4 64.5,191.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27111.4,181.4 110.2,215.4 64.5,191.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27111.4,181.4 149.3,156.5 148.9,220.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27111.4,181.4 148.9,220.4 110.2,215.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27149.3,156.5 202.1,151.4 148.9,220.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27202.1,151.4 228.1,215.4 148.9,220.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27202.1,151.4 247.0,138.9 279.3,197.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27202.1,151.4 279.3,197.1 228.1,215.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27247.0,138.9 310.7,153.1 279.3,197.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27310.7,153.1 311.5,230.9 279.3,197.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27310.7,153.1 351.2,177.4 361.6,220.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27310.7,153.1 361.6,220.0 311.5,230.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27351.2,177.4 407.7,146.5 361.6,220.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27407.7,146.5 415.0,226.0 361.6,220.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27407.7,146.5 458.5,167.0 498.6,211.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27407.7,146.5 498.6,211.5 415.0,226.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27458.5,167.0 527.0,148.4 498.6,211.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27527.0,148.4 511.0,207.4 498.6,211.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27527.0,148.4 581.8,147.6 570.6,203.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27527.0,148.4 570.6,203.6 511.0,207.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-58.2,147.6 3.0,140.6 -69.4,203.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27581.8,147.6 643.0,140.6 570.6,203.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%273.0,140.6 0.9,228.1 -69.4,203.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27643.0,140.6 640.9,228.1 570.6,203.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%270.9,228.1 64.5,191.2 -21.2,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27640.9,228.1 704.5,191.2 618.8,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2764.5,191.2 72.0,288.8 -21.2,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27704.5,191.2 712.0,288.8 618.8,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2764.5,191.2 110.2,215.4 123.3,275.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2764.5,191.2 123.3,275.8 72.0,288.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27110.2,215.4 148.9,220.4 123.3,275.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27148.9,220.4 154.0,263.9 123.3,275.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27148.9,220.4 228.1,215.4 194.6,285.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27148.9,220.4 194.6,285.5 154.0,263.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27228.1,215.4 279.3,197.1 194.6,285.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27279.3,197.1 272.5,275.1 194.6,285.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27279.3,197.1 311.5,230.9 297.6,273.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27279.3,197.1 297.6,273.7 272.5,275.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27311.5,230.9 361.6,220.0 297.6,273.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27361.6,220.0 382.6,288.1 297.6,273.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27361.6,220.0 415.0,226.0 445.8,259.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27361.6,220.0 445.8,259.3 382.6,288.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27415.0,226.0 498.6,211.5 445.8,259.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27498.6,211.5 468.0,279.9 445.8,259.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27498.6,211.5 511.0,207.4 543.3,259.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27498.6,211.5 543.3,259.4 468.0,279.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27511.0,207.4 570.6,203.6 543.3,259.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27570.6,203.6 582.5,255.2 543.3,259.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-69.4,203.6 0.9,228.1 -21.2,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27570.6,203.6 640.9,228.1 618.8,286.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27570.6,203.6 618.8,286.7 582.5,255.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-21.2,286.7 72.0,288.8 75.1,336.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27618.8,286.7 712.0,288.8 715.1,336.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-21.2,286.7 75.1,336.4 19.6,339.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27618.8,286.7 715.1,336.4 659.6,339.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2772.0,288.8 123.3,275.8 75.1,336.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27123.3,275.8 118.3,338.3 75.1,336.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27123.3,275.8 154.0,263.9 158.8,325.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27123.3,275.8 158.8,325.1 118.3,338.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27154.0,263.9 194.6,285.5 158.8,325.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27194.6,285.5 196.0,306.9 158.8,325.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27194.6,285.5 272.5,275.1 253.0,330.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27194.6,285.5 253.0,330.6 196.0,306.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27272.5,275.1 297.6,273.7 253.0,330.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27297.6,273.7 333.3,320.5 253.0,330.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27297.6,273.7 382.6,288.1 388.5,334.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27297.6,273.7 388.5,334.2 333.3,320.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27382.6,288.1 445.8,259.3 388.5,334.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27445.8,259.3 434.7,327.5 388.5,334.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27445.8,259.3 468.0,279.9 470.3,299.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27445.8,259.3 470.3,299.5 434.7,327.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27468.0,279.9 543.3,259.4 470.3,299.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27543.3,259.4 551.1,316.3 470.3,299.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27543.3,259.4 582.5,255.2 587.4,332.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27543.3,259.4 587.4,332.1 551.1,316.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27582.5,255.2 618.8,286.7 587.4,332.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-21.2,286.7 19.6,339.1 -52.6,332.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27618.8,286.7 659.6,339.1 587.4,332.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2719.6,339.1 75.1,336.4 -18.4,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27659.6,339.1 715.1,336.4 621.6,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2775.1,336.4 49.8,373.4 -18.4,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27715.1,336.4 689.8,373.4 621.6,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2775.1,336.4 118.3,338.3 85.5,358.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2775.1,336.4 85.5,358.1 49.8,373.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27118.3,338.3 158.8,325.1 85.5,358.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27158.8,325.1 151.5,375.0 85.5,358.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27158.8,325.1 196.0,306.9 229.7,351.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27158.8,325.1 229.7,351.0 151.5,375.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27196.0,306.9 253.0,330.6 229.7,351.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27253.0,330.6 287.5,351.5 229.7,351.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27253.0,330.6 333.3,320.5 325.2,351.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27253.0,330.6 325.2,351.8 287.5,351.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27333.3,320.5 388.5,334.2 325.2,351.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27388.5,334.2 374.5,372.9 325.2,351.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27388.5,334.2 434.7,327.5 409.4,362.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27388.5,334.2 409.4,362.8 374.5,372.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27434.7,327.5 470.3,299.5 409.4,362.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27470.3,299.5 466.4,385.9 409.4,362.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27470.3,299.5 551.1,316.3 517.0,395.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27470.3,299.5 517.0,395.0 466.4,385.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27551.1,316.3 587.4,332.1 517.0,395.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27587.4,332.1 568.5,373.6 517.0,395.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-52.6,332.1 19.6,339.1 -18.4,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27587.4,332.1 659.6,339.1 621.6,382.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27587.4,332.1 621.6,382.2 568.5,373.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-18.4,382.2 49.8,373.4 32.6,406.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27621.6,382.2 689.8,373.4 672.6,406.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-18.4,382.2 32.6,406.8 20.1,440.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27621.6,382.2 672.6,406.8 660.1,440.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2749.8,373.4 85.5,358.1 32.6,406.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2785.5,358.1 122.3,448.7 32.6,406.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2785.5,358.1 151.5,375.0 142.5,416.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2785.5,358.1 142.5,416.3 122.3,448.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27151.5,375.0 229.7,351.0 142.5,416.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27229.7,351.0 199.3,432.1 142.5,416.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27229.7,351.0 287.5,351.5 256.1,406.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27229.7,351.0 256.1,406.4 199.3,432.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27287.5,351.5 325.2,351.8 256.1,406.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27325.2,351.8 322.1,448.8 256.1,406.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27325.2,351.8 374.5,372.9 381.5,436.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27325.2,351.8 381.5,436.7 322.1,448.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27374.5,372.9 409.4,362.8 381.5,436.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27409.4,362.8 421.1,430.7 381.5,436.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27409.4,362.8 466.4,385.9 465.5,447.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27409.4,362.8 465.5,447.4 421.1,430.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27466.4,385.9 517.0,395.0 465.5,447.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27517.0,395.0 531.5,407.9 465.5,447.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27517.0,395.0 568.5,373.6 577.3,429.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27517.0,395.0 577.3,429.7 531.5,407.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27568.5,373.6 621.6,382.2 577.3,429.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-18.4,382.2 20.1,440.2 -62.7,429.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27621.6,382.2 660.1,440.2 577.3,429.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2720.1,440.2 32.6,406.8 19.2,484.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2732.6,406.8 47.5,460.9 19.2,484.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2732.6,406.8 122.3,448.7 117.6,499.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2732.6,406.8 117.6,499.5 47.5,460.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27122.3,448.7 142.5,416.3 117.6,499.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27142.5,416.3 175.5,464.8 117.6,499.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27142.5,416.3 199.3,432.1 217.6,460.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27142.5,416.3 217.6,460.6 175.5,464.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27199.3,432.1 256.1,406.4 217.6,460.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.1,406.4 270.0,490.8 217.6,460.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.1,406.4 322.1,448.8 328.1,476.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27256.1,406.4 328.1,476.4 270.0,490.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27322.1,448.8 381.5,436.7 328.1,476.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.5,436.7 359.4,487.7 328.1,476.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.5,436.7 421.1,430.7 447.9,495.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.5,436.7 447.9,495.5 359.4,487.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27421.1,430.7 465.5,447.4 447.9,495.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27465.5,447.4 463.9,493.7 447.9,495.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27465.5,447.4 531.5,407.9 537.5,492.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27465.5,447.4 537.5,492.4 463.9,493.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27531.5,407.9 577.3,429.7 537.5,492.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27577.3,429.7 604.3,500.2 537.5,492.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-62.7,429.7 20.1,440.2 19.2,484.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27577.3,429.7 660.1,440.2 659.2,484.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-62.7,429.7 19.2,484.2 -35.7,500.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27577.3,429.7 659.2,484.2 604.3,500.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2719.2,484.2 47.5,460.9 63.3,538.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2719.2,484.2 63.3,538.4 -9.5,537.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27659.2,484.2 703.3,538.4 630.5,537.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2747.5,460.9 117.6,499.5 63.3,538.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27117.6,499.5 109.5,528.8 63.3,538.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27117.6,499.5 175.5,464.8 137.7,537.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27117.6,499.5 137.7,537.6 109.5,528.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27175.5,464.8 217.6,460.6 137.7,537.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27217.6,460.6 209.9,555.6 137.7,537.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27217.6,460.6 270.0,490.8 276.9,534.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27217.6,460.6 276.9,534.2 209.9,555.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27270.0,490.8 328.1,476.4 276.9,534.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27328.1,476.4 324.6,548.2 276.9,534.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27328.1,476.4 359.4,487.7 381.1,549.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27328.1,476.4 381.1,549.3 324.6,548.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27359.4,487.7 447.9,495.5 381.1,549.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27447.9,495.5 429.2,516.2 381.1,549.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27447.9,495.5 463.9,493.7 495.6,546.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27447.9,495.5 495.6,546.1 429.2,516.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27463.9,493.7 537.5,492.4 495.6,546.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27537.5,492.4 514.7,527.5 495.6,546.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27537.5,492.4 604.3,500.2 565.3,541.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27537.5,492.4 565.3,541.9 514.7,527.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-35.7,500.2 19.2,484.2 -74.7,541.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27604.3,500.2 659.2,484.2 565.3,541.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2719.2,484.2 -9.5,537.9 -74.7,541.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27659.2,484.2 630.5,537.9 565.3,541.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-9.5,537.9 63.3,538.4 16.9,590.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27630.5,537.9 703.3,538.4 656.9,590.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2763.3,538.4 34.2,583.7 16.9,590.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2763.3,538.4 109.5,528.8 104.1,576.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2763.3,538.4 104.1,576.1 34.2,583.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27109.5,528.8 137.7,537.6 104.1,576.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27137.7,537.6 164.6,576.0 104.1,576.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27137.7,537.6 209.9,555.6 215.1,576.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27137.7,537.6 215.1,576.8 164.6,576.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27209.9,555.6 276.9,534.2 215.1,576.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27276.9,534.2 266.8,585.3 215.1,576.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27276.9,534.2 324.6,548.2 339.9,605.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27276.9,534.2 339.9,605.5 266.8,585.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27324.6,548.2 381.1,549.3 339.9,605.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.1,549.3 360.7,586.1 339.9,605.5%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.1,549.3 429.2,516.2 429.0,573.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27381.1,549.3 429.0,573.3 360.7,586.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.2,516.2 495.6,546.1 429.0,573.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27495.6,546.1 489.3,595.6 429.0,573.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27495.6,546.1 514.7,527.5 542.3,582.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27495.6,546.1 542.3,582.2 489.3,595.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27514.7,527.5 565.3,541.9 542.3,582.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27565.3,541.9 601.4,597.9 542.3,582.2%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-74.7,541.9 -9.5,537.9 16.9,590.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27565.3,541.9 630.5,537.9 656.9,590.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-74.7,541.9 16.9,590.8 -38.6,597.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27565.3,541.9 656.9,590.8 601.4,597.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2716.9,590.8 34.2,583.7 44.1,630.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2716.9,590.8 44.1,630.4 -16.3,631.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27656.9,590.8 684.1,630.4 623.7,631.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2734.2,583.7 104.1,576.1 44.1,630.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27104.1,576.1 115.7,625.9 44.1,630.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27104.1,-63.9 164.6,-64.0 181.3,19.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27104.1,576.1 164.6,576.0 181.3,659.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27104.1,-63.9 181.3,19.0 115.7,-14.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27104.1,576.1 181.3,659.0 115.7,625.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27164.6,-64.0 215.1,-63.2 181.3,19.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27164.6,576.0 215.1,576.8 181.3,659.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27215.1,-63.2 220.5,-5.9 181.3,19.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27215.1,576.8 220.5,634.1 181.3,659.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27215.1,576.8 266.8,585.3 256.3,630.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27215.1,576.8 256.3,630.3 220.5,634.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27266.8,585.3 339.9,605.5 256.3,630.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27339.9,-34.5 306.4,3.1 256.3,-9.7%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27339.9,605.5 306.4,643.1 256.3,630.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27339.9,605.5 360.7,586.1 376.0,630.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27339.9,-34.5 376.0,-10.0 306.4,3.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27339.9,605.5 376.0,630.0 306.4,643.1%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27360.7,586.1 429.0,573.3 376.0,630.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,-66.7 447.0,0.8 376.0,-10.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,573.3 447.0,640.8 376.0,630.0%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,-66.7 489.3,-44.4 461.6,2.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,573.3 489.3,595.6 461.6,642.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,-66.7 461.6,2.9 447.0,0.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27429.0,573.3 461.6,642.9 447.0,640.8%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27489.3,-44.4 542.3,-57.8 461.6,2.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27489.3,595.6 542.3,582.2 461.6,642.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27542.3,-57.8 553.4,-9.6 461.6,2.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27542.3,582.2 553.4,630.4 461.6,642.9%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27542.3,582.2 601.4,597.9 590.2,620.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27542.3,582.2 590.2,620.6 553.4,630.4%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27-38.6,597.9 16.9,590.8 -49.8,620.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27601.4,597.9 656.9,590.8 590.2,620.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%2716.9,590.8 -16.3,631.0 -49.8,620.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/><polygon points=%27656.9,590.8 623.7,631.0 590.2,620.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%271%27/></svg>");
+    /* `screen`, not `soft-light`: soft-light darkens rather than lightens
+       for any blend colour under 50% lightness, and the accent (#7b2d2d) is
+       well under that — the glow was reading as a faint warm shadow, the
+       opposite of "lighting up". `screen` only ever brightens, whatever the
+       blend colour's own lightness, at the cost of tinting toward white a
+       little more than a true warm light would. */
+    --spot-blend: screen;
+    --spot-strength: 88%;
     color-scheme: light;
   }
 
@@ -99,7 +170,10 @@
   *::before,
   *::after {
     box-sizing: border-box;
-    border-radius: 0; /* docs/04-UIUX-BRIEF.md §4 — zero radius everywhere */
+    /* Clears the browser's own defaults (buttons, inputs). What gets a
+       corner back, and how much, is decided once in the radius block near
+       the end of this layer. */
+    border-radius: 0;
   }
 
   html {
@@ -113,11 +187,19 @@
    * generated inline — docs/02-TRD.md §1 allows no image or texture package.
    */
   /*
-   * Paper grain, in two layers. The fine layer is the tooth of the sheet; the
-   * coarse layer is a much larger, fainter cloud that drifts very slowly, so
-   * the ground reads as a material rather than a flat fill. Both are generated
-   * inline — docs/02-TRD.md §1 allows no image or texture package — and both
-   * are fixed and pointer-events:none so they never intercept a click.
+   * The ground, in two layers. The fine layer is the tooth of the paper; the
+   * grid is the structural texture on top of it, a nod to the graph-paper
+   * and blueprint lines a systems-focused portfolio can wear honestly. Both
+   * are generated inline — docs/02-TRD.md §1 allows no image or texture
+   * package — and both are fixed and pointer-events:none so they never
+   * intercept a click.
+   *
+   * The grid used to be a drifting cloud of soft turbulence blobs instead.
+   * At any tile size small enough to render cheaply, a handful of soft
+   * blobs repeating is obviously a repeating tile — organic noise has no
+   * "this is meant to repeat" cue the way a grid does, so the repetition
+   * read as a flaw rather than a pattern. A grid is *supposed* to look
+   * regular; tiling it is invisible instead of an artifact.
    */
   body::before,
   body::after {
@@ -134,19 +216,112 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
   }
 
+  /*
+   * A low-poly facet mesh, not a grid: a repeating orthogonal or diagonal
+   * grid is the first thing every "interactive grid background" reaches
+   * for, so either read as a template rather than something drawn for this
+   * site. An irregular triangulated mesh doesn't have that off-the-shelf
+   * look, at the cost of needing an actual generator rather than a CSS
+   * one-liner — see scripts/generate-facet-texture.mjs for how `--facet-svg`
+   * (above) was produced. Grayscale, so the same tile works in both themes
+   * through `--grain-blend` (inherited from the shared rule above) exactly
+   * as the grain does.
+   */
   body::after {
-    opacity: var(--cloud-opacity);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E");
-    animation: drift 48s linear infinite alternate;
+    opacity: var(--grid-opacity);
+    background-image: var(--facet-svg);
+    background-size: 640px 640px;
   }
 
-  @keyframes drift {
-    from {
-      transform: translate3d(-2%, -1.5%, 0) scale(1.05);
-    }
-    to {
-      transform: translate3d(2%, 1.5%, 0) scale(1.12);
-    }
+  /*
+   * The mesh can be switched off from the accent picker, for anyone who
+   * would rather read this page on plain paper. Both the mesh and the
+   * light its edges catch under the cursor go together — leaving the glow
+   * behind would light up a texture that is no longer there.
+   *
+   * They fade rather than cut. This is a full-viewport layer either way,
+   * and a whole page's ground changing in one frame reads as a glitch;
+   * `opacity` is the one property that can do it on the compositor.
+   */
+  body::after,
+  .bg-spot {
+    transition: opacity 420ms ease;
+  }
+
+  :root[data-texture='off'] body::after,
+  :root[data-texture='off'] .bg-spot {
+    opacity: 0;
+  }
+
+  /*
+   * The cursor's own light on the grid — not a glow laid over it, the grid's
+   * own sharp edges catching light, the way raking a light across an etched
+   * line lights the line itself rather than painting a soft circle on top
+   * of it. Two nested layers, each with one mask, rather than one layer
+   * with two: combining masks on a single element needs `mask-composite`,
+   * whose keywords still differ between the standard and the older WebKit
+   * syntax, whereas a mask on a parent simply clips whatever its child
+   * already rendered — the same intersection, with nothing to get wrong
+   * across browsers.
+   *
+   * Outer (`.bg-spot`): fixed over the whole viewport, masked by six radial
+   * gradients rather than one — a trail, not a single point. CursorDot.tsx
+   * keeps a short rolling history of the pointer's last six positions and
+   * writes each as `--trail-x-N`/`--trail-y-N` (0 = newest) every frame, in
+   * the same rAF loop that already tracks the pointer for `.cursor`, so the
+   * trail costs one extra small array, not an extra listener. Each point is
+   * smaller and dimmer than the last, which is what reads as fading behind
+   * the cursor rather than a chain of equal dots. `.bg-spot` overrides the
+   * `body > *` rule below on specificity (a class beats a type selector)
+   * rather than needing `!important`, which is what keeps it sitting with
+   * the grid at z-index 0 — behind every real element — instead of floating
+   * over the page like the cursor dot does.
+   *
+   * Inner (`.bg-spot__grid`): the *same* grid-line pattern as `body::after`,
+   * reused deliberately so what lights up is recognisably that grid's own
+   * lines and not a different shape, filled with the accent colour. The
+   * outer mask then only lets that show through near the pointer's recent
+   * path — and because the mask is the grid itself, only the line pixels
+   * ever light, exactly the "sharp edges only" a soft glow couldn't give.
+   */
+  .bg-spot {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 320ms ease;
+    pointer-events: none;
+    mask-image:
+      radial-gradient(circle 220px at var(--trail-x-0, -9999px) var(--trail-y-0, -9999px), white 0%, transparent 70%),
+      radial-gradient(circle 195px at var(--trail-x-1, -9999px) var(--trail-y-1, -9999px), rgba(255, 255, 255, 0.82) 0%, transparent 70%),
+      radial-gradient(circle 170px at var(--trail-x-2, -9999px) var(--trail-y-2, -9999px), rgba(255, 255, 255, 0.64) 0%, transparent 70%),
+      radial-gradient(circle 145px at var(--trail-x-3, -9999px) var(--trail-y-3, -9999px), rgba(255, 255, 255, 0.46) 0%, transparent 70%),
+      radial-gradient(circle 120px at var(--trail-x-4, -9999px) var(--trail-y-4, -9999px), rgba(255, 255, 255, 0.3) 0%, transparent 70%),
+      radial-gradient(circle 95px at var(--trail-x-5, -9999px) var(--trail-y-5, -9999px), rgba(255, 255, 255, 0.16) 0%, transparent 70%);
+    -webkit-mask-image:
+      radial-gradient(circle 220px at var(--trail-x-0, -9999px) var(--trail-y-0, -9999px), white 0%, transparent 70%),
+      radial-gradient(circle 195px at var(--trail-x-1, -9999px) var(--trail-y-1, -9999px), rgba(255, 255, 255, 0.82) 0%, transparent 70%),
+      radial-gradient(circle 170px at var(--trail-x-2, -9999px) var(--trail-y-2, -9999px), rgba(255, 255, 255, 0.64) 0%, transparent 70%),
+      radial-gradient(circle 145px at var(--trail-x-3, -9999px) var(--trail-y-3, -9999px), rgba(255, 255, 255, 0.46) 0%, transparent 70%),
+      radial-gradient(circle 120px at var(--trail-x-4, -9999px) var(--trail-y-4, -9999px), rgba(255, 255, 255, 0.3) 0%, transparent 70%),
+      radial-gradient(circle 95px at var(--trail-x-5, -9999px) var(--trail-y-5, -9999px), rgba(255, 255, 255, 0.16) 0%, transparent 70%);
+  }
+
+  [data-cursor='on'] .bg-spot {
+    opacity: 1;
+  }
+
+  .bg-spot__grid {
+    position: absolute;
+    inset: -20%;
+    background: color-mix(in srgb, var(--color-accent) var(--spot-strength), transparent);
+    mix-blend-mode: var(--spot-blend);
+    /* Same mesh as `--facet-svg`, stroke only — the sharp edges light, not
+       the facets themselves. */
+    mask-image: var(--facet-edges-svg);
+    mask-size: 640px 640px;
+    -webkit-mask-image: var(--facet-edges-svg);
+    -webkit-mask-size: 640px 640px;
   }
 
   body > * {
@@ -172,8 +347,18 @@
     text-decoration: none;
   }
 
+  /*
+   * Hover, over a faceted ground. A colour change on its own did not read:
+   * the accent over a busy near-black texture still scans as plain text,
+   * and you cannot tell which word you are about to click. So hover thickens
+   * the glyphs as well — with `-webkit-text-stroke` rather than a real
+   * `font-weight`, because weight changes the glyphs' metrics and would
+   * reflow the line and shove its neighbours sideways under the pointer.
+   * The stroke paints inside the same advance widths, so nothing moves.
+   */
   a:hover {
     color: var(--color-accent);
+    -webkit-text-stroke: 0.4px currentColor;
   }
 
   :focus-visible {
@@ -193,6 +378,30 @@
   dl,
   dd {
     margin: 0;
+  }
+
+  /*
+   * The hierarchy, set once on the elements themselves: display for every
+   * heading, body everywhere else (from `body` above), mono for anything
+   * technical. Most headings on this site already carry a component class
+   * that names its family, and those still win — they are in a later
+   * layer. This only catches the ones that never said.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+  }
+
+  code,
+  pre,
+  kbd,
+  samp,
+  .code {
+    font-family: var(--font-mono);
   }
 
   ul,
@@ -380,6 +589,116 @@
     font-weight: 600;
   }
 
+  /* The minimal (home) header's stand-in for the nav: a permanent route to
+     contact, once there is a header to put it in. */
+  /*
+   * "Send a message", in the header and again in the footer band — one
+   * treatment, because they are the same offer and a visitor who learns the
+   * shape once should recognise it the second time.
+   *
+   * Filled in the accent rather than outlined: an outline over the faceted
+   * ground read as a label with a box round it. Filled, it is the only
+   * solid block of colour on the page and cannot be mistaken for type. The
+   * colour is `--color-accent` throughout — including the shadow and the
+   * hover, both mixed from it — so it follows whatever the accent picker is
+   * set to instead of being pinned to the default oxblood.
+   *
+   * It pulses: a halo expanding out of the pill and fading, mixed from
+   * `--color-accent` like everything else here, so the blink is whatever
+   * colour the picker is set to rather than a second colour competing with
+   * it. An earlier version pulsed a hard 1px ring, which read as a banner
+   * ad; a soft halo carries the same "look here" at a fraction of the
+   * visual noise. Only the two "Send a message" buttons pulse — the form's
+   * own submit does not, because something beating while you are typing
+   * into the field above it is nagging, not inviting.
+   */
+  .header-cta,
+  .button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid var(--color-ink);
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .header-cta {
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: var(--text-small);
+  }
+
+  .button {
+    min-height: 48px;
+    padding: 12px 26px;
+    font-size: var(--text-body);
+  }
+
+  /*
+   * The bead is the only thing that moves, and it is the only thing that
+   * needs to: an outline in the ink is quiet enough that one blinking
+   * indicator carries the whole "there is someone here" without the button
+   * having to shout.
+   *
+   * It blinks in the ink — light on the dark theme, dark on the light one
+   * — so it inverts with the ground it sits on and never has to be
+   * corrected per theme. Fast, at just over two blinks a second: slower
+   * than this and it read as breathing rather than as a live indicator.
+   */
+  .cta-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: cta-dot-blink 460ms ease-in-out infinite alternate;
+  }
+
+  @keyframes cta-dot-blink {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.08;
+    }
+  }
+
+  /* Outline fills in on hover — the plainest way to say "pressed next"
+     without introducing a colour the theme does not already use. */
+  .header-cta:hover,
+  .button:hover:not(:disabled) {
+    background: var(--color-ink);
+    color: var(--color-ground);
+    transform: translateY(-1px);
+    -webkit-text-stroke: 0;
+  }
+
+  /* The blink has made its point by the time the pointer is on it, and
+     something still flashing under the cursor reads as broken. */
+  .header-cta:hover .cta-dot,
+  .button:hover .cta-dot {
+    animation: none;
+    opacity: 1;
+  }
+
+  .button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
   /* The hero owns the viewport until it hands the masthead to the header. */
   /*
    * During the sequence the header bar itself disappears, but the theme toggle
@@ -405,7 +724,8 @@
    * safe way for this to fail.
    */
   [data-motion='on']:has(.hero) .logo,
-  [data-motion='on']:has(.hero) .site-nav {
+  [data-motion='on']:has(.hero) .site-nav,
+  [data-motion='on']:has(.hero) .header-cta {
     opacity: 0;
     pointer-events: none;
     transition: opacity 320ms ease;
@@ -417,7 +737,8 @@
   }
 
   [data-motion='on'][data-hero-handoff='on'] .logo,
-  [data-motion='on'][data-hero-handoff='on'] .site-nav {
+  [data-motion='on'][data-hero-handoff='on'] .site-nav,
+  [data-motion='on'][data-hero-handoff='on'] .header-cta {
     opacity: 1;
     pointer-events: auto;
   }
@@ -1148,18 +1469,80 @@
     background: color-mix(in srgb, var(--color-ground) 45%, transparent);
   }
 
+  /*
+   * The deck. Tall enough to carry a keyboard and a trackpad, because a lid
+   * on a bare 11px bar reads as a picture frame rather than as a laptop —
+   * the keys are what make it a computer. Drawn head-on and foreshortened,
+   * which is why the keyboard is a shallow band rather than a square block.
+   */
   .rig__base {
     position: relative;
-    height: 11px;
-    margin: 0 -7%;
-    border-radius: 0 0 7px 7px;
+    height: 44px;
+    /* Wider than the lid, and flared: the deck is the one part of a laptop
+       seen from above rather than head-on, so it is drawn in perspective.
+       The clip is what sells it — a rectangle here reads as a shelf. */
+    margin: 0 -9%;
+    clip-path: polygon(2.5% 0, 97.5% 0, 100% 100%, 0 100%);
     background: linear-gradient(
       to bottom,
-      var(--color-ink) 0 55%,
-      color-mix(in srgb, var(--color-ink) 72%, var(--color-ground)) 55% 100%
+      color-mix(in srgb, var(--color-ink) 90%, var(--color-ground)) 0 6%,
+      color-mix(in srgb, var(--color-ink) 78%, var(--color-ground)) 6% 88%,
+      color-mix(in srgb, var(--color-ink) 58%, var(--color-ground)) 88% 100%
     );
   }
 
+  /*
+   * Keys as two crossing repeating gradients: columns of light on a band of
+   * dark, then rows cut through them. At this size (about 5px to a key) that
+   * is more convincing than any attempt to draw individual caps, and it
+   * costs no elements.
+   */
+  /*
+   * The keyboard, as actual keys rather than as a texture.
+   *
+   * Caps are the background colour and the grid lines are the gaps between
+   * them — the reverse of the obvious way round, and the only way two
+   * crossing repeating-gradients produce discrete rectangles instead of a
+   * plaid. Roughly 18px to a key across and 4px down, which is what a
+   * keyboard looks like at this angle: wide, shallow, foreshortened.
+   */
+  .rig__keys {
+    position: absolute;
+    top: 7px;
+    left: 11%;
+    right: 11%;
+    height: 21px;
+    border-radius: 2px;
+    /* Flared a touch less than the deck, so it sits on it rather than
+       floating above it. */
+    clip-path: polygon(1.5% 0, 98.5% 0, 100% 100%, 0 100%);
+    background-color: color-mix(in srgb, var(--color-ink) 62%, var(--color-ground));
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 17px,
+        color-mix(in srgb, var(--color-ink) 92%, var(--color-ground)) 17px 20px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0 3.6px,
+        color-mix(in srgb, var(--color-ink) 92%, var(--color-ground)) 3.6px 5.2px
+      );
+  }
+
+  .rig__trackpad {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    width: 24%;
+    height: 10px;
+    margin-left: -12%;
+    border-radius: 0 0 3px 3px;
+    background: color-mix(in srgb, var(--color-ink) 68%, var(--color-ground));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 88%, var(--color-ground));
+  }
+
+  /* The lip you put a finger under to open it. */
   .rig__notch {
     position: absolute;
     top: 0;
@@ -1169,6 +1552,64 @@
     margin-left: -8%;
     border-radius: 0 0 4px 4px;
     background: color-mix(in srgb, var(--color-ground) 55%, transparent);
+  }
+
+  /*
+   * Side buttons. Two pixels of shadow proud of the case is all it takes for
+   * a rounded rectangle to read as a phone rather than as a card — it is the
+   * only detail on these two shells that says "held in a hand".
+   */
+  .rig__btn {
+    position: absolute;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background: color-mix(in srgb, var(--color-ink) 62%, var(--color-ground));
+  }
+
+  .rig__btn--vol-up,
+  .rig__tablet .rig__btn--vol {
+    border-radius: 2px 0 0 2px;
+  }
+
+  .rig__tablet .rig__btn--power {
+    top: 14%;
+    right: -2px;
+    height: 9%;
+  }
+
+  .rig__tablet .rig__btn--vol {
+    top: 10%;
+    left: -2px;
+    height: 16%;
+  }
+
+  /* A front camera, on the long edge, the way a tablet held in landscape has
+     it — the same dot the laptop lid uses. */
+  .rig__cam--edge {
+    top: 50%;
+    left: 3px;
+    margin-top: -2px;
+    margin-left: 0;
+  }
+
+  .rig__phone .rig__btn--power {
+    top: 26%;
+    right: -2px;
+    height: 14%;
+  }
+
+  .rig__phone .rig__btn--vol-up {
+    top: 20%;
+    left: -2px;
+    height: 8%;
+    border-radius: 2px 0 0 2px;
+  }
+
+  .rig__phone .rig__btn--vol-down {
+    top: 31%;
+    left: -2px;
+    height: 8%;
+    border-radius: 2px 0 0 2px;
   }
 
   /* --- tablet: right, portrait, sitting in front of the laptop --- */
@@ -1871,13 +2312,12 @@
     border: 1px solid var(--color-rule);
     font-size: var(--text-small);
     color: var(--color-muted);
-    transition:
-      border-color 120ms ease,
-      color 120ms ease;
+    transition: border-color 120ms ease;
   }
 
   .filters a:hover {
-    border-color: var(--color-muted);
+    border-color: var(--color-accent);
+    color: var(--color-ink);
   }
 
   .filters a[aria-current='true'] {
@@ -1971,47 +2411,191 @@
     color: var(--color-accent);
   }
 
-  .button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 12px 22px;
-    background: var(--color-ink);
-    color: var(--color-ground);
-    border: 1px solid var(--color-ink);
-    font-family: var(--font-body);
-    font-size: var(--text-body);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 120ms ease;
-  }
-
-  .button:hover:not(:disabled) {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-  }
-
-  .button:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
+  /* `.button` itself is styled beside `.header-cta` near the top of this
+     layer — the two are one treatment and are kept together. */
 
   /* ----- section pager ----------------------------------------------------
-     Step past the long pinned sections one at a time. Bottom-centre rather
-     than a corner: the corners hold the cursor dot and the badge, and the
-     bottom edge is the one place nothing else on this page occupies.
+     Step past the long pinned sections one at a time. Vertical, on the left
+     edge — a first attempt at this put the full label in the rail itself
+     and it sat on top of body copy for the whole height of the viewport,
+     because this design's readable text (the hero's intro and ledger, every
+     showcase panel's title and copy, every journey card) starts from the
+     left margin and runs right. This version keeps the *rail* down to just
+     the arrows and the position number — about 40px wide, no wider than the
+     scrollbar it sits next to — and moves the full title into a flyout that
+     only appears on hover or focus, costing no permanent space at all.
   --------------------------------------------------------------------------- */
-  .pager {
+  /*
+   * Accent picker. Bottom-right, opposite the pager on the left, so the two
+   * fixed controls never crowd each other or the body text that runs from
+   * the left margin.
+   */
+  .accent-picker {
     position: fixed;
-    bottom: 22px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 14px;
+    bottom: 14px;
     z-index: 40;
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .accent-picker__trigger {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px 6px;
+    gap: 9px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-ground) 88%, transparent);
+    backdrop-filter: blur(9px);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+
+  .accent-picker__word {
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .accent-picker__chip {
+    width: 11px;
+    height: 11px;
+    flex: none;
+    background: var(--color-accent);
+  }
+
+  .accent-picker__trigger:hover,
+  .accent-picker__trigger[aria-expanded='true'] {
+    border-color: var(--color-accent);
+    color: var(--color-ink);
+  }
+
+  .accent-picker__menu {
+    margin: 0;
+    min-width: 132px;
+    padding: 5px;
+    list-style: none;
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-ground) 94%, transparent);
+    backdrop-filter: blur(9px);
+  }
+
+  .accent-picker__menu button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 30px;
+    padding: 0 10px 0 6px;
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    text-align: left;
+    cursor: pointer;
+    transition: color 120ms ease, background-color 120ms ease;
+  }
+
+  .accent-picker__menu button:hover,
+  .accent-picker__menu button[aria-pressed='true'] {
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  /* The texture switch, under a rule: it is a different kind of choice
+     from the six above it, so it does not sit in the same list. */
+  .accent-picker__toggle {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .accent-picker__toggle-btn {
+    justify-content: space-between;
+    padding-left: 10px;
+  }
+
+  /* Not the row highlight the colour options use — the switch already says
+     which way this one is set. */
+  .accent-picker__menu button.accent-picker__toggle-btn[aria-pressed='true'] {
+    background: none;
+    color: var(--color-muted);
+  }
+
+  .accent-picker__menu button.accent-picker__toggle-btn:hover {
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .accent-picker__switch {
+    position: relative;
+    flex: none;
+    width: 24px;
+    height: 13px;
+    border-radius: var(--radius-pill);
+    background: var(--color-rule);
+    transition: background-color 160ms ease;
+  }
+
+  .accent-picker__switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-ground);
+    transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .accent-picker__toggle-btn[aria-pressed='true'] .accent-picker__switch {
+    background: var(--color-accent);
+  }
+
+  .accent-picker__toggle-btn[aria-pressed='true'] .accent-picker__switch::after {
+    transform: translateX(11px);
+  }
+
+  .accent-picker__swatch {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    border: 1px solid var(--color-rule);
+    background: var(--color-accent);
+  }
+
+  /* The default entry has no fixed colour of its own — it is whatever the
+     current theme's accent is, so it shows exactly that. */
+  .accent-picker__swatch[data-default] {
+    background: none;
+    border-style: dashed;
+  }
+
+  @media (max-width: 767px) {
+    .accent-picker {
+      right: 10px;
+      bottom: 10px;
+    }
+  }
+
+  .pager {
+    position: fixed;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 5px;
     border: 1px solid var(--color-rule);
     background: color-mix(in srgb, var(--color-ground) 88%, transparent);
     backdrop-filter: blur(9px);
@@ -2021,8 +2605,8 @@
     display: grid;
     place-items: center;
     /* 44px is the minimum touch target; the icon inside is smaller. */
-    width: 44px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border: 0;
     background: none;
     color: var(--color-ink);
@@ -2046,14 +2630,10 @@
   }
 
   .pager__where {
+    position: relative;
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    min-width: 132px;
-    padding: 0 6px;
-    /* Fixed width, so the bar does not resize as the label changes under the
-       cursor — the arrows must not move while you are clicking one. */
     justify-content: center;
+    padding: 4px 0;
   }
 
   .pager__where b {
@@ -2064,14 +2644,41 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /*
+   * The flyout: absolutely positioned so it never affects the rail's own
+   * width, and hidden until the rail is actually being used. A hover-only
+   * reveal means it costs nothing on a touch device, where the numeral
+   * alone still carries the position — the same trade this made on mobile
+   * before.
+   */
   .pager__where em {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: max-content;
+    max-width: 180px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-ground) 94%, transparent);
+    backdrop-filter: blur(9px);
     font-style: normal;
     font-size: var(--text-meta);
     font-weight: 500;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
     text-transform: uppercase;
+    text-align: left;
     color: var(--color-muted);
-    white-space: nowrap;
+    white-space: normal;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+  }
+
+  .pager:hover .pager__where em,
+  .pager:focus-within .pager__where em {
+    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2082,17 +2689,7 @@
 
   @media (max-width: 767px) {
     .pager {
-      bottom: 14px;
-    }
-
-    .pager__where {
-      min-width: 0;
-    }
-
-    /* The numeral alone carries the position on a phone; the label is the
-       first thing to go when there is no room for it. */
-    .pager__where em {
-      display: none;
+      left: 8px;
     }
   }
 
@@ -2219,25 +2816,63 @@
 
   .contact__direct ul {
     display: grid;
-    gap: 9px;
+    gap: 4px;
     margin-top: 12px;
     font-size: var(--text-body);
   }
 
-  .contact__direct a {
-    color: var(--color-ink);
-    text-decoration: none;
-    border-bottom: 1px solid var(--color-rule);
-    padding-bottom: 1px;
-    transition: border-color 150ms ease, color 150ms ease;
+  /*
+   * Each route in gets its mark. The icon is the fixed column the eye reads
+   * down, so the underline that used to sit under the whole line is gone —
+   * with five rows it was five rules stacked in a small space, and the
+   * marks distinguish them better than the rules did.
+   */
+  .contact__direct li {
+    display: flex;
+    align-items: center;
+    gap: 11px;
   }
 
-  .contact__direct a:hover {
+  .contact__direct svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    color: var(--color-faint);
+    transition: color 150ms ease;
+  }
+
+  .contact__direct a {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    /* Pulled left by its own padding so the icons, not the box, line up
+       with the label above. */
+    margin-left: -8px;
+    padding: 5px 8px;
+    color: var(--color-ink);
+    text-decoration: none;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  .contact__direct li:has(a) {
+    gap: 0;
+  }
+
+  .contact__direct a:hover,
+  .contact__direct a:focus-visible {
+    background: var(--color-surface);
     color: var(--color-accent);
-    border-color: var(--color-accent);
+  }
+
+  .contact__direct a:hover svg,
+  .contact__direct a:focus-visible svg {
+    color: var(--color-accent);
   }
 
   .contact__where {
+    padding: 5px 0;
     color: var(--color-muted);
   }
 
@@ -2255,7 +2890,6 @@
     letter-spacing: 0.04em;
     color: var(--color-muted);
     text-decoration: none;
-    transition: color 150ms ease;
   }
 
   .back svg {
@@ -2405,12 +3039,90 @@
     padding: 44px 0 64px;
   }
 
+  .contact-band__grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px 64px;
+  }
+
+  /* Colophon. The rule is the page's own hairline and the type is the
+     smallest on the site in the faint tone, so it closes the band without
+     competing with the headline above it. */
+  .contact-band__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 24px;
+    margin-top: 52px;
+    padding-top: 18px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .contact-band__meta small {
+    font-size: var(--text-meta);
+    letter-spacing: 0.04em;
+    color: var(--color-faint);
+  }
+
+  .contact-band__main {
+    min-width: 0;
+  }
+
   .contact-band h2 {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: clamp(1.625rem, 4vw, 2.75rem);
     line-height: 1.15;
     max-width: 9em; /* not ch — see .prose-body */
+  }
+
+  .contact-band__more {
+    justify-self: end;
+    padding-top: 2px;
+  }
+
+  .contact-band__more ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 10px;
+  }
+
+  /* Five points larger than body copy (15px → 20px). These are the last
+     links on the page and the only ones in the band, so they carry more
+     weight than the small print they were set at. */
+  .contact-band__more a {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    font-size: 1.25rem;
+    color: var(--color-muted);
+  }
+
+  .contact-band__more a svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+  }
+
+  @media (max-width: 640px) {
+    .contact-band__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .contact-band__more {
+      justify-self: start;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-rule);
+    }
+
+    /* Stacked rather than pushed apart: at this width `space-between` puts
+       four words at opposite edges with a gulf between them. */
+    .contact-band__meta {
+      flex-direction: column;
+      margin-top: 36px;
+    }
   }
 }
 
@@ -2452,11 +3164,52 @@
     background: #fff;
   }
 
+  /*
+   * The ring, and the one thing in it that moves on its own.
+   *
+   * The element itself cannot carry the animation: CursorDot.tsx writes its
+   * `transform` every frame to follow the pointer, and a CSS animation on
+   * the same property outranks an inline style — the ring would spin
+   * beautifully in the top-left corner and never follow the mouse again. So
+   * the ring is a pseudo-element inside it, and only that spins.
+   */
   .cursor__ring {
     width: 34px;
     height: 34px;
-    border: 1px solid #fff;
-    opacity: 0.5;
+  }
+
+  .cursor__ring::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    /* Dashed, so the rotation is visible at all: a plain circle turning
+       looks identical to a plain circle standing still. */
+    border: 1px dashed #fff;
+    opacity: 0.55;
+    animation: cursor-orbit 6s linear infinite;
+  }
+
+  /* A single bead running the circumference, which is what actually reads as
+     "circling" — the dashes alone are a texture, the bead is a direction. */
+  .cursor__ring::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    width: 3px;
+    height: 3px;
+    margin-left: -1.5px;
+    border-radius: 50%;
+    background: #fff;
+    transform-origin: 1.5px 19px;
+    animation: cursor-orbit 2.6s linear infinite;
+  }
+
+  @keyframes cursor-orbit {
+    to {
+      transform: rotate(360deg);
+    }
   }
 }
 
@@ -2564,6 +3317,322 @@
       transform: scaleX(0.92);
     }
   }
+
+  /* ----- evidence: contact sheet and lightbox -----------------------------
+     Thumbnails first, the full thing over the page on demand. Hand-built:
+     docs/02-TRD.md §1 allows no lightbox package, and what this needs is a
+     grid, a dialog and two arrows.
+  --------------------------------------------------------------------------- */
+  .evidence {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .evidence__thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition:
+      border-color 150ms ease,
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .evidence__thumb:hover,
+  .evidence__thumb:focus-visible {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+  }
+
+  .evidence__thumb img,
+  .evidence__thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Says "this one moves" before it is opened. */
+  .evidence__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 38px;
+    height: 38px;
+    margin: -19px 0 0 -19px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-ink) 72%, transparent);
+  }
+
+  .evidence__play::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -6px 0 0 -4px;
+    border-style: solid;
+    border-width: 6px 0 6px 10px;
+    border-color: transparent transparent transparent var(--color-ground);
+  }
+
+  .evidence__device {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-ink) 74%, transparent);
+    color: var(--color-ground);
+    font-size: var(--text-meta);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: 0 0 26px;
+    background: color-mix(in srgb, var(--color-ground) 94%, var(--color-ink));
+    /* The page behind is still there; this is a layer over it, not a new
+       page, so it keeps the site's ground rather than going pure black. */
+    backdrop-filter: blur(6px);
+  }
+
+  .lightbox__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px var(--page-x);
+  }
+
+  .lightbox__count {
+    font-family: var(--font-display);
+    font-size: var(--text-small);
+    color: var(--color-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .lightbox__bar button,
+  .lightbox__step {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-ground) 80%, transparent);
+    color: var(--color-ink);
+    cursor: pointer;
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .lightbox__bar button svg,
+  .lightbox__step svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .lightbox__bar button:hover,
+  .lightbox__step:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface);
+  }
+
+  .lightbox__figure {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 14px;
+    min-height: 0;
+    margin: 0;
+    padding: 0 calc(var(--page-x) + 46px);
+  }
+
+  .lightbox__figure img,
+  .lightbox__figure video {
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0 auto;
+    object-fit: contain;
+    border-radius: var(--radius);
+  }
+
+  .lightbox__figure figcaption {
+    text-align: center;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+  }
+
+  .lightbox__step {
+    position: absolute;
+    top: 50%;
+    margin-top: -20px;
+  }
+
+  .lightbox__step--prev {
+    left: 14px;
+  }
+
+  .lightbox__step--next {
+    right: 14px;
+  }
+
+  @media (max-width: 767px) {
+    .lightbox__figure {
+      padding: 0 16px;
+    }
+
+    /* Out of the way of the picture on a narrow screen: swiping is not
+       wired up, so the arrows have to stay reachable. */
+    .lightbox__step {
+      top: auto;
+      bottom: 14px;
+      margin-top: 0;
+    }
+  }
+
+  /* ----- link hover -------------------------------------------------------
+     The compact links — nav, back, the contact band's two lists, the work
+     filters. Under the pointer they take the accent, thicken, and step
+     4px forward, in the direction the link actually goes: right for
+     everything, left for Back, which already nudges its chevron the same
+     way.
+
+     The step is a `transform`, which is composited and affects nothing
+     around it — the line does not re-wrap and its neighbours do not move.
+
+     Three earlier attempts are worth not repeating. An underline: on these
+     inline-flex links the browser draws it against the flex box rather
+     than the text baseline, so it landed through the middle of the word
+     like a strikethrough. A scale-up: legible, but it read as the text
+     wobbling rather than as the link responding. And the same rules
+     written up in `@layer base`, where the colour silently lost — the
+     component rules that set these links' resting colour are in a later
+     layer, and layer order beats specificity, so the hover moved and
+     thickened but never changed colour. That is why this block lives down
+     here with the components.
+  --------------------------------------------------------------------------- */
+  .site-nav a,
+  .back,
+  .contact-band__more a,
+  .contact-band__main a:not(.button),
+  .filters a {
+    transition:
+      color 140ms ease,
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+
+  .site-nav a:hover,
+  .site-nav a:focus-visible,
+  .back:hover,
+  .back:focus-visible,
+  .contact-band__more a:hover,
+  .contact-band__more a:focus-visible,
+  .contact-band__main a:not(.button):hover,
+  .contact-band__main a:not(.button):focus-visible,
+  .filters a:hover,
+  .filters a:focus-visible {
+    color: var(--color-accent);
+    transform: translateX(4px);
+    /* Heavier than the site-wide 0.4px: these are the smallest text on the
+       page and the ones that most need to be readable at a glance. Still a
+       stroke rather than a weight, so nothing reflows. */
+    -webkit-text-stroke: 0.7px currentColor;
+    /* A halo in the page's own colour. The accent is the clearest "this one"
+       signal the palette has, but over the faceted ground it was competing
+       with triangles for contrast; this lays a few pixels of plain page
+       behind the glyphs so the colour reads as colour. */
+    text-shadow:
+      0 0 5px var(--color-ground),
+      0 0 10px var(--color-ground);
+  }
+
+  /* Back's forward is leftward — it is a way out, not a way on. Must come
+     after the rule above, which it overrides at equal specificity. */
+  .back:hover,
+  .back:focus-visible {
+    transform: translateX(-4px);
+  }
+
+  /* ----- corner radius ----------------------------------------------------
+     Every softened corner on the site, in one place, off three tokens.
+
+     Deliberately not distributed through the component rules: this reverses
+     docs/04-UIUX-BRIEF.md §4 ("zero radius everywhere"), which the reset at
+     the top of this layer used to enforce, and a decision that large should
+     be revertible by setting `--radius*` to 0 rather than by hunting eighty
+     declarations. The one thing left square is anything that runs to the
+     edge of the window — the header, the pinned stages, the full-bleed
+     bands — because a rounded corner there just shows a notch of the page
+     behind it.
+  --------------------------------------------------------------------------- */
+
+  /* Panels and cards. */
+  .journey__stop,
+  [data-motion='on'] .journey__stop,
+  .journey__work,
+  .journey__learned,
+  .contact__aside,
+  .contact__direct,
+  .sent,
+  .accent-picker__menu,
+  .pager,
+  .pager__where em {
+    border-radius: var(--radius-lg);
+  }
+
+  /* Controls and inputs. */
+  .skip,
+  .field input,
+  .field textarea,
+  .accent-picker__trigger,
+  .contact__direct a,
+  .marquee__item,
+  .row:hover,
+  .row:focus-visible {
+    border-radius: var(--radius);
+  }
+
+  /* Small inner parts: chips, swatches, steps. */
+  .journey__tech li,
+  .journey__work-head em,
+  .filters a,
+  .accent-picker__swatch,
+  .accent-picker__chip,
+  .accent-picker__menu button,
+  .pager__step {
+    border-radius: var(--radius-sm);
+  }
+
+  /* Fully rounded: the bars (they are strokes, not boxes) and the two
+     buttons whose whole job is to be pressed. */
+  .header-cta,
+  .button,
+  .progress,
+  .progress__bar,
+  .journey__line,
+  .journey__bar,
+  .hero__rail,
+  .splash__rule,
+  .splash__rule span {
+    border-radius: var(--radius-pill);
+  }
 }
 
 @layer utilities {
@@ -2618,8 +3687,23 @@
  * With JS off or reduced motion set, neither the margin nor the opacity applies
  * and the document keeps its natural flow.
  */
+/*
+ * -88svh was precisely tuned for the hero's *old* CLEAR_TO/WORK_IN_TO of
+ * 0.86 — close enough to a coincidence that it's worth writing down: with a
+ * 180vh track, pulling the showcase up by 88svh puts its visual top exactly
+ * where the ledger used to finish clearing. Extending the hold (see
+ * MastheadHero's CLEAR_FROM/TO) moved that finish point later without
+ * moving this, which opened a ~120px dead scroll of nothing on screen
+ * before the showcase caught up — measured, not guessed, between where
+ * `--work-in` reached 1 and where the first panel started fading in.
+ *
+ * -101.5svh instead: `hero-height-vh - WORK_IN_TO * (hero-height-vh - 100)`,
+ * which comes out within a degree of the same value for the 180vh desktop
+ * track and the 140vh mobile one, so one number covers both without a
+ * breakpoint-specific override.
+ */
 [data-motion='on'] .hero + main {
-  margin-top: -88svh;
+  margin-top: -101.5svh;
   opacity: var(--work-in, 1);
   transform: translate3d(0, calc((1 - var(--work-in, 1)) * 26px), 0);
 }
@@ -2657,17 +3741,120 @@
   }
 }
 
+/*
+ * A short window doesn't get less content, it gets the same content drawn
+ * smaller: the alternative was the bottom rows of the ledger clipped clean
+ * off by `.hero__stage`'s `overflow: hidden`, unreadable rather than merely
+ * cramped. Three columns instead of two halves the ledger's row count
+ * (three rows of facts instead of six-in-two-columns rendering as three
+ * anyway — see below), which buys back more vertical room than shrinking
+ * type ever could on its own; the type reductions make what's left of each
+ * row cheaper too. Measured against a 1280×640 window, a real laptop-lid
+ * size that used to clip the second column entirely.
+ */
 @media (max-height: 780px) {
+  .masthead {
+    font-size: clamp(44px, 9vw, 108px);
+  }
+
+  .intro {
+    margin-top: 10px;
+  }
+
+  .intro__line > span {
+    font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+    line-height: 1.2;
+  }
+
+  .intro__note {
+    margin-top: 4px;
+  }
+
+  .intro__note + .intro__note {
+    margin-top: 4px;
+  }
+
+  .intro__note > span {
+    font-size: var(--text-small);
+    line-height: 1.3;
+  }
+
+  /*
+   * Shrinking type only goes so far before it stops being legible, and a
+   * long enough employment/skills list will eventually out-grow any given
+   * window regardless. Past that point this is the same answer the journey
+   * timeline already gives its own tallest stops (`.journey__body` above):
+   * a bounded, internally-scrollable box rather than a clipped one — every
+   * fact stays reachable, just not always simultaneously visible, instead
+   * of the bottom rows vanishing behind `.hero__stage`'s own
+   * `overflow: hidden` with no way to reach them at all.
+   */
   .facts {
-    margin-top: 28px;
+    margin-top: 6px;
+    max-height: calc(100svh - var(--header-h) - 300px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .facts__row {
-    padding: 7px 0;
+    padding: 2px 0;
+  }
+
+  .facts__row > dt,
+  .tally > dt {
+    padding: 3px 0;
+  }
+
+  .facts__row > dd,
+  .tally > dd {
+    padding: 3px 0;
+  }
+
+  .tally > dt,
+  .tally > dd {
+    padding-top: 4px;
   }
 
   .hero__rail {
-    height: 34px;
+    height: 24px;
+  }
+}
+
+/*
+ * Three columns rather than two: at 1024px and up the ledger was already a
+ * grid (see the `min-width: 1024px` rule above), just two-wide. Three-wide
+ * turns six facts into two rows instead of three, which is the single
+ * biggest saving available here — type can only shrink so far before it
+ * stops being legible. Narrower `dt`s go with it, or three columns of
+ * "ARCHITECTURE" / "PRINCIPAL STACK" labels at the old 150px width would
+ * overflow into their own values.
+ */
+@media (max-height: 780px) and (min-width: 1024px) {
+  .facts {
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 28px;
+  }
+
+  .facts__row > dt,
+  .tally > dt {
+    width: 96px;
+    font-size: 0.625rem;
+  }
+}
+
+/*
+ * 1280–1599: the ledger and the hanging ID card both claim the same row.
+ * The badge mount is 380px wide and hangs 25px outside the right page
+ * margin, and it only appears from 1280 up — which is exactly the band
+ * where the ledger's 980px runs underneath it. Measured at 1366×768: the
+ * ledger's right edge at 1044px against a card whose left edge is 945px, so
+ * the third column's values were being read out from behind a plastic card;
+ * at 1280×720 the overlap was 211px. Above roughly 1500 there is room for
+ * both and the `min()` hands the full 980px back on its own.
+ */
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .facts {
+    max-width: min(980px, calc(100% - 400px));
   }
 }
 
