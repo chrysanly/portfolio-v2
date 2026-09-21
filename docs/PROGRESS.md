@@ -1,5 +1,70 @@
 # Progress
 
+## LIVE (21 Sep 2026)
+
+| | URL |
+|---|---|
+| Site | https://portfolio-v2-mu-roan.vercel.app |
+| Admin | https://portfolio-api-uyp0.onrender.com/admin |
+| Database | Neon Postgres, Frankfurt |
+
+All on free tiers, $0/month. Verified: all four site pages 200,
+`/api/revalidate` returns 401 without a secret, the API returns 401 without a
+token, and the admin serves over HTTPS with no mixed content.
+
+### How it hangs together
+
+Editing in the admin writes to Neon. Saving a published project makes Laravel
+POST to the site's `/api/revalidate`, which drops the content cache; the next
+request refetches. **No redeploy for a content change.**
+
+Uploaded screenshots are the exception: the build copies them into
+`public/shots/` so they're served from Vercel rather than from a sleeping free
+service, which means a new image needs a rebuild. Set `VERCEL_DEPLOY_HOOK_URL`
+on Render and that happens by itself.
+
+### Nine things that had to be fixed to get here
+
+Each of these failed a real deploy, in this order:
+
+1. **Alpine brace expansion** — `mkdir {a,b,c}` under busybox `sh` makes one
+   directory literally named `{a,b,c}`. Would have passed the build and failed
+   at runtime.
+2. **`chown www-data`** — no such user on Alpine.
+3. **Hardcoded port** — Render routes only to `$PORT`; FrankenPHP reads
+   `$SERVER_NAME`. Build passes, health check times out.
+4. **PHP 8.3 vs a lock file resolved on 8.4** — six Symfony packages require
+   `>=8.4.1`. `composer.json` also claimed `^8.2`, which was untrue.
+5. **File capabilities on the frankenphp binary** — Render runs with
+   `no-new-privileges` and the kernel refuses to exec it. Exit 126, after
+   everything else succeeded.
+6. **Mixed content** — Render terminates TLS at its edge, so Laravel built
+   every asset URL as `http://` and the browser blocked all of them. Blank
+   page. Fixed with `trustProxies(at: '*')`.
+7. **`env()` with a cached config** — the seeder read `env('ADMIN_PIN')`, which
+   returns null once `config:cache` has run, so **no admin account was ever
+   created** and the PIN screen said "That PIN is not right". Moved into
+   `config/portfolio.php`.
+8. **No shell on the free tier** — `db:seed` and `portfolio:build-token` had
+   nowhere to run. Seeding now happens at container boot (content only into an
+   empty database), and the build token can be supplied as
+   `PORTFOLIO_BUILD_TOKEN` instead of minted.
+9. **Two security advisories** — `next-mdx-remote` 5.0.0 (Vercel blocked the
+   deploy outright) and `postcss` 8.4.31 bundled by Next. Fixed without a Next
+   major upgrade, using an override. `npm audit`: 0 vulnerabilities.
+
+### Still open
+
+- [ ] `RESEND_API_KEY` / `CONTACT_TO_EMAIL` — contact emails. Without them the
+      form works and messages reach the admin inbox; no email is sent.
+- [ ] `VERCEL_DEPLOY_HOOK_URL` — only needed before uploading real screenshots
+- [ ] Content placeholders: `[METRIC]` x6, `[what it improved]` x6,
+      `[what I learned here]` x5, `[linkedin-url]` — see `CONTENT-TODO.md`.
+      These render on the live site exactly as written, brackets and all.
+- [ ] `docs/resume.pdf` stays unpublished — date of birth and civil status
+- [ ] Next 16 upgrade, deliberately deferred
+- [ ] Custom domain
+
 ---
 
 ## Live content: admin saves now appear on the site (21 Sep 2026) — DONE
