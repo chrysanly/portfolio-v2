@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { clearContentCache, readContentPayload } from './content-source';
 import {
   PROJECT_TYPES,
   type Project,
@@ -12,38 +13,14 @@ import {
 const RESERVED_SLUGS = new Set(['type']);
 
 const CONTENT_DIR = path.join(process.cwd(), 'content', 'projects');
-const SNAPSHOT = path.join(process.cwd(), 'content', 'snapshot.json');
 
 /**
- * Where the content comes from, in order of preference.
+ * Projects, from whichever source content-source.ts resolves — the API first,
+ * the committed snapshot after it, and the MDX below that.
  *
- * docs/08-BACKEND.md §2: the Laravel API is read at build time by
- * scripts/pull-content.mjs, which writes content/snapshot.json. By the time
- * anything renders, the content is a local file — there is no API call in front
- * of a page request, ever.
- *
- * Falling back to the MDX means this repository still builds on its own, with
- * no backend and no snapshot. That is not a nicety: it is how the site was
- * built for its first seven phases, and it keeps working.
- *
- * Both paths run through the same Zod schema below, so a backend that drifts
- * from the contract fails the build in exactly the same way a bad MDX file
- * does.
+ * All three run through the same Zod schema, so a backend that drifts from the
+ * contract fails exactly the way a bad MDX file does.
  */
-function readSnapshot(): unknown[] | null {
-  if (!fs.existsSync(SNAPSHOT)) return null;
-
-  try {
-    const payload = JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'));
-    if (!Array.isArray(payload?.projects)) return null;
-    return payload.projects;
-  } catch (error) {
-    throw new Error(
-      `content/snapshot.json exists but could not be read: ${(error as Error).message}`,
-    );
-  }
-}
-
 function validate(data: unknown, source: string): Project {
   const parsed = projectFrontmatterSchema.safeParse(data);
 
@@ -66,14 +43,13 @@ function validate(data: unknown, source: string): Project {
  * Read, validate and sort. A malformed project throws here, which fails the
  * build — docs/02-TRD.md §8. Empty content directory is a supported state.
  */
-function readAll(): Project[] {
-  const fromApi = readSnapshot();
+async function readAll(): Promise<Project[]> {
+  const payload = await readContentPayload();
 
-  if (fromApi) {
-    const projects = fromApi.map((row, i) =>
-      validate(row, `content/snapshot.json (project ${i + 1})`),
+  if (payload && Array.isArray(payload.projects)) {
+    return finalise(
+      payload.projects.map((row, i) => validate(row, `the content source (project ${i + 1})`)),
     );
-    return finalise(projects);
   }
 
   if (!fs.existsSync(CONTENT_DIR)) return [];
@@ -119,23 +95,36 @@ function finalise(projects: Project[]): Project[] {
   return projects.sort((a, b) => a.order - b.order);
 }
 
-let cache: Project[] | null = null;
-
-export function getAllProjects(): Project[] {
-  if (!cache) cache = readAll();
-  return cache;
+/**
+ * Deduplicates the work within a single render pass.
+ *
+ * A page can ask for the projects several times — the page body, its metadata
+ * and its OG image all do — and without this each would be a separate call.
+ * Next's own data cache handles it across requests; this handles it within one.
+ *
+ * It holds the promise rather than the result, so concurrent callers share the
+ * one request instead of starting several before the first resolves. It is
+ * cleared whenever content is revalidated, and in development it is never
+ * populated at all, so a save in the admin is visible on the next refresh.
+ */
+export function clearProjectCache(): void {
+  clearContentCache();
 }
 
-export function getFeaturedProjects(): Project[] {
-  return getAllProjects().filter((p) => p.featured);
+export async function getAllProjects(): Promise<Project[]> {
+  return readAll();
 }
 
-export function getProject(slug: string): Project | undefined {
-  return getAllProjects().find((p) => p.slug === slug);
+export async function getFeaturedProjects(): Promise<Project[]> {
+  return (await getAllProjects()).filter((p) => p.featured);
 }
 
-export function getProjectsByType(type?: ProjectType): Project[] {
-  const all = getAllProjects();
+export async function getProject(slug: string): Promise<Project | undefined> {
+  return (await getAllProjects()).find((p) => p.slug === slug);
+}
+
+export async function getProjectsByType(type?: ProjectType): Promise<Project[]> {
+  const all = await getAllProjects();
   return type ? all.filter((p) => p.type === type) : all;
 }
 
@@ -164,11 +153,11 @@ export function attributionParts(
     : { primary: project.client as string, secondary: null };
 }
 
-export function adjacentProjects(slug: string): {
+export async function adjacentProjects(slug: string): Promise<{
   previous: Project | null;
   next: Project | null;
-} {
-  const all = getAllProjects();
+}> {
+  const all = await getAllProjects();
   const i = all.findIndex((p) => p.slug === slug);
   if (i === -1) return { previous: null, next: null };
   return { previous: all[i - 1] ?? null, next: all[i + 1] ?? null };

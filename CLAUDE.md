@@ -58,6 +58,25 @@ The build never fails because the backend is asleep — `docs/08-BACKEND.md` §2
 must stay that way; if a feature seems to need runtime data, it needs a rebuild
 trigger instead.
 
+## Local HTTPS: NODE_EXTRA_CA_CERTS
+
+Herd serves `portfolio-api.test` with its own certificate authority, which Node
+does not trust. Without `NODE_EXTRA_CA_CERTS` pointing at it, every content
+fetch fails with a bare `fetch failed` and the build quietly uses the snapshot —
+which looks like a working build until you notice the content is stale.
+
+```
+NODE_EXTRA_CA_CERTS=C:/Users/<you>/.config/herd/config/valet/CA/LaravelValetCASelfSigned.crt
+```
+
+Note that `scripts/pull-content.mjs` runs as a bare node process from
+`prebuild`, so `next.config.ts` never loads for it — anything set there does not
+apply to the pull. The script re-spawns itself once with the CA in place,
+because Node reads that variable only at startup.
+
+`curl --cacert` still fails on Windows with `CERT_TRUST_REVOCATION_STATUS_UNKNOWN`.
+That is schannel, not the certificate; Node uses OpenSSL and is fine.
+
 ## Verification, and the traps in it
 
 Claims about performance and layout on this project are measured in a real

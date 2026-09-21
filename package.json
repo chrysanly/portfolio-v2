@@ -6,10 +6,10 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/with-ca.mjs next dev",
     "predev": "node scripts/pull-content.mjs",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/with-ca.mjs next build",
+    "start": "node scripts/with-ca.mjs next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

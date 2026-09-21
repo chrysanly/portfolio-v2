@@ -46,7 +46,7 @@ export default async function WorkTypePage({
       <main id="content">
         <div className="wrap">
           <h1 className="section-label">Work — {PROJECT_TYPE_LABELS[type]}</h1>
-          <WorkIndex projects={getProjectsByType(type)} active={type} />
+          <WorkIndex projects={await getProjectsByType(type)} active={type} />
         </div>
         <ContactBand />
       </main>

@@ -5,8 +5,8 @@ import { getProfile } from '@/lib/profile';
  * This is what a visitor gets with JavaScript off or reduced motion set.
  * MastheadHero enhances it; it never replaces it.
  */
-export function StaticIntro() {
-  const profile = getProfile();
+export async function StaticIntro() {
+  const profile = await getProfile();
 
   return (
     <div className="wrap static-intro">

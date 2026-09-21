@@ -23,12 +23,15 @@ import { JourneyTimeline, type JourneyStop } from './JourneyTimeline';
  * The NDA marker is per project, not per employer: §5.8 is explicit that
  * employment is already public and it is project detail that is restricted.
  */
-export function ExperienceTimeline() {
-  const projects = getAllProjects();
+export async function ExperienceTimeline() {
+  const projects = await getAllProjects();
 
   // Already oldest-first, whether it came from the admin or from the
   // hardcoded fallback — lib/journey.ts reconciles the two.
-  const stops: JourneyStop[] = getJourney().map((stop) => {
+  const journey = await getJourney();
+  const roleCount = (await getRoles()).length;
+
+  const stops: JourneyStop[] = journey.map((stop) => {
     const mine =
       stop.kind === 'education'
         ? []
@@ -64,7 +67,7 @@ export function ExperienceTimeline() {
         <JourneyTimeline stops={stops} />
 
         <p className="track__foot">
-          {site.yearsExperience} years, {getRoles().length} companies. Based in {site.location}.
+          {site.yearsExperience} years, {roleCount} companies. Based in {site.location}.
         </p>
       </div>
     </section>

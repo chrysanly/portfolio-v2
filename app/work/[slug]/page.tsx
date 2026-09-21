@@ -9,8 +9,8 @@ import { ProjectMeta } from '@/components/work/ProjectMeta';
 import { OutcomeFigure } from '@/components/work/OutcomeFigure';
 import { adjacentProjects, attribution, getAllProjects, getProject } from '@/lib/projects';
 
-export function generateStaticParams() {
-  return getAllProjects().map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getAllProjects()).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -19,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
   if (!project) return {};
   return {
     title: project.title,
@@ -30,10 +30,10 @@ export async function generateMetadata({
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
   if (!project) notFound();
 
-  const { previous, next } = adjacentProjects(slug);
+  const { previous, next } = await adjacentProjects(slug);
 
   return (
     <>

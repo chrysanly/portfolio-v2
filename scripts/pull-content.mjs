@@ -160,6 +160,101 @@ async function localisePortrait(payload) {
   }
 }
 
+/** Whether a URL points at the admin, ignoring scheme and port. */
+function sameHost(candidate) {
+  try {
+    return new URL(candidate).hostname === new URL(BASE).hostname;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The same treatment for project screenshots.
+ *
+ * Their `src` is an absolute URL on the admin's host. Left alone, every
+ * screenshot on the published site is a request to that host — which on a free
+ * tier is asleep most of the time, so a visitor waits 30–60 seconds for it to
+ * wake, or sees nothing. It also means the images vanish whenever that host's
+ * disk is wiped, which on Render is every deploy.
+ *
+ * Copying them into public/ makes the built site self-contained: the images
+ * ship with it, served from the same CDN as everything else, and the admin
+ * being down cannot break them.
+ *
+ * The cost is that a screenshot uploaded after a build is not on the site until
+ * the next one. That is what the deploy hook is for — uploading an image
+ * already asks for a rebuild.
+ *
+ * Anything that is not an absolute http(s) URL is left exactly as it is, so
+ * placeholders (placehold.co, picsum) and already-local paths pass through.
+ */
+async function localiseProjectImages(payload) {
+  const projects = Array.isArray(payload?.projects) ? payload.projects : [];
+  const dir = path.join(process.cwd(), 'public', 'shots');
+  const kept = new Set();
+  let copied = 0;
+  let skipped = 0;
+
+  const { createHash } = await import('node:crypto');
+
+  for (const project of projects) {
+    for (const image of Array.isArray(project.images) ? project.images : []) {
+      const remote = image?.src;
+      if (typeof remote !== 'string' || !/^https?:\/\//i.test(remote)) continue;
+
+      /*
+       * Only mirror what the admin itself is serving — a deliberate
+       * third-party placeholder should stay a third-party URL.
+       *
+       * Compared by hostname, not by URL prefix: the admin stores absolute
+       * URLs built from its own APP_URL, which is routinely http where
+       * PORTFOLIO_API_URL is https. A string prefix match silently skipped
+       * every real upload over that one character.
+       */
+      if (!sameHost(remote)) {
+        skipped += 1;
+        continue;
+      }
+
+      try {
+        const response = await fetch(remote, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+        const type = response.headers.get('content-type') ?? '';
+        const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+        const bytes = Buffer.from(await response.arrayBuffer());
+
+        // Hashed, for the same reason as the portrait: a replaced screenshot is
+        // a new URL, so no cache can keep serving the old one.
+        const hash = createHash('sha1').update(bytes).digest('hex').slice(0, 8);
+        const file = `${hash}.${ext}`;
+
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, file), bytes);
+
+        image.src = `/shots/${file}`;
+        kept.add(file);
+        copied += 1;
+      } catch (error) {
+        // Left pointing at the admin. A missing screenshot is not worth
+        // failing a deploy over, and the alt text still describes it.
+        warn(`Could not copy ${remote} (${error.message}). Leaving the remote URL.`);
+      }
+    }
+  }
+
+  // Sweep files from earlier pulls that nothing points at any more.
+  if (fs.existsSync(dir)) {
+    for (const old of fs.readdirSync(dir)) {
+      if (!kept.has(old)) fs.rmSync(path.join(dir, old), { force: true });
+    }
+  }
+
+  if (copied) say(`Copied ${copied} screenshot(s) into public/shots/`);
+  if (skipped) say(`${skipped} image(s) left as external URLs (not served by the admin).`);
+}
+
 const url = `${BASE}/api/v1/content`;
 
 /** Keeps a hung backend from hanging the whole deploy. */
@@ -196,6 +291,7 @@ try {
   }
 
   await localisePortrait(payload);
+  await localiseProjectImages(payload);
 
   fs.mkdirSync(path.dirname(SNAPSHOT), { recursive: true });
   fs.writeFileSync(SNAPSHOT, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');

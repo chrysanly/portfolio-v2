@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 /** The unfiltered index. Filtered views live at /work/type/[type]. */
-export default function WorkPage() {
+export default async function WorkPage() {
   return (
     <>
       <SiteHeader current="/work" />
@@ -19,7 +19,7 @@ export default function WorkPage() {
         <div className="wrap">
           <BackLink />
           <h1 className="section-label">Work</h1>
-          <WorkIndex projects={getAllProjects()} />
+          <WorkIndex projects={await getAllProjects()} />
         </div>
         <ContactBand />
       </main>

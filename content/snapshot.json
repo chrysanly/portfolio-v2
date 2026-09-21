@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-09-20T18:02:09Z",
+  "generated_at": "2026-09-21T06:59:15Z",
   "site": {
     "name": "Chrys",
     "fullName": "Chrysanly John Corpuz Roma",
     "role": "Senior Full-Stack Developer",
     "location": "Dubai, UAE",
-    "yearsExperience": "5+",
+    "yearsExperience": "6+",
     "availability": "[X] days weekly",
     "email": "chrys.romao21@gmail.com",
     "languages": [
       "English",
       "Filipino"
     ],
-    "portrait": null,
+    "portrait": "/portrait-d67c211e.jpg",
     "links": {
       "github": "https://github.com/chrysanly",
-      "linkedin": ""
+      "linkedin": "https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/"
     },
     "intro": [
       "Senior full-stack developer",
@@ -264,15 +264,6 @@
           "src": "https://picsum.photos/seed/dpe-mobile/390/844",
           "alt": "Placeholder standing in for the parsing engine on a phone",
           "kind": "image",
-          "device": "mobile",
-          "width": 390,
-          "height": 844
-        },
-        {
-          "src": "https://portfolio-api.test/storage/projects/7VD6siQfkK6F5Yx2j22O9h1OXSEdMw0tEPc63YNC.mp4",
-          "alt": "test only",
-          "caption": "test",
-          "kind": "video",
           "device": "mobile",
           "width": 390,
           "height": 844

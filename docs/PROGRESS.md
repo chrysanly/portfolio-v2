@@ -1,7 +1,69 @@
-# Progress — session of 20 Sep 2026
+# Progress
 
-Live checklist. `[x]` done and verified, `[~]` in progress, `[ ]` not started.
-Pick up at the first `[~]` or `[ ]`.
+---
+
+## Live content: admin saves now appear on the site (21 Sep 2026) — DONE
+
+Chrys: *"when I save on the backend I want it to be updated in the frontend …
+make sure the content is loaded via api. not in the build state … or if you can
+make a sync button."* All three, and the production guarantee is intact.
+
+- [x] **Content is read from the API, not baked at build time.**
+      `lib/projects.ts` now fetches `GET /api/v1/content` through Next's data
+      cache, falling back to `content/snapshot.json` and then to the MDX. All
+      three still go through the same Zod schema.
+- [x] **The loaders became async** — `getAllProjects`, `getFeaturedProjects`,
+      `getProject`, `getProjectsByType`, `adjacentProjects`. 17 call sites in 7
+      files updated; every one was already a server component or a server
+      function, so nothing became a client bundle.
+- [x] **`POST /api/revalidate`** — invalidates the content cache tag and the
+      pages that render it. Shared-secret auth, separate from the Sanctum build
+      token because they are different permissions.
+- [x] **The backend calls it on save.** `DeployService::publishChanged()` sends
+      a revalidation (instant, not debounced) and a rebuild (debounced 60s,
+      only if a deploy hook exists). `ProjectService` and `ProjectImageService`
+      both use it.
+- [x] **"Sync site" button** in the admin dashboard, showing when content was
+      last synced and when the site was last rebuilt.
+- [x] **A site outage can never block a save.** The dispatch is wrapped —
+      relevant on the `sync` queue driver, where the job runs inline and its
+      exception would otherwise reach the person pressing Save.
+- [x] **Local TLS** — `next.config.ts` trusts Herd's self-signed certificate in
+      development only. Without it every content read silently fell back to the
+      snapshot and nothing ever appeared.
+- [x] **Local queue is `sync`** so a save fires its revalidation with no worker
+      running. Production should use `database`/redis with `queue:work`.
+
+**Verified end to end:** saved a project in the backend, read the new summary
+off `http://localhost:3000/work` immediately — no rebuild, no pull, no restart.
+Wrong secret → 401, right secret → 200. 86 API tests pass, `tsc` and `eslint`
+clean.
+
+### The production guarantee is unchanged
+
+`docs/08-BACKEND.md` §2 said the site reads the API at build time and never at
+runtime, so that a backend outage can never take the site down. That still
+holds. In production the fetch is cached under a tag and **never expires on its
+own** — a visitor's request is served from cache exactly as if it had been baked
+in. Only `revalidateTag` refreshes it, and if the API is unreachable at that
+moment the previous cache entry stays. The failure mode is still "content is
+stale", never a broken site.
+
+In development the cache is off, which is why a save shows on the next refresh.
+
+### To set up
+
+Site `.env`: `PORTFOLIO_API_URL`, `PORTFOLIO_API_TOKEN`, `REVALIDATE_SECRET`.
+API `.env`: `SITE_REVALIDATE_URL`, `SITE_REVALIDATE_SECRET` (must match).
+Both are already set locally.
+
+### Also fixed along the way
+
+- [x] The contact throttle was `20/hour` in the code but `5/hour` in its
+      comment and its test. Aligned on 20, with the reason written down —
+      five was being hit during ordinary development.
+- [x] A stray apostrophe broke `DashboardController` with a parse error, which
+      took down every admin route. Caught by the test suite.
 
 ---
 

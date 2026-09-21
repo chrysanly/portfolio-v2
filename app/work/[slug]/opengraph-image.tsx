@@ -11,13 +11,13 @@ const GROUND = '#ECEAE4';
 const MUTED = '#55524B';
 const ACCENT = '#7B2D2D';
 
-export function generateStaticParams() {
-  return getAllProjects().map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getAllProjects()).map((p) => ({ slug: p.slug }));
 }
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
 
   return new ImageResponse(
     (

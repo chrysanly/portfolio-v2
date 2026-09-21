@@ -1,9 +1,8 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { languages as fallbackLanguages, site } from '@/content/site';
+import { readContentPayload } from './content-source';
 import { profileSchema } from './schema';
 
-const SNAPSHOT = path.join(process.cwd(), 'content', 'snapshot.json');
 
 /**
  * Who the site says he is, from the same two sources as everything else and
@@ -45,19 +44,10 @@ export interface Profile {
   };
 }
 
-function fromSnapshot() {
-  if (!fs.existsSync(SNAPSHOT)) return null;
+async function fromApi() {
+  const payload = await readContentPayload();
+  const raw = payload?.site;
 
-  let payload: unknown;
-  try {
-    payload = JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'));
-  } catch (error) {
-    throw new Error(
-      `content/snapshot.json exists but could not be read: ${(error as Error).message}`,
-    );
-  }
-
-  const raw = (payload as { site?: unknown }).site;
   if (!raw || typeof raw !== 'object') return null;
 
   const parsed = profileSchema.safeParse(raw);
@@ -66,20 +56,33 @@ function fromSnapshot() {
     const detail = parsed.error.issues
       .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('\n');
-    throw new Error(`Invalid site profile in content/snapshot.json\n${detail}`);
+    throw new Error(`Invalid site profile from the content source\n${detail}`);
   }
 
   return parsed.data;
 }
 
+/**
+ * This used to read `content/snapshot.json` straight off disk. That file is
+ * only rewritten by `scripts/pull-content.mjs` during a build, so changing a
+ * name or a role in the admin genuinely did require a rebuild before it
+ * appeared — while a project edit showed up immediately. Same admin, same
+ * save, two different behaviours. Both go through one loader now.
+ */
 let cache: Profile | null = null;
 
-export function getProfile(): Profile {
-  if (cache) return cache;
+export function clearProfileCache(): void {
+  cache = null;
+}
 
-  const api = fromSnapshot();
+export async function getProfile(): Promise<Profile> {
+  // Cached for the life of the process only in production; in development a
+  // save must show on the next request.
+  if (cache && process.env.NODE_ENV === 'production') return cache;
 
-  cache = {
+  const api = await fromApi();
+
+  const profile: Profile = {
     name: api?.name ?? site.name,
     fullName: api?.fullName ?? site.fullName,
     role: api?.role ?? site.role,
@@ -99,5 +102,7 @@ export function getProfile(): Profile {
     meta: api?.meta ?? site.meta,
   };
 
-  return cache;
+  cache = profile;
+
+  return profile;
 }

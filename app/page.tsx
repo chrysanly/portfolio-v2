@@ -30,9 +30,9 @@ function personJsonLd(profile: Profile) {
   };
 }
 
-export default function HomePage() {
-  const projects = getFeaturedProjects();
-  const profile = getProfile();
+export default async function HomePage() {
+  const projects = await getFeaturedProjects();
+  const profile = await getProfile();
 
   // Only what the showcase renders — the MDX body would otherwise be serialised
   // into the client payload for no reason.

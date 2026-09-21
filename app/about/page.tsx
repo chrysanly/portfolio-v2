@@ -11,18 +11,18 @@ export const metadata: Metadata = {
   description: site.positioning.slice(0, 155),
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
   /*
    * The journey, from the admin when there is one and from content/site.ts
    * when there is not — lib/journey.ts decides. It arrives oldest first,
    * which is the order the home page's timeline walks; a CV reads the other
    * way, so this page reverses it and takes the current post off the end.
    */
-  const profile = getProfile();
-  const roles = getRoles();
+  const profile = await getProfile();
+  const roles = await getRoles();
   const newestFirst = [...roles].reverse();
   const current = newestFirst[0];
-  const degree = getJourney().find((stop) => stop.kind === 'education');
+  const degree = (await getJourney()).find((stop) => stop.kind === 'education');
 
   return (
     <>
