@@ -139,6 +139,34 @@ own.
 is why the drag is unclamped in direction but bounded to the stage: you can
 throw it, but not behind the masthead.
 
+### `run` — driving the admin instead of reading it
+**When:** verifying the toast, confirm-dialog, PIN and nameplate work in
+`portfolio-api`, 2026-09-21.
+
+**What it changed:** its central rule — launching is not running, drive the app
+to a point where a user would see something, and *look at the screenshot* —
+found three defects that every static check had passed.
+
+The PIN keypad submitted five of six characters. TypeScript, ESLint and 119
+backend tests were green, because the bug was a race: the keypad calls submit
+the instant the sixth character is typed, and Inertia's `useForm` had not
+committed that character yet, so `post()` serialised the previous state. Only a
+real browser typing at real speed produced it. The fix is `transform(() => ({
+pin }))`, taking the value from the argument rather than from `data`.
+
+Switching the texture off left the cursor light on, lighting a mesh that was no
+longer there. Two selectors of identical specificity, decided by source order —
+invisible in the file, obvious the moment the button was clicked.
+
+The texture button's glyph was four triangles sampled from the real mesh. It
+read as a smudge at fifteen pixels. Looking at the captured button, rather than
+at the SVG source, is the only way that registers.
+
+Also worth recording: the skill says to check for a project skill first. There
+is none for this repo, and the fallback pattern it points at
+(`examples/playwright.md`) was the right one — a Herd-served Laravel app needs
+no driver beyond `page.goto` and `ignoreHTTPSErrors`.
+
 ### Not used for the splash, the ID badge or the cursor
 Those were built without a skill. `micro-interaction` and `accessible-animation`
 were the plausible candidates; the work was small enough and constrained enough
