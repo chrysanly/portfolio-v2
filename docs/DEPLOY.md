@@ -11,16 +11,17 @@ Nothing below costs money. Backend first, then frontend. Tick as you go.
 | Public site | **Vercel Hobby** | generous | none that affects you |
 | Admin + API | **Render Web Service** | 750 h/month | sleeps after ~15 min idle |
 | Database | **Neon Postgres** | 0.5 GB, no expiry | none |
-| Images | **not needed yet** | — | see §1.5 |
+| Images & video | **Cloudinary** | 25 credits/month | 10 MB an image, 100 MB a video — see §1.5 |
 | Queue | `sync` — no worker | — | saving is slightly slower |
 
 **Total: $0.** Three things make that work:
 
-**1. You don't need image storage yet.** All 18 images are external placeholder
-URLs (`placehold.co`) — **zero files are stored locally**. The API passes
-absolute URLs straight through, so Render's ephemeral disk isn't a problem
-today. It becomes one when you upload a real screenshot, and that can be solved
-then — free options in §1.5.
+**1. Cloudinary holds the uploads, free.** This said "you don't need image
+storage yet" while every image was still an external placeholder URL. The
+first real upload ended that: Render's disk is ephemeral, so the file 404'd
+as soon as the service restarted while its database row carried on looking
+fine. Uploads now go to Cloudinary — §1.5 — and the site still mirrors them
+onto Vercel's CDN, so Cloudinary's bandwidth allowance is barely touched.
 
 **2. Use Neon, not Render's Postgres.** Render's free database is deleted after
 its trial window; Neon's free tier has no expiry. Both are standard Postgres and
@@ -167,14 +168,61 @@ seeing nothing.
 the next one. Uploading already asks for a rebuild, so set the deploy hook in
 Part 3 and it happens on its own.
 
-**Still true:** the copy inside Render is ephemeral. If Render redeploys before
-the site has pulled a new image, that image is gone and you upload it again.
-Rare, and only affects images added between a deploy and a build. If it starts
-to annoy you, switch `PORTFOLIO_IMAGES_DISK` to `s3` with Cloudflare R2 (10 GB
-free) or Supabase Storage (1 GB free) — both S3-compatible, no code change.
+**What that does not cover, and why Cloudinary is now wired in.** The copy
+inside Render is ephemeral — wiped on every deploy and every wake from sleep.
+Mirroring protects the *published site*, but only for images that were still
+alive when a build ran. Two things it cannot help:
 
-- [ ] Leave `PORTFOLIO_IMAGES_DISK` unset — the default `public` disk is right
+- **The admin itself.** It reads live from Render, so the moment the disk is
+  wiped every thumbnail there breaks, against rows that still look healthy.
+  This is the "not found: …/storage/projects/….png" you will have seen.
+- **Anything uploaded and then lost before the next build.** On a free service
+  that sleeps after ~15 minutes, that window is not rare.
+
+So uploads now go to **Cloudinary** when it is configured, and to the local
+disk when it is not. Nothing else changes: the API stores the delivery URL and
+passes it through, and the site still mirrors it into `public/shots/` so
+visitors are served from Vercel's CDN rather than from Cloudinary's bandwidth
+allowance.
+
+**Setting it up (checked 2026-09-21):**
+
+- [ ] Sign up at [cloudinary.com](https://cloudinary.com/users/register_free) —
+      free, **no credit card**
+- [ ] Dashboard → **Product Environment Credentials**. Copy three values:
+      **Cloud name**, **API Key**, **API Secret** (click the eye to reveal it)
+- [ ] Add them on Render → your service → **Environment**:
+
+| Variable | Value |
+|---|---|
+| `CLOUDINARY_CLOUD_NAME` | your cloud name, e.g. `dxxxxxxxx` |
+| `CLOUDINARY_API_KEY` | the numeric key |
+| `CLOUDINARY_API_SECRET` | the secret — treat it like a password |
+| `CLOUDINARY_FOLDER` | optional, defaults to `portfolio` |
+
+- [ ] Save. Render redeploys on its own.
+- [ ] Leave `PORTFOLIO_IMAGES_DISK` unset. It selects the *local* disk and is
+      only used when Cloudinary is not configured.
 - [ ] Set up the deploy hook in Part 3 so uploads reach the site by themselves
+
+All three must be present or the app falls back to the local disk without
+complaining — which is deliberate, so development and the test suite never
+need an account.
+
+**The free plan's ceilings, and ours:**
+
+| | Cloudinary free | This admin enforces |
+|---|---|---|
+| Image | 10 MB | **4 MB** |
+| Video | 100 MB | **100 MB** |
+| Storage | 25 credits/month — 1 credit = 1 GB stored *or* 1 GB delivered | — |
+
+Ours is the limit that speaks first on images, which is what you want: its
+message names the real problem. On video the two are equal, so a file just
+over the line is refused by Cloudinary and its reason is shown to you verbatim.
+
+**One-off, after switching:** rows uploaded before this point still point at
+Render URLs whose files are gone. Re-upload those; nothing migrates itself.
 
 Placeholders (`placehold.co`, `picsum`) are left as external URLs on purpose —
 they are deliberately third-party and are not baked into the build.
