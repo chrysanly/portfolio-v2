@@ -787,6 +787,62 @@
     color: var(--color-ink);
   }
 
+  /* ----- the CV, which outranks both --------------------------------------
+     Chrys asked for this to be the most prominent control on the page, and
+     it is the right ask: a recruiter reaches for the CV in the first ten
+     seconds, and it used to be the quieter of the two buttons.
+
+     The accent, not the ink. `--button--solid` is already the ink filled in,
+     so a second ink-filled control could only tie with it — the palette's
+     one colour is the only thing left that reads as louder without
+     inventing a size or a weight the rest of the page does not use. Both
+     accents carry `--color-ground` at well past 4.5:1: the light theme's is
+     a deep red on a near-white ground, the dark theme's a pale clay on a
+     near-black one.
+
+     Deliberately no blink. The header's "Send a message" already has the
+     page's one blinking indicator, and two things competing for "look here"
+     is the same as neither of them having it.
+  --------------------------------------------------------------------------- */
+  .button--cv {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-ground);
+    font-weight: 600;
+    /*
+     * A shadow under the button, not a glow around it.
+     *
+     * This was `0 6px 20px` with no spread: a 20px blur against a 6px drop
+     * spills roughly 4px *above* the top border, and on the dark ground an
+     * accent bleeding upward out of its own edge reads as the border having
+     * come loose — which is exactly how Chrys reported it. The negative
+     * spread pulls the shadow in by more than the blur can push it back
+     * out, so its top edge now sits below the button's, and what is left is
+     * a drop shadow doing what a drop shadow is for.
+     */
+    box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+
+  /* Placed after `.button:hover`, which it ties with on specificity — the
+     generic hover fills with ink, and without this the loudest control on
+     the page would turn into the same grey as everything else. */
+  .button--cv:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-accent);
+    box-shadow: none;
+  }
+
+  /* On a coloured field the 0.62 the stamp carries elsewhere drops under
+     contrast; the ground is already the readable pairing, so it only needs
+     holding back enough to stay secondary to the label. */
+  .button--cv .hero-actions__stamp {
+    opacity: 0.82;
+  }
+
+  .button--cv:hover .hero-actions__stamp {
+    opacity: 0.7;
+  }
+
   .hero-actions {
     display: flex;
     flex-wrap: wrap;
@@ -2031,6 +2087,166 @@
     bottom: 26px;
   }
 
+  /* ---------------------------------------------------------------------
+   * Stepping through the run
+   *
+   * Hidden without motion, like the rail: that path renders the stops as an
+   * ordinary vertical list, where "next" is the next thing down the page and
+   * an arrow claiming to advance it would be a lie.
+   * ------------------------------------------------------------------- */
+  .journey__nav {
+    display: none;
+  }
+
+  [data-motion='on'] .journey__nav {
+    display: flex;
+    position: absolute;
+    top: 22px;
+    right: var(--page-x);
+    z-index: 2;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .journey__hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    /* Its job is done the moment the run has been moved once. It goes
+       quietly rather than disappearing, so the eye is not pulled back to
+       the corner it just left. */
+    transition:
+      opacity 420ms ease,
+      transform 420ms ease;
+  }
+
+  .journey__nav[data-nudged='true'] .journey__hint {
+    opacity: 0;
+    transform: translateX(6px);
+    pointer-events: none;
+  }
+
+  /* A short rule that slides, which is the gesture the sentence describes. */
+  .journey__hint-glyph {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 1px;
+    background: var(--color-rule);
+    overflow: visible;
+  }
+
+  .journey__hint-glyph::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 8px;
+    height: 3px;
+    background: var(--color-accent);
+    animation: journey-nudge 2.4s ease-in-out infinite;
+  }
+
+  @keyframes journey-nudge {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(14px);
+    }
+  }
+
+  .journey__steps {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .journey__step {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-ground) 70%, transparent);
+    backdrop-filter: blur(6px);
+    color: var(--color-ink);
+    cursor: pointer;
+    transition:
+      border-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .journey__step svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .journey__step:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* The arrow leans the way it is about to take you. */
+  .journey__step:first-child:hover:not(:disabled) {
+    transform: translateX(-2px);
+  }
+
+  .journey__step:last-child:hover:not(:disabled) {
+    transform: translateX(2px);
+  }
+
+  .journey__step:disabled {
+    opacity: 0.32;
+    cursor: default;
+  }
+
+  .journey__count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    /* The count changes under the reader's eye as they scroll; without this
+       the arrows shuffle sideways every time a 1 becomes a 0. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  .journey__count b {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .journey__count span {
+    color: var(--color-faint);
+  }
+
+  /* On a narrow screen the sentence is the first thing to go — the arrows
+     and the counter still say everything the reader has to act on. */
+  @media (max-width: 767px) {
+    .journey__hint {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journey__hint-glyph::after {
+      animation: none;
+    }
+  }
+
   .journey__line {
     display: block;
     height: 2px;
@@ -3216,6 +3432,34 @@
     border: 1px solid var(--color-rule);
     background: color-mix(in srgb, var(--color-ground) 88%, transparent);
     backdrop-filter: blur(9px);
+    transition:
+      opacity 280ms ease,
+      transform 280ms ease;
+  }
+
+  /*
+   * Stood down while the journey is pinned.
+   *
+   * Inside the journey the pager steps stop by stop, which is exactly what
+   * the journey's own arrows do — two controls for one action, at opposite
+   * corners, neither obviously the right one. The journey's are the clearer
+   * pair: they sit beside the thing they move and they say which stop of how
+   * many. Everywhere else the pager is the only way to skip a pinned
+   * section, so it comes straight back.
+   *
+   * `JourneyTimeline` already maintains this flag for its own scroll
+   * bookkeeping, so nothing new has to be tracked to know when.
+   */
+  :root[data-journey-active='on'] .pager {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-14px);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pager {
+      transition: none;
+    }
   }
 
   .pager__step {
@@ -4676,6 +4920,69 @@
   .tally > dt {
     width: 96px;
     font-size: 0.625rem;
+  }
+
+  /*
+   * Selected Work, on a laptop lid.
+   *
+   * The hero was tuned for short windows; the showcase never was, and it is
+   * the one that could least afford it. Measured at 1366x628: the panel's
+   * content came to 628px inside a 556px stage, so `overflow: hidden` on
+   * `.showcase__stage` took 72px off the bottom — which is precisely where
+   * "View project" and the foot of the device rig are. Nothing looked
+   * broken, it just quietly had no call to action.
+   *
+   * The text column is the taller of the two, at 517px against the figure's
+   * 389, so shrinking the rig would not have bought a single pixel. What
+   * follows takes the 72px out of the type and the gaps instead, which is
+   * the one place it can come from.
+   *
+   * All of it is `min-width: 1024px` because below that `.panel__body`
+   * stacks to one column and has its own rules already.
+   */
+  .panel__title {
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  }
+
+  .panel__attr {
+    margin-top: 8px;
+  }
+
+  .panel__summary {
+    margin-top: 14px;
+  }
+
+  .panel__meta {
+    margin-top: 16px;
+    padding-top: 12px;
+    gap: 8px;
+  }
+
+  .panel__out {
+    margin-top: 14px;
+  }
+
+  .panel__cta {
+    margin-top: 18px;
+  }
+
+  /* Brought down with the text so the rig stays the same size relative to
+     the column beside it — the arrangement reads as a set, and a laptop
+     that stays large while the words shrink reads as a different one. */
+  .panel__figure {
+    height: min(52svh, 420px);
+  }
+
+  /*
+   * Capped by width, because that is what actually sets its height: the rig
+   * is `width: 100%; max-width: 640px` with `aspect-ratio: 3 / 2`, so 640
+   * wide is 427 tall no matter what the figure box around it says. The
+   * tablet and the phone are positioned to hang below the laptop, so they
+   * cleared the stage's bottom edge by 33 and 41px and were sliced off
+   * mid-bezel — measured at 1366x628.
+   */
+  .rig {
+    max-width: 500px;
   }
 }
 

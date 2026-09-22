@@ -57,8 +57,12 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
 
   return (
     <div className="hero-actions">
+      {/*
+       * The outline one now. The CV is the page's primary action — see
+       * `.button--cv` — and two filled controls side by side say neither is.
+       */}
       <a
-        className="button button--solid"
+        className="button"
         href="#showcase"
         onClick={(event) => {
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -98,7 +102,7 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
        */}
       {cv ? (
         <a
-          className="button"
+          className="button button--cv"
           href={cv.url}
           target="_blank"
           rel="noopener noreferrer"

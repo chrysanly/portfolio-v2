@@ -39,7 +39,44 @@ function initialsFor(fullName: string): string {
 }
 
 const POINTS = 17; // cord segments before the clip
-const SEG = 14; // rest length of one segment, px
+const SEG = 14; // rest length of one segment, px, on a tall viewport
+
+/*
+ * What the cord actually settles at when SEG is 14, measured.
+ *
+ * Sixteen links of 14px is 224px of rope, but the card's weight stretches it
+ * — the settled drop is about 370px, and it is that number, not the rope's
+ * rest length, that decides whether the badge fits. Measured across
+ * 632/700/800/1080px viewports, where it came out 366–379: constant, because
+ * nothing about the rope depended on the viewport.
+ *
+ * Which was the bug. The space below the anchor scales with the viewport
+ * (the mount is 560px tall at 632 and 1008px at 1080) but the drop did not,
+ * so below roughly 665px of viewport height the card hung past the fold —
+ * 29px of it cut off at 632, the height of Chrys's laptop. `segmentFor()`
+ * scales the rope so the badge fits the room it has.
+ */
+const REST_DROP_AT_SEG = 370;
+
+/** Clear air under the card, so it reads as hanging rather than as resting. */
+const FOOT_MARGIN = 26;
+
+/**
+ * The rope length this viewport can afford.
+ *
+ * Only ever shortens: on anything tall enough the full 14 is returned and the
+ * pose is exactly what it always was. The floor of 7 stops the cord
+ * collapsing into the clip on a very short window — past that the badge is
+ * better slightly cropped than reduced to a card stuck to a hook.
+ */
+function segmentFor(mountH: number, cardH: number): number {
+  if (mountH <= 0 || cardH <= 0) return SEG;
+
+  const room = mountH - cardH - FOOT_MARGIN;
+  const scaled = SEG * (room / REST_DROP_AT_SEG);
+
+  return Math.max(7, Math.min(SEG, scaled));
+}
 const CLIP = 30; // clip drop: the hook stands clear above the card's slot
 const ANCHOR_Y = -46; // above the stage, so the webbing runs off the top
 const GRAVITY = 0.62;
@@ -126,6 +163,21 @@ export function IdCard({ profile }: { profile: Profile }) {
     let cardH = 0;
     let cardW = 0;
     let anchorX = 0;
+    // Recomputed in build(), which is also what resize calls — so rotating a
+    // tablet or dragging a window taller re-hangs the badge at the new length.
+    let seg = SEG;
+
+    /*
+     * Held at a constant reach in pixels, not a constant multiple.
+     *
+     * The limit is per link — `len * stretch` — so a rope shortened to fit a
+     * laptop would also have shortened the throw, and reaching the left of
+     * the hero is the thing the stretch was added for. Scaling the multiple
+     * by exactly what the rope lost keeps `seg * stretch` where it was, so
+     * the badge still reaches as far as it ever did; it simply hangs from a
+     * shorter cord to get there.
+     */
+    let stretch = MAX_STRETCH;
 
     /*
      * The chain: POINTS cord points, then the card's slot and its bottom edge.
@@ -147,6 +199,8 @@ export function IdCard({ profile }: { profile: Profile }) {
       cardW = card.offsetWidth || 250;
       cardH = card.offsetHeight || 300;
       anchorX = W - ANCHOR_INSET;
+      seg = segmentFor(H, cardH);
+      stretch = MAX_STRETCH * (SEG / seg);
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.setAttribute('width', String(W));
@@ -154,10 +208,10 @@ export function IdCard({ profile }: { profile: Profile }) {
 
       pts.length = 0;
       for (let i = 0; i < POINTS; i++) {
-        const y = ANCHOR_Y + i * SEG;
+        const y = ANCHOR_Y + i * seg;
         pts.push({ x: anchorX, y, px: anchorX, py: y, w: i === 0 ? 0 : 1 });
       }
-      const sy = ANCHOR_Y + (POINTS - 1) * SEG + CLIP;
+      const sy = ANCHOR_Y + (POINTS - 1) * seg + CLIP;
       pts.push({ x: anchorX, y: sy, px: anchorX, py: sy, w: 0.6 });
       pts.push({
         x: anchorX,
@@ -200,7 +254,7 @@ export function IdCard({ profile }: { profile: Profile }) {
       const total = a.w + b.w;
       if (total === 0) return;
 
-      const limit = stretchy ? len * (held ? HELD_STRETCH : MAX_STRETCH) : len;
+      const limit = stretchy ? len * (held ? HELD_STRETCH : stretch) : len;
       let target = len;
       let stiffness = 1;
 
@@ -249,7 +303,7 @@ export function IdCard({ profile }: { profile: Profile }) {
       }
 
       for (let n = 0; n < ITERATIONS; n++) {
-        for (let i = 0; i < POINTS - 1; i++) link(pts[i], pts[i + 1], SEG, true);
+        for (let i = 0; i < POINTS - 1; i++) link(pts[i], pts[i + 1], seg, true);
         link(pts[POINTS - 1], slot(), CLIP, true);
         link(slot(), foot(), cardH);
         if (held) {
