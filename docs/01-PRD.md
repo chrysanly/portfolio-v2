@@ -36,24 +36,24 @@ and availability. Needs those visible without scrolling far.
 
 ## 5. Functional requirements
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| F1 | Hero states name, role, discipline and location above the fold | Must |
-| F2 | Scroll-driven hero sequence resolving the name into the intro | Must |
-| F3 | Work index listing projects with scope and outcome | Must |
-| F4 | Project cards render correctly with no client name and no images | Must |
-| F5 | Project detail pages: problem, approach, stack, outcome | Must |
-| F6 | About page: background, how he works, current role | Must |
-| F7 | Contact path reachable from every screen | Must |
-| F8 | Contact form with validation and success/error states | Must |
-| F9 | Projects added by editing a content file, no code changes | Must |
-| F10 | Filter the work index by project type, as static routes | Should |
-| F11 | Résumé download | Should |
-| F12 | Dark theme | **Shipped** — light and dark with a header toggle |
-| F14 | Experience timeline on the home route | **Shipped** |
-| F15 | Technology marquee on the home route | **Shipped** |
-| F16 | Opening splash hold, 1s | **Shipped** — costs the §8.4 performance target, see `02-TRD.md` §4 |
-| F13 | Arabic localisation | Won't (this version) |
+| ID  | Requirement                                                      | Priority                                                            |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| F1  | Hero states name, role, discipline and location above the fold   | Must                                                                |
+| F2  | Scroll-driven hero sequence resolving the name into the intro    | Must                                                                |
+| F3  | Work index listing projects with scope and outcome               | Must                                                                |
+| F4  | Project cards render correctly with no client name and no images | Must                                                                |
+| F5  | Project detail pages: problem, approach, stack, outcome          | Must                                                                |
+| F6  | About page: background, how he works, current role               | Must                                                                |
+| F7  | Contact path reachable from every screen                         | Must                                                                |
+| F8  | Contact form with validation and success/error states            | Must                                                                |
+| F9  | Projects added by editing a content file, no code changes        | Must                                                                |
+| F10 | Filter the work index by project type, as static routes          | Should                                                              |
+| F11 | Résumé download                                                  | Should                                                              |
+| F12 | Dark theme                                                       | **Shipped** — light and dark with a header toggle                   |
+| F14 | Experience timeline on the home route                            | **Shipped**                                                         |
+| F15 | Technology marquee on the home route                             | **Shipped**                                                         |
+| F16 | Opening splash hold, 1s                                          | **Shipped** — costs the §8.4 performance target, see `02-TRD.md` §4 |
+| F13 | Arabic localisation                                              | Won't (this version)                                                |
 
 ## 6. Content requirements
 

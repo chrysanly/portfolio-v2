@@ -11,13 +11,13 @@ this repository, so nothing here is installed by cloning the project.
 
 ## Installed sources
 
-| Source | Skills | Installed |
-|--------|--------|-----------|
-| Bundled with Claude Code | `frontend-design` (later replaced, see below) | pre-existing |
-| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | `ui-ux-pro-max`, `design`, `design-system`, `ui-styling`, `brand`, `banner-design`, `slides` | 2026-09-19 |
-| [emilkowalski/skills](https://github.com/emilkowalski/skills) | `animate`, `animate-expo`, `animation-vocabulary`, `apple-design`, `ask-sonner`, `emil-design-eng`, `find-animation-opportunities`, `improve-animations`, `mobile-native`, `pick-ui-library`, `prototype`, `review-animations`, `write-swift` | 2026-09-19 |
-| [anthropics/skills](https://github.com/anthropics/skills) `skills/frontend-design` | `frontend-design` (replaced the bundled copy) | 2026-09-19 |
-| [iart-ai/web-animation-skills](https://github.com/iart-ai/web-animation-skills) | `60fps-animation`, `accessible-animation`, `ascii-animation`, `glassmorphism`, `gsap-web`, `lottie-animation`, `micro-interaction`, `page-transition-animation`, `svg-animation` | 2026-09-19 |
+| Source                                                                                          | Skills                                                                                                                                                                                                                                        | Installed    |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Bundled with Claude Code                                                                        | `frontend-design` (later replaced, see below)                                                                                                                                                                                                 | pre-existing |
+| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | `ui-ux-pro-max`, `design`, `design-system`, `ui-styling`, `brand`, `banner-design`, `slides`                                                                                                                                                  | 2026-09-19   |
+| [emilkowalski/skills](https://github.com/emilkowalski/skills)                                   | `animate`, `animate-expo`, `animation-vocabulary`, `apple-design`, `ask-sonner`, `emil-design-eng`, `find-animation-opportunities`, `improve-animations`, `mobile-native`, `pick-ui-library`, `prototype`, `review-animations`, `write-swift` | 2026-09-19   |
+| [anthropics/skills](https://github.com/anthropics/skills) `skills/frontend-design`              | `frontend-design` (replaced the bundled copy)                                                                                                                                                                                                 | 2026-09-19   |
+| [iart-ai/web-animation-skills](https://github.com/iart-ai/web-animation-skills)                 | `60fps-animation`, `accessible-animation`, `ascii-animation`, `glassmorphism`, `gsap-web`, `lottie-animation`, `micro-interaction`, `page-transition-animation`, `svg-animation`                                                              | 2026-09-19   |
 
 38 `SKILL.md` files total.
 
@@ -26,6 +26,7 @@ this repository, so nothing here is installed by cloning the project.
 ## Actually invoked
 
 ### `frontend-design` — hero stage B composition
+
 **When:** designing the descriptive content for the hero sequence.
 
 **What it changed:** its calibration section names "a broadsheet layout with
@@ -41,6 +42,7 @@ a total line — which is the vernacular of the ERP finance modules Chrys actual
 builds, and which the direction's own name (Ledger) already implied.
 
 ### `ui-ux-pro-max` — work index rows, section transition, theme toggle
+
 **When:** fixing the work index rows, the gap between sections, and the toggle.
 
 **What it contributed:** honestly, little for these three. It is a search tool
@@ -57,11 +59,12 @@ title wraps, and nudging the small cells down to meet the title's first baseline
 — came from reading the rendered output, not from the database.
 
 ### `animate` — the scroll-driven work showcase
+
 **When:** turning the work index into a pinned sequence.
 
 **What it changed:** it front-loads two gates before any code — frequency tier
 and a named purpose — and the showcase passes both (rare/first-time; purpose is
-*explanation* plus *spatial consistency*). That mattered: without the gate the
+_explanation_ plus _spatial consistency_). That mattered: without the gate the
 temptation is to animate the rows themselves, which a visitor scans dozens of
 times and which the skill would reject outright.
 
@@ -74,6 +77,7 @@ on the parent" rule is why the panel's inner figure gets its own ref rather
 than inheriting a var.
 
 ### `animate` — the experience journey
+
 **When:** turning the static employment list into a scroll-revealed journey.
 
 **What it changed:** its "cheapest tool that works" rule is the reason this is
@@ -89,6 +93,7 @@ path — which here meant inverting the default so rows are visible unless JS
 confirms motion is wanted, rather than hidden until JS rescues them.
 
 ### `animate` + `ui-ux-pro-max` — the horizontal journey rebuild
+
 **When:** after Chrys asked for the journey to run sideways, for the rail to
 stay pinned, and for the degree to open the run as plain text.
 
@@ -140,11 +145,12 @@ is why the drag is unclamped in direction but bounded to the stage: you can
 throw it, but not behind the masthead.
 
 ### `run` — driving the admin instead of reading it
+
 **When:** verifying the toast, confirm-dialog, PIN and nameplate work in
 `portfolio-api`, 2026-09-21.
 
 **What it changed:** its central rule — launching is not running, drive the app
-to a point where a user would see something, and *look at the screenshot* —
+to a point where a user would see something, and _look at the screenshot_ —
 found three defects that every static check had passed.
 
 The PIN keypad submitted five of six characters. TypeScript, ESLint and 119
@@ -168,6 +174,7 @@ is none for this repo, and the fallback pattern it points at
 no driver beyond `page.goto` and `ignoreHTTPSErrors`.
 
 ### Not used for the splash, the ID badge or the cursor
+
 Those were built without a skill. `micro-interaction` and `accessible-animation`
 were the plausible candidates; the work was small enough and constrained enough
 by `04-UIUX-BRIEF.md` that reading the rendered output was faster than querying.

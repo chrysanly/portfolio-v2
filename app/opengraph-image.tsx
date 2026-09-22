@@ -12,44 +12,42 @@ const MUTED = '#55524B';
 
 export default function OpengraphImage() {
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: GROUND,
+        color: INK,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: 64,
+        fontFamily: 'serif',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 22 }}>
+        <span>{site.location}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 210 }}>
+        {site.name
+          .toUpperCase()
+          .split('')
+          .map((ch, i) => (
+            <span key={i}>{ch}</span>
+          ))}
+      </div>
       <div
         style={{
-          width: '100%',
-          height: '100%',
-          background: GROUND,
-          color: INK,
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: 64,
-          fontFamily: 'serif',
+          borderTop: `3px solid ${INK}`,
+          paddingTop: 22,
+          fontSize: 28,
+          color: MUTED,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 22 }}>
-          <span>{site.location}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 210 }}>
-          {site.name
-            .toUpperCase()
-            .split('')
-            .map((ch, i) => (
-              <span key={i}>{ch}</span>
-            ))}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            borderTop: `3px solid ${INK}`,
-            paddingTop: 22,
-            fontSize: 28,
-            color: MUTED,
-          }}
-        >
-          {site.intro.join(' ')}
-        </div>
+        {site.intro.join(' ')}
       </div>
-    ),
+    </div>,
     size,
   );
 }

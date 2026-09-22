@@ -61,7 +61,14 @@ export function ContactBand() {
             <li>
               <Link href="/about">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  <circle
+                    cx="12"
+                    cy="8"
+                    r="3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
                   <path
                     d="M4.5 20c0-3.87 3.36-7 7.5-7s7.5 3.13 7.5 7"
                     fill="none"

@@ -1,348 +1,582 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chrys — Hero Scroll Template</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=Public+Sans:wght@400;500;600&display=swap">
-<style>
-:root{
-  --ink:#1A1A18;
-  --ground:#ECEAE4;
-  --surface:#F5F3EE;
-  --muted:#55524B;
-  --faint:#83807A;
-  --rule:#CFCCC3;
-  --accent:#7B2D2D;
-  --page-x:64px;
-  --display:"Bodoni Moda",Didot,"Times New Roman",serif;
-  --body:"Public Sans","Helvetica Neue",Helvetica,sans-serif;
-}
-*,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;
-  background:var(--ground);
-  color:var(--ink);
-  font-family:var(--body);
-  font-size:16px;
-  line-height:1.6;
-}
-a{color:inherit;text-decoration:none}
-a:hover{color:var(--accent)}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chrys — Hero Scroll Template</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=Public+Sans:wght@400;500;600&display=swap"
+    />
+    <style>
+      :root {
+        --ink: #1a1a18;
+        --ground: #eceae4;
+        --surface: #f5f3ee;
+        --muted: #55524b;
+        --faint: #83807a;
+        --rule: #cfccc3;
+        --accent: #7b2d2d;
+        --page-x: 64px;
+        --display: 'Bodoni Moda', Didot, 'Times New Roman', serif;
+        --body: 'Public Sans', 'Helvetica Neue', Helvetica, sans-serif;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      a:hover {
+        color: var(--accent);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-.skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--ground);padding:12px 18px;z-index:100}
-.skip:focus{left:0}
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background: var(--ink);
+        color: var(--ground);
+        padding: 12px 18px;
+        z-index: 100;
+      }
+      .skip:focus {
+        left: 0;
+      }
 
-.wrap{max-width:1400px;margin:0 auto;padding-inline:var(--page-x)}
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-inline: var(--page-x);
+      }
 
-/* ---------- sticky header (the masthead's destination) ---------- */
-.site-header{
-  position:sticky;top:0;z-index:20;
-  background:var(--ground);
-  border-bottom:2px solid var(--ink);
-}
-.site-header__inner{
-  height:72px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.logo{
-  display:flex;
-  font-family:var(--display);
-  font-weight:400;
-  font-size:28px;
-  line-height:1;
-  color:var(--ink);
-}
-.site-nav{display:flex;gap:30px;font-size:13px;color:var(--muted)}
-.site-nav a[aria-current="page"]{color:var(--accent);font-weight:600}
+      /* ---------- sticky header (the masthead's destination) ---------- */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--ground);
+        border-bottom: 2px solid var(--ink);
+      }
+      .site-header__inner {
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        display: flex;
+        font-family: var(--display);
+        font-weight: 400;
+        font-size: 28px;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .site-nav {
+        display: flex;
+        gap: 30px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .site-nav a[aria-current='page'] {
+        color: var(--accent);
+        font-weight: 600;
+      }
 
-/* ---------- static (no-JS / reduced-motion) intro ---------- */
-.static-intro{padding:56px 0 40px}
-.static-intro h1{
-  margin:0;
-  font-size:clamp(28px,3.4vw,40px);
-  font-weight:400;
-  line-height:1.3;
-  max-width:22ch;
-}
-.meta-row{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;
-  padding:26px 0 30px;border-top:1px solid var(--rule);margin-top:34px;
-  font-size:15px;line-height:1.55;color:var(--muted);
-}
-.meta-row strong{display:block;color:var(--ink);font-weight:500}
+      /* ---------- static (no-JS / reduced-motion) intro ---------- */
+      .static-intro {
+        padding: 56px 0 40px;
+      }
+      .static-intro h1 {
+        margin: 0;
+        font-size: clamp(28px, 3.4vw, 40px);
+        font-weight: 400;
+        line-height: 1.3;
+        max-width: 22ch;
+      }
+      .meta-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 30px;
+        padding: 26px 0 30px;
+        border-top: 1px solid var(--rule);
+        margin-top: 34px;
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .meta-row strong {
+        display: block;
+        color: var(--ink);
+        font-weight: 500;
+      }
 
-/* ---------- scroll hero (motion mode only) ---------- */
-.hero{display:none}
-[data-motion="on"] .hero{display:block}
-[data-motion="on"] .static-intro{display:none}
-[data-motion="on"] .site-header{opacity:0;pointer-events:none}
-[data-motion="on"] .site-header[data-handoff="on"]{opacity:1;pointer-events:auto}
+      /* ---------- scroll hero (motion mode only) ---------- */
+      .hero {
+        display: none;
+      }
+      [data-motion='on'] .hero {
+        display: block;
+      }
+      [data-motion='on'] .static-intro {
+        display: none;
+      }
+      [data-motion='on'] .site-header {
+        opacity: 0;
+        pointer-events: none;
+      }
+      [data-motion='on'] .site-header[data-handoff='on'] {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-.hero__track{height:200vh;position:relative}
-.hero__stage{
-  position:sticky;top:0;height:100vh;
-  display:flex;flex-direction:column;justify-content:center;
-  overflow:hidden;
-}
-.hero__eyebrow{
-  position:absolute;top:44px;left:var(--page-x);
-  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
-  will-change:opacity;
-}
-.masthead{
-  display:flex;
-  font-family:var(--display);font-weight:400;
-  font-size:clamp(84px,15.6vw,210px);
-  line-height:.86;
-  transform-origin:0 50%;
-  will-change:transform;
-}
-.masthead span{display:block;will-change:transform}
+      .hero__track {
+        height: 200vh;
+        position: relative;
+      }
+      .hero__stage {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .hero__eyebrow {
+        position: absolute;
+        top: 44px;
+        left: var(--page-x);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--faint);
+        will-change: opacity;
+      }
+      .masthead {
+        display: flex;
+        font-family: var(--display);
+        font-weight: 400;
+        font-size: clamp(84px, 15.6vw, 210px);
+        line-height: 0.86;
+        transform-origin: 0 50%;
+        will-change: transform;
+      }
+      .masthead span {
+        display: block;
+        will-change: transform;
+      }
 
-.intro{margin-top:38px;max-width:780px}
-.intro__line{overflow:hidden}
-.intro__line > span{
-  display:block;
-  font-size:clamp(20px,2.6vw,30px);
-  line-height:1.35;
-  will-change:transform,opacity;
-}
+      .intro {
+        margin-top: 38px;
+        max-width: 780px;
+      }
+      .intro__line {
+        overflow: hidden;
+      }
+      .intro__line > span {
+        display: block;
+        font-size: clamp(20px, 2.6vw, 30px);
+        line-height: 1.35;
+        will-change: transform, opacity;
+      }
 
-.hero__foot{
-  position:absolute;left:var(--page-x);right:var(--page-x);bottom:44px;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
-}
-.cue{font-size:13px;color:var(--faint);will-change:opacity}
-.progress{width:180px;height:2px;background:var(--rule)}
-.progress__bar{height:2px;background:var(--accent);transform-origin:0 50%;transform:scaleX(0);will-change:transform}
+      .hero__foot {
+        position: absolute;
+        left: var(--page-x);
+        right: var(--page-x);
+        bottom: 44px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .cue {
+        font-size: 13px;
+        color: var(--faint);
+        will-change: opacity;
+      }
+      .progress {
+        width: 180px;
+        height: 2px;
+        background: var(--rule);
+      }
+      .progress__bar {
+        height: 2px;
+        background: var(--accent);
+        transform-origin: 0 50%;
+        transform: scaleX(0);
+        will-change: transform;
+      }
 
-/* ---------- work index ---------- */
-main{padding-bottom:120px}
-.section-label{
-  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
-  padding:44px 0 16px;
-}
-.row{
-  display:flex;gap:22px;align-items:baseline;
-  padding:24px 0;border-top:1px solid var(--rule);
-  transition:background-color 120ms ease;
-}
-.row:first-of-type{border-top:1px solid var(--ink)}
-.row:last-of-type{border-bottom:1px solid var(--rule)}
-.row:hover,.row:focus-visible{background:var(--surface)}
-.row__no{width:44px;font-size:13px;color:var(--faint)}
-.row__title{width:300px;font-family:var(--display);font-size:27px;font-weight:600;line-height:1.15}
-.row__client{width:240px;font-size:14px;color:var(--muted);line-height:1.5}
-.row__client em{display:block;font-style:normal;font-size:12px;color:var(--faint)}
-.row__scope{flex:1 1 auto;font-size:14px;line-height:1.55;color:var(--muted)}
-.row__out{width:132px;text-align:right}
-.row__out b{display:block;font-family:var(--display);font-size:30px;font-weight:600;color:var(--accent)}
-.row__out em{font-style:normal;font-size:11px;color:var(--faint)}
+      /* ---------- work index ---------- */
+      main {
+        padding-bottom: 120px;
+      }
+      .section-label {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 44px 0 16px;
+      }
+      .row {
+        display: flex;
+        gap: 22px;
+        align-items: baseline;
+        padding: 24px 0;
+        border-top: 1px solid var(--rule);
+        transition: background-color 120ms ease;
+      }
+      .row:first-of-type {
+        border-top: 1px solid var(--ink);
+      }
+      .row:last-of-type {
+        border-bottom: 1px solid var(--rule);
+      }
+      .row:hover,
+      .row:focus-visible {
+        background: var(--surface);
+      }
+      .row__no {
+        width: 44px;
+        font-size: 13px;
+        color: var(--faint);
+      }
+      .row__title {
+        width: 300px;
+        font-family: var(--display);
+        font-size: 27px;
+        font-weight: 600;
+        line-height: 1.15;
+      }
+      .row__client {
+        width: 240px;
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .row__client em {
+        display: block;
+        font-style: normal;
+        font-size: 12px;
+        color: var(--faint);
+      }
+      .row__scope {
+        flex: 1 1 auto;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .row__out {
+        width: 132px;
+        text-align: right;
+      }
+      .row__out b {
+        display: block;
+        font-family: var(--display);
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .row__out em {
+        font-style: normal;
+        font-size: 11px;
+        color: var(--faint);
+      }
 
-@media (max-width:1100px){
-  :root{--page-x:40px}
-  .row__title{width:240px}
-  .row__client{width:180px}
-}
-@media (max-width:768px){
-  :root{--page-x:20px}
-  .logo{font-size:22px}
-  .site-header__inner{height:60px}
-  .hero__track{height:150vh}
-  .meta-row{grid-template-columns:1fr;gap:16px}
-  .row{flex-wrap:wrap;gap:8px}
-  .row__no{width:100%}
-  .row__title,.row__client,.row__scope{width:100%}
-  .row__out{width:100%;text-align:left;padding-top:8px}
-  .progress{width:110px}
-}
-@media (prefers-reduced-motion:reduce){
-  *{animation:none !important;transition:none !important}
-}
-</style>
-</head>
-<body>
-<a class="skip" href="#content">Skip to content</a>
+      @media (max-width: 1100px) {
+        :root {
+          --page-x: 40px;
+        }
+        .row__title {
+          width: 240px;
+        }
+        .row__client {
+          width: 180px;
+        }
+      }
+      @media (max-width: 768px) {
+        :root {
+          --page-x: 20px;
+        }
+        .logo {
+          font-size: 22px;
+        }
+        .site-header__inner {
+          height: 60px;
+        }
+        .hero__track {
+          height: 150vh;
+        }
+        .meta-row {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .row {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .row__no {
+          width: 100%;
+        }
+        .row__title,
+        .row__client,
+        .row__scope {
+          width: 100%;
+        }
+        .row__out {
+          width: 100%;
+          text-align: left;
+          padding-top: 8px;
+        }
+        .progress {
+          width: 110px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
 
-<header class="site-header" id="siteHeader">
-  <div class="wrap site-header__inner">
-    <a class="logo" id="logo" href="#top" aria-label="Chrys, home"><span>C</span><span>H</span><span>R</span><span>Y</span><span>S</span></a>
-    <nav class="site-nav" aria-label="Main">
-      <a href="#content" aria-current="page">Work</a>
-      <a href="#content">About</a>
-      <a href="#content">Contact</a>
-    </nav>
-  </div>
-</header>
-
-<!-- Rendered for no-JS and reduced motion. Hidden once motion is enabled. -->
-<div class="wrap static-intro">
-  <h1>Senior full-stack developer building ERP and automation systems for companies in Dubai.</h1>
-  <div class="meta-row">
-    <div><strong>Discipline</strong>ERP platforms, automation, integrations</div>
-    <div><strong>Principal stack</strong>Laravel, Next.js, TypeScript, Python</div>
-    <div><strong>Experience</strong>[X] years, Dubai — available [X] days weekly</div>
-  </div>
-</div>
-
-<section class="hero" id="hero" aria-hidden="true">
-  <div class="hero__track" id="heroTrack">
-    <div class="hero__stage">
-      <p class="hero__eyebrow" id="heroEyebrow">Dubai, UAE</p>
-      <div class="wrap">
-        <div class="masthead" id="masthead"><span>C</span><span>H</span><span>R</span><span>Y</span><span>S</span></div>
-        <div class="intro" id="intro">
-          <div class="intro__line"><span>Senior full-stack developer</span></div>
-          <div class="intro__line"><span>building ERP and automation systems</span></div>
-          <div class="intro__line"><span>for companies in Dubai.</span></div>
-        </div>
+    <header class="site-header" id="siteHeader">
+      <div class="wrap site-header__inner">
+        <a class="logo" id="logo" href="#top" aria-label="Chrys, home"
+          ><span>C</span><span>H</span><span>R</span><span>Y</span><span>S</span></a
+        >
+        <nav class="site-nav" aria-label="Main">
+          <a href="#content" aria-current="page">Work</a>
+          <a href="#content">About</a>
+          <a href="#content">Contact</a>
+        </nav>
       </div>
-      <div class="hero__foot" id="heroFoot">
-        <p class="cue">Scroll to begin</p>
-        <div class="progress"><div class="progress__bar" id="progressBar"></div></div>
+    </header>
+
+    <!-- Rendered for no-JS and reduced motion. Hidden once motion is enabled. -->
+    <div class="wrap static-intro">
+      <h1>
+        Senior full-stack developer building ERP and automation systems for companies in Dubai.
+      </h1>
+      <div class="meta-row">
+        <div><strong>Discipline</strong>ERP platforms, automation, integrations</div>
+        <div><strong>Principal stack</strong>Laravel, Next.js, TypeScript, Python</div>
+        <div><strong>Experience</strong>[X] years, Dubai — available [X] days weekly</div>
       </div>
     </div>
-  </div>
-</section>
 
-<main id="content">
-  <div class="wrap">
-    <p class="section-label">Selected work</p>
+    <section class="hero" id="hero" aria-hidden="true">
+      <div class="hero__track" id="heroTrack">
+        <div class="hero__stage">
+          <p class="hero__eyebrow" id="heroEyebrow">Dubai, UAE</p>
+          <div class="wrap">
+            <div class="masthead" id="masthead">
+              <span>C</span><span>H</span><span>R</span><span>Y</span><span>S</span>
+            </div>
+            <div class="intro" id="intro">
+              <div class="intro__line"><span>Senior full-stack developer</span></div>
+              <div class="intro__line"><span>building ERP and automation systems</span></div>
+              <div class="intro__line"><span>for companies in Dubai.</span></div>
+            </div>
+          </div>
+          <div class="hero__foot" id="heroFoot">
+            <p class="cue">Scroll to begin</p>
+            <div class="progress"><div class="progress__bar" id="progressBar"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <a class="row" href="#content">
-      <span class="row__no">01</span>
-      <span class="row__title">Modular ERP Platform</span>
-      <span class="row__client">Confidential<em>vehicle testing sector</em></span>
-      <span class="row__scope">Dashboard, finance, mobile field inspection and public API on one codebase, role-based access throughout.</span>
-      <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
-    </a>
+    <main id="content">
+      <div class="wrap">
+        <p class="section-label">Selected work</p>
 
-    <a class="row" href="#content">
-      <span class="row__no">02</span>
-      <span class="row__title">Document Parsing Engine</span>
-      <span class="row__client">Internal tool<em>Python, Laravel</em></span>
-      <span class="row__scope">Structured extraction from supplier PDFs with dynamic per-company branding on generated output.</span>
-      <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
-    </a>
+        <a class="row" href="#content">
+          <span class="row__no">01</span>
+          <span class="row__title">Modular ERP Platform</span>
+          <span class="row__client">Confidential<em>vehicle testing sector</em></span>
+          <span class="row__scope"
+            >Dashboard, finance, mobile field inspection and public API on one codebase,
+            role-based access throughout.</span
+          >
+          <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
+        </a>
 
-    <a class="row" href="#content">
-      <span class="row__no">03</span>
-      <span class="row__title">devio</span>
-      <span class="row__client">Own studio<em>Dubai</em></span>
-      <span class="row__scope">Product sites and internal tooling for small Dubai businesses, scoped and delivered end to end.</span>
-      <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
-    </a>
-  </div>
-</main>
+        <a class="row" href="#content">
+          <span class="row__no">02</span>
+          <span class="row__title">Document Parsing Engine</span>
+          <span class="row__client">Internal tool<em>Python, Laravel</em></span>
+          <span class="row__scope"
+            >Structured extraction from supplier PDFs with dynamic per-company branding on
+            generated output.</span
+          >
+          <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
+        </a>
 
-<script>
-(function () {
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) return; // static markup above is already the resolved state
+        <a class="row" href="#content">
+          <span class="row__no">03</span>
+          <span class="row__title">devio</span>
+          <span class="row__client">Own studio<em>Dubai</em></span>
+          <span class="row__scope"
+            >Product sites and internal tooling for small Dubai businesses, scoped and delivered
+            end to end.</span
+          >
+          <span class="row__out"><b>[METRIC]</b><em>[what improved]</em></span>
+        </a>
+      </div>
+    </main>
 
-  var root       = document.documentElement;
-  var hero       = document.getElementById('hero');
-  var track      = document.getElementById('heroTrack');
-  var masthead   = document.getElementById('masthead');
-  var logo       = document.getElementById('logo');
-  var header     = document.getElementById('siteHeader');
-  var eyebrow    = document.getElementById('heroEyebrow');
-  var foot       = document.getElementById('heroFoot');
-  var bar        = document.getElementById('progressBar');
-  var intro      = document.getElementById('intro');
-  var lines      = Array.prototype.slice.call(intro.querySelectorAll('.intro__line > span'));
-  var letters    = Array.prototype.slice.call(masthead.children);
+    <script>
+      (function () {
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced) return; // static markup above is already the resolved state
 
-  root.setAttribute('data-motion', 'on');
-  hero.removeAttribute('aria-hidden');
+        var root = document.documentElement;
+        var hero = document.getElementById('hero');
+        var track = document.getElementById('heroTrack');
+        var masthead = document.getElementById('masthead');
+        var logo = document.getElementById('logo');
+        var header = document.getElementById('siteHeader');
+        var eyebrow = document.getElementById('heroEyebrow');
+        var foot = document.getElementById('heroFoot');
+        var bar = document.getElementById('progressBar');
+        var intro = document.getElementById('intro');
+        var lines = Array.prototype.slice.call(intro.querySelectorAll('.intro__line > span'));
+        var letters = Array.prototype.slice.call(masthead.children);
 
-  // --- geometry, remeasured on resize -------------------------------------
-  var G = { spread: 0, tx: 0, ty: 0, scale: 0.133 };
+        root.setAttribute('data-motion', 'on');
+        hero.removeAttribute('aria-hidden');
 
-  function measure() {
-    // reset transforms so we measure natural positions
-    masthead.style.transform = '';
-    letters.forEach(function (l) { l.style.transform = ''; });
+        // --- geometry, remeasured on resize -------------------------------------
+        var G = { spread: 0, tx: 0, ty: 0, scale: 0.133 };
 
-    var W = masthead.clientWidth;
-    var total = letters.reduce(function (s, l) { return s + l.offsetWidth; }, 0);
-    G.spread = (W - total) / (letters.length - 1);
+        function measure() {
+          // reset transforms so we measure natural positions
+          masthead.style.transform = '';
+          letters.forEach(function (l) {
+            l.style.transform = '';
+          });
 
-    var big   = parseFloat(getComputedStyle(masthead).fontSize);
-    var small = parseFloat(getComputedStyle(logo).fontSize);
-    G.scale = small / big;
+          var W = masthead.clientWidth;
+          var total = letters.reduce(function (s, l) {
+            return s + l.offsetWidth;
+          }, 0);
+          G.spread = (W - total) / (letters.length - 1);
 
-    var m = masthead.getBoundingClientRect();
-    var l = logo.getBoundingClientRect();
-    G.tx = l.left - m.left;
-    G.ty = (l.top + l.height / 2) - (m.top + m.height / 2);
-  }
+          var big = parseFloat(getComputedStyle(masthead).fontSize);
+          var small = parseFloat(getComputedStyle(logo).fontSize);
+          G.scale = small / big;
 
-  // --- easing and helpers --------------------------------------------------
-  function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
-  function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-  function span(p, a, b) { return clamp((p - a) / (b - a)); }
+          var m = masthead.getBoundingClientRect();
+          var l = logo.getBoundingClientRect();
+          G.tx = l.left - m.left;
+          G.ty = l.top + l.height / 2 - (m.top + m.height / 2);
+        }
 
-  // t = 0.428 puts the masthead at ~132px, the stage B size
-  var T_B = 0.428;
+        // --- easing and helpers --------------------------------------------------
+        function clamp(v) {
+          return v < 0 ? 0 : v > 1 ? 1 : v;
+        }
+        function ease(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        function span(p, a, b) {
+          return clamp((p - a) / (b - a));
+        }
 
-  function frame() {
-    var rect = track.getBoundingClientRect();
-    var distance = track.offsetHeight - window.innerHeight;
-    var p = clamp(-rect.top / (distance || 1));
+        // t = 0.428 puts the masthead at ~132px, the stage B size
+        var T_B = 0.428;
 
-    // masthead: two segments so stage B lands at the right size
-    var t = p <= 0.15 ? 0
-          : p <= 0.7  ? T_B * ease(span(p, 0.15, 0.7))
-          : T_B + (1 - T_B) * ease(span(p, 0.7, 1));
+        function frame() {
+          var rect = track.getBoundingClientRect();
+          var distance = track.offsetHeight - window.innerHeight;
+          var p = clamp(-rect.top / (distance || 1));
 
-    var s = 1 + (G.scale - 1) * t;
-    masthead.style.transform =
-      'translate3d(' + (G.tx * t) + 'px,' + (G.ty * t) + 'px,0) scale(' + s + ')';
+          // masthead: two segments so stage B lands at the right size
+          var t =
+            p <= 0.15
+              ? 0
+              : p <= 0.7
+                ? T_B * ease(span(p, 0.15, 0.7))
+                : T_B + (1 - T_B) * ease(span(p, 0.7, 1));
 
-    // letters close from edge-to-edge to natural spacing, done by p = 0.7
-    var c = 1 - ease(span(p, 0.15, 0.7));
-    for (var i = 0; i < letters.length; i++) {
-      letters[i].style.transform = 'translate3d(' + (G.spread * i * c) + 'px,0,0)';
-    }
+          var s = 1 + (G.scale - 1) * t;
+          masthead.style.transform =
+            'translate3d(' + G.tx * t + 'px,' + G.ty * t + 'px,0) scale(' + s + ')';
 
-    // intro lines wipe up in sequence, then clear for stage C
-    var out = 1 - span(p, 0.78, 0.95);
-    var starts = [0.25, 0.40, 0.55];
-    for (var j = 0; j < lines.length; j++) {
-      var r = ease(span(p, starts[j], starts[j] + 0.13));
-      lines[j].style.transform = 'translate3d(0,' + ((1 - r) * 100) + '%,0)';
-      lines[j].style.opacity = (0.25 + 0.75 * r) * out;
-    }
+          // letters close from edge-to-edge to natural spacing, done by p = 0.7
+          var c = 1 - ease(span(p, 0.15, 0.7));
+          for (var i = 0; i < letters.length; i++) {
+            letters[i].style.transform = 'translate3d(' + G.spread * i * c + 'px,0,0)';
+          }
 
-    eyebrow.style.opacity = String(1 - span(p, 0.10, 0.30));
-    foot.style.opacity = String(1 - span(p, 0.78, 0.92));
-    bar.style.transform = 'scaleX(' + p + ')';
+          // intro lines wipe up in sequence, then clear for stage C
+          var out = 1 - span(p, 0.78, 0.95);
+          var starts = [0.25, 0.4, 0.55];
+          for (var j = 0; j < lines.length; j++) {
+            var r = ease(span(p, starts[j], starts[j] + 0.13));
+            lines[j].style.transform = 'translate3d(0,' + (1 - r) * 100 + '%,0)';
+            lines[j].style.opacity = (0.25 + 0.75 * r) * out;
+          }
 
-    // hand the masthead over to the real header near the end
-    header.setAttribute('data-handoff', p > 0.985 ? 'on' : 'off');
-    masthead.style.opacity = p > 0.985 ? '0' : '1';
-  }
+          eyebrow.style.opacity = String(1 - span(p, 0.1, 0.3));
+          foot.style.opacity = String(1 - span(p, 0.78, 0.92));
+          bar.style.transform = 'scaleX(' + p + ')';
 
-  var ticking = false;
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function () { frame(); ticking = false; });
-  }
+          // hand the masthead over to the real header near the end
+          header.setAttribute('data-handoff', p > 0.985 ? 'on' : 'off');
+          masthead.style.opacity = p > 0.985 ? '0' : '1';
+        }
 
-  function init() { measure(); frame(); }
+        var ticking = false;
+        function onScroll() {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            frame();
+            ticking = false;
+          });
+        }
 
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', function () { init(); });
-  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(init); }
-  init();
-})();
-</script>
-</body>
+        function init() {
+          measure();
+          frame();
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', function () {
+          init();
+        });
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(init);
+        }
+        init();
+      })();
+    </script>
+  </body>
 </html>

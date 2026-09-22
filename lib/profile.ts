@@ -3,7 +3,6 @@ import { languages as fallbackLanguages, site } from '@/content/site';
 import { readContentPayload } from './content-source';
 import { profileSchema } from './schema';
 
-
 /**
  * Who the site says he is, from the same two sources as everything else and
  * in the same order of preference — docs/08-BACKEND.md §2.

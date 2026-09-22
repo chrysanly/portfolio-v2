@@ -2,11 +2,11 @@
 
 ## LIVE (21 Sep 2026)
 
-| | URL |
-|---|---|
-| Site | https://portfolio-v2-mu-roan.vercel.app |
-| Admin | https://portfolio-api-uyp0.onrender.com/admin |
-| Database | Neon Postgres, Frankfurt |
+|          | URL                                           |
+| -------- | --------------------------------------------- |
+| Site     | https://portfolio-v2-mu-roan.vercel.app       |
+| Admin    | https://portfolio-api-uyp0.onrender.com/admin |
+| Database | Neon Postgres, Frankfurt                      |
 
 All on free tiers, $0/month. Verified: all four site pages 200,
 `/api/revalidate` returns 401 without a secret, the API returns 401 without a
@@ -69,9 +69,9 @@ Each of these failed a real deploy, in this order:
 
 ## Live content: admin saves now appear on the site (21 Sep 2026) — DONE
 
-Chrys: *"when I save on the backend I want it to be updated in the frontend …
+Chrys: _"when I save on the backend I want it to be updated in the frontend …
 make sure the content is loaded via api. not in the build state … or if you can
-make a sync button."* All three, and the production guarantee is intact.
+make a sync button."_ All three, and the production guarantee is intact.
 
 - [x] **Content is read from the API, not baked at build time.**
       `lib/projects.ts` now fetches `GET /api/v1/content` through Next's data
@@ -150,7 +150,7 @@ step through every project instead of jumping straight past them.
       fading. `components/hero/MastheadHero.tsx`.
 - [x] **The actual cause of the recurring ghost/mislabel**: `data-hero-stage`
       only had two values (`'hero' | 'details'`), and the pager fell back to
-      `data-hero-handoff` — a different, *earlier* threshold tuned for the
+      `data-hero-handoff` — a different, _earlier_ threshold tuned for the
       header's own crossfade — to know when the hero was done with the
       screen. Between the two thresholds, the pager already read "Selected
       work" while the ledger was still up to ~65% opaque. Added a third
@@ -163,11 +163,11 @@ step through every project instead of jumping straight past them.
       happened to render at the showcase's own top. `WorkShowcase` now
       exposes one pixel target per panel (`--showcase-panels-y`) and the
       active one (`data-showcase-active`/`data-showcase-panel`, kept live by
-      a plain scroll listener — deliberately *not* the same spring the
+      a plain scroll listener — deliberately _not_ the same spring the
       panels animate with; see below); the pager expands the single
       "Selected work" marker into one stop per project.
       `components/work/WorkShowcase.tsx`, `components/ui/SectionPager.tsx`.
-- [x] **Three timing bugs found *while building and testing* the above, not
+- [x] **Three timing bugs found _while building and testing_ the above, not
       shipped with them:**
   - The pager only recomputed on native `scroll` events, but
     `data-hero-stage`/`data-showcase-*` change on every animation frame
@@ -190,7 +190,7 @@ step through every project instead of jumping straight past them.
     fixed delay.
   - Even after both of those, "Details" → "Selected work" still stuck for
     the better part of a second on a big jump: `data-hero-stage` and
-    `data-showcase-active` are driven by two *separate* springs (the hero's
+    `data-showcase-active` are driven by two _separate_ springs (the hero's
     own, the showcase's own), and `currentIndex()` checked the hero's first
     unconditionally — so a lagging hero spring could override an
     already-correct, geometry-based showcase reading. Reordered to check the
@@ -218,7 +218,7 @@ Chrys had open, to avoid disturbing it) and fixed all three:
 
 - [x] **Pager mislabeling.** `#showcase` carries `margin-top: -88svh`
       (`globals.css`) to sit over the hero's own emptied stage, which puts
-      its *measured* DOM top near the hero's midpoint. `SectionPager`'s
+      its _measured_ DOM top near the hero's midpoint. `SectionPager`'s
       nearest-top logic doesn't know that position is a layout trick, so it
       called "Selected work" current at ~5% of the hero's scroll — roughly
       half a viewport before the hero actually starts clearing. Fixed by
@@ -231,7 +231,7 @@ Chrys had open, to avoid disturbing it) and fixed all three:
       opacity simultaneously. Measured a 0–50%+ simultaneous-opacity window
       before the fix; moved `WORK_IN_FROM` to start exactly at
       `HANDOVER_TO`, so the showcase never begins fading in until the ledger
-      has *finished* fading out — sequential, not simultaneous. Confirmed by
+      has _finished_ fading out — sequential, not simultaneous. Confirmed by
       instrumenting `--work-in` and the ledger's `--fade` custom property
       across a 1px-resolution scroll sweep: worst-case overlap is now ~3%,
       down from 50%+. `components/hero/MastheadHero.tsx`.
@@ -245,8 +245,7 @@ Chrys had open, to avoid disturbing it) and fixed all three:
       `app/layout.tsx`.
 
 Re-verified once Chrys stopped his `next dev` session: clean `next build` →
-`next start`, `/`, `/work`, `/about`, `/contact` and the CSS bundle all return
-200. `npm run check` clean throughout.
+`next start`, `/`, `/work`, `/about`, `/contact` and the CSS bundle all return 200. `npm run check` clean throughout.
 
 ---
 
@@ -257,7 +256,7 @@ stack, Contact — with "Details" being the lanyard card + ledger facts. The
 hero's hold-then-reveal sequence was previously one stop ("Opening"); splitting
 it into two is harder than it sounds because both live inside the same pinned
 box, so neither has a DOM position that means anything as a scroll offset —
-the same problem the showcase's pulled-up position caused for the *previous*
+the same problem the showcase's pulled-up position caused for the _previous_
 fix above, just one level deeper.
 
 - [x] **`DETAILS_START` (0.3 of the hero's scroll progress)** is the new
@@ -265,7 +264,7 @@ fix above, just one level deeper.
       (`'hero' | 'details'`, written every paint, read by the pager while the
       hero hasn't handed off) and `--hero-details-y` (an absolute pixel
       scrollY, computed once in `measure()` from the track's real geometry —
-      the *only* way the pager's "jump to Details" button can land somewhere
+      the _only_ way the pager's "jump to Details" button can land somewhere
       meaningful, since `hero__body`'s own `getBoundingClientRect()` reflects
       its `position: absolute; top: 100%` offset from the masthead, not a
       scroll position). `components/hero/MastheadHero.tsx`.
@@ -279,7 +278,7 @@ fix above, just one level deeper.
 - [x] **Boundary bug caught and fixed during testing, not left in.** The
       first version landed the "jump to Details" click exactly on
       `DETAILS_START`, and the stage flag used `p <= DETAILS_START ? 'hero'
-      : 'details'` — so arriving there still read `'hero'`, and the very
+    : 'details'` — so arriving there still read `'hero'`, and the very
       next scroll tick flipped the label straight back to "Hero" right after
       the user had clicked past it. Fixed by landing the jump 6% further in
       (comfortably inside "Details", not balanced on the boundary) rather
@@ -355,6 +354,7 @@ still get an eyeball pass against a real scroll.
 ## Done earlier today
 
 ### The journey (horizontal career run)
+
 - [x] Rail pinned to the stage, progress bar + numbered ticks
 - [x] All six stops reach the centre — lead-in/run-out padding
 - [x] Degree opens as stop 01, plain text, no panel
@@ -363,6 +363,7 @@ still get an eyeball pass against a real scroll.
 - [x] Verified: Lighthouse 100 accessibility on all four routes
 
 ### The lanyard ID badge
+
 - [x] Verlet-chain physics, hand-written (react-three-fiber refused: ~600kB
       against a 120kB budget)
 - [x] Draggable, throwable, settles naturally
@@ -370,6 +371,7 @@ still get an eyeball pass against a real scroll.
 - [x] Solver waits for the splash and pauses off-screen
 
 ### Site behaviour
+
 - [x] Refresh returns to the top (`scrollRestoration = 'manual'`)
 - [x] Theme swap crossfaded via the View Transition API
 - [x] `--faint` contrast fixed — 3.27:1 → 4.68:1
@@ -377,6 +379,7 @@ still get an eyeball pass against a real scroll.
       invisible on every inner page — no way out except browser Back)
 
 ### The backend — `portfolio-api`
+
 - [x] Laravel 12 + Inertia 2 + React 19 + TypeScript, Herd, PHP 8.4
 - [x] Laravel Boost installed (MCP + 6 skills + guidelines)
 - [x] Schema: projects, project_images, messages + NDA check constraint
@@ -389,6 +392,7 @@ still get an eyeball pass against a real scroll.
 - [x] 59 tests passing, Pint clean
 
 ### The connection
+
 - [x] `npm run build` pulls from the API, falls back to a committed snapshot
 - [x] Proven end to end: admin edit → API → build → live page
 - [x] Contact form has two delivery paths (email + inbox), fails only if both do

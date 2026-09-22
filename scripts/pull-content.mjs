@@ -65,7 +65,9 @@ if (process.env.NODE_EXTRA_CA_CERTS && !caBefore) {
   const ca = process.env.NODE_EXTRA_CA_CERTS;
 
   if (!fs.existsSync(ca)) {
-    console.warn(`[content] NODE_EXTRA_CA_CERTS points at ${ca}, which does not exist. Ignoring it.`);
+    console.warn(
+      `[content] NODE_EXTRA_CA_CERTS points at ${ca}, which does not exist. Ignoring it.`,
+    );
   } else {
     const { spawnSync } = await import('node:child_process');
     const { fileURLToPath } = await import('node:url');
@@ -155,7 +157,9 @@ async function localisePortrait(payload) {
     payload.site.portrait = `/${file}`;
     say(`Saved the portrait to public/${file}`);
   } catch (error) {
-    warn(`Could not download the portrait (${error.message}). Using the committed one instead.`);
+    warn(
+      `Could not download the portrait (${error.message}). Using the committed one instead.`,
+    );
     delete payload.site.portrait;
   }
 }

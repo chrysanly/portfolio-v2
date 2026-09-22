@@ -18,13 +18,7 @@ import { WorkIndexRow } from './WorkIndexRow';
  * JavaScript-disabled behaviour the section asks for is unchanged — what is
  * gained is that clicking a filter now behaves like clicking anything else.
  */
-export function WorkIndex({
-  projects,
-  active,
-}: {
-  projects: Project[];
-  active?: ProjectType;
-}) {
+export function WorkIndex({ projects, active }: { projects: Project[]; active?: ProjectType }) {
   return (
     <>
       <nav className="filters" aria-label="Filter by project type">
@@ -45,9 +39,7 @@ export function WorkIndex({
       {projects.length === 0 ? (
         <div className="prose-body">
           <p>
-            {active
-              ? 'No projects in this category yet.'
-              : 'Project entries are on their way.'}
+            {active ? 'No projects in this category yet.' : 'Project entries are on their way.'}
           </p>
           {active ? (
             <p style={{ marginTop: '14px' }}>

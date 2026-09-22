@@ -22,7 +22,6 @@ import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'fra
 import type { Profile } from '@/lib/profile';
 import { IdCard } from './IdCard';
 
-
 /*
  * Timeline. Stage A holds the masthead alone, stage B reveals the statement
  * then the ledger one entry at a time, stage C docks the masthead and hands
@@ -378,8 +377,7 @@ export function MastheadHero({
     // label straight back. 'done' at CLEAR_TO, not at the handover
     // threshold above — see the comment on DETAILS_START for why the two
     // can't share a signal.
-    root.dataset.heroStage =
-      p < DETAILS_START ? 'hero' : p < CLEAR_TO ? 'details' : 'done';
+    root.dataset.heroStage = p < DETAILS_START ? 'hero' : p < CLEAR_TO ? 'details' : 'done';
 
     const workIn = ease(span(p, WORK_IN_FROM, WORK_IN_TO));
     root.style.setProperty('--work-in', workIn.toFixed(3));

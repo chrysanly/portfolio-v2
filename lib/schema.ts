@@ -41,6 +41,16 @@ export const projectImageSchema = z.object({
    * inferred from the extension rather than required — see `mediaKind()`.
    */
   kind: z.enum(MEDIA_KINDS).optional(),
+  /**
+   * Whether this file is still under the client's NDA. The backend allows a
+   * screenshot onto a confidential project and marks it instead of refusing
+   * it, and the mark is drawn here — see `NdaWatermark`.
+   *
+   * Defaults false, so a snapshot written before the field existed renders
+   * exactly as it did. Those images only got past the old backend because
+   * their project was public or already cleared.
+   */
+  nda: z.boolean().default(false),
   /** Which frame the showcase renders this in. */
   device: z.enum(DEVICES).default('laptop'),
   /**
@@ -151,7 +161,29 @@ export const journeyStopSchema = z.object({
   period: z.string().min(1).max(60),
   /** The editorial arc beside the real job title. A degree has none. */
   phase: z.string().max(120).nullable().default(null),
-  learned: z.string().max(400).nullable().default(null),
+  /**
+   * HTML, written in the admin's TipTap field and sanitised there against an
+   * allowlist (`App\Services\RichText`). The ceiling is on the markup rather
+   * than the prose: the same two sentences cost three times as much once they
+   * are two tagged paragraphs with a link in them.
+   *
+   * Older snapshots hold plain text, which is why the timeline wraps anything
+   * that does not start with a tag in a paragraph rather than assuming markup.
+   */
+  learned: z.string().max(20000).nullable().default(null),
+  /**
+   * The slugs of the projects built at this stop, stated by the backend.
+   *
+   * It used to be derived here, by matching a project's `role` against this
+   * `title`. That made the job title load-bearing — rewording either side
+   * silently emptied a stop, with nothing to report it — so the backend now
+   * carries an explicit relation. Only slugs: the projects themselves are in
+   * the same payload, and sending them twice invites disagreement.
+   *
+   * Defaults empty, and the timeline falls back to the old matching when it
+   * is, so a snapshot written before this field still renders.
+   */
+  projects: z.array(z.string().min(1)).default([]),
   order: z.number().int().min(0),
 });
 
@@ -206,11 +238,7 @@ export type ProfileData = z.infer<typeof profileSchema>;
 /** docs/05-DATA-SCHEMA.md §4. One schema, two consumers. */
 export const contactSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name.').max(80, 'Name is too long.'),
-  email: z
-    .string()
-    .trim()
-    .email('Enter a valid email address.')
-    .max(160, 'Email is too long.'),
+  email: z.string().trim().email('Enter a valid email address.').max(160, 'Email is too long.'),
   company: z.string().trim().max(120, 'Company is too long.').optional().or(z.literal('')),
   message: z
     .string()

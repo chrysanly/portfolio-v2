@@ -20,42 +20,40 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const project = await getProject(slug);
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: GROUND,
+        color: INK,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: 64,
+        fontFamily: 'serif',
+      }}
+    >
+      <div style={{ display: 'flex', fontSize: 24, color: MUTED }}>
+        {project ? attribution(project) : site.name}
+      </div>
+      <div style={{ display: 'flex', fontSize: 84, lineHeight: 1.1, maxWidth: 900 }}>
+        {project?.title ?? site.name}
+      </div>
       <div
         style={{
-          width: '100%',
-          height: '100%',
-          background: GROUND,
-          color: INK,
           display: 'flex',
-          flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: 64,
-          fontFamily: 'serif',
+          alignItems: 'flex-end',
+          borderTop: `3px solid ${INK}`,
+          paddingTop: 22,
+          fontSize: 26,
+          color: MUTED,
         }}
       >
-        <div style={{ display: 'flex', fontSize: 24, color: MUTED }}>
-          {project ? attribution(project) : site.name}
-        </div>
-        <div style={{ display: 'flex', fontSize: 84, lineHeight: 1.1, maxWidth: 900 }}>
-          {project?.title ?? site.name}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            borderTop: `3px solid ${INK}`,
-            paddingTop: 22,
-            fontSize: 26,
-            color: MUTED,
-          }}
-        >
-          <span>{site.name}</span>
-          <span style={{ color: ACCENT }}>{project?.outcome.value ?? ''}</span>
-        </div>
+        <span>{site.name}</span>
+        <span style={{ color: ACCENT }}>{project?.outcome.value ?? ''}</span>
       </div>
-    ),
+    </div>,
     size,
   );
 }

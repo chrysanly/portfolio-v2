@@ -2,9 +2,30 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { mediaKind, type ProjectFrontmatter } from '@/lib/schema';
+import { DEVICE_SIZES, mediaKind, type ProjectFrontmatter } from '@/lib/schema';
+import { NdaWatermark } from './NdaWatermark';
 
 type Item = ProjectFrontmatter['images'][number];
+
+/**
+ * The picture's aspect ratio, for the box that wraps it in the lightbox.
+ *
+ * The box has to be exactly the picture — that is what puts the NDA ribbon on
+ * the photograph's corner rather than out in the empty space beside a portrait
+ * phone screenshot. Sizing it by ratio against the row's height is the only
+ * way that holds: a shrink-wrapping box has an auto height, and `max-height:
+ * 100%` on the image inside it then resolves against nothing and is dropped,
+ * which cropped 124px off the bottom of an 844px-tall shot.
+ *
+ * Falls back to DEVICE_SIZES exactly as the showcase rig does, so an image
+ * that arrives without intrinsic dimensions still gets the right shape.
+ */
+function shotRatio(item: Item): React.CSSProperties {
+  const fallback = DEVICE_SIZES[item.device];
+  const width = item.width ?? fallback.width;
+  const height = item.height ?? fallback.height;
+  return { '--shot-ratio': `${width} / ${height}` } as React.CSSProperties;
+}
 
 /**
  * Evidence, as a contact sheet rather than a column of full-bleed images.
@@ -92,7 +113,10 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                 type="button"
                 className="evidence__thumb"
                 onClick={() => setOpen(i)}
-                aria-label={`Open: ${item.alt}`}
+                // The restriction is part of what this thumbnail is, so it is
+                // in the label rather than only in the watermark — which is
+                // decorative repetition and hidden from assistive tech.
+                aria-label={item.nda ? `Open (under NDA): ${item.alt}` : `Open: ${item.alt}`}
                 aria-haspopup="dialog"
               >
                 {kind === 'video' ? (
@@ -106,6 +130,7 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.src} alt="" loading="lazy" decoding="async" />
                 )}
+                {item.nda ? <NdaWatermark /> : null}
                 <span className="evidence__device">{item.device}</span>
               </button>
             </li>
@@ -121,90 +146,115 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
        * be clicked at all, while the backdrop and Escape still worked, which
        * is exactly the kind of half-broken that is hard to spot.
        */}
-      {mounted && current &&
+      {mounted &&
+        current &&
         createPortal(
-        <div
-          className="lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={current.alt}
-          tabIndex={-1}
-          ref={dialogRef}
-          // A click on the backdrop closes; a click on the media does not.
-          onClick={(event) => {
-            if (event.target === event.currentTarget) close();
-          }}
-        >
-          <div className="lightbox__bar">
-            <p className="lightbox__count">
-              {(open ?? 0) + 1} / {items.length}
-            </p>
-            <button type="button" onClick={close} aria-label="Close">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path
-                  d="m6 6 12 12M18 6 6 18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-              </svg>
-            </button>
-          </div>
+          <div
+            className="lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label={current.alt}
+            tabIndex={-1}
+            ref={dialogRef}
+            // A click on the backdrop closes; a click on the media does not.
+            onClick={(event) => {
+              if (event.target === event.currentTarget) close();
+            }}
+          >
+            <div className="lightbox__bar">
+              <p className="lightbox__count">
+                {(open ?? 0) + 1} / {items.length}
+              </p>
+              <button type="button" onClick={close} aria-label="Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+              </button>
+            </div>
 
-          <figure className="lightbox__figure">
-            {mediaKind(current) === 'video' ? (
-              <video
-                // Keyed on src so moving between videos remounts the element
-                // rather than leaving the previous one playing underneath.
-                key={current.src}
-                src={current.src}
-                controls
-                autoPlay
-                playsInline
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={current.src} alt={current.alt} />
+            <figure className="lightbox__figure">
+              {/*
+               * The media gets its own box so the watermark can sit over it
+               * without covering the caption — the figure is a two-row grid and
+               * an overlay on the figure would cross both rows.
+               */}
+              <span className="lightbox__media">
+                {/*
+                 * The inner box shrinks to the picture, and the mark goes
+                 * inside it. `.lightbox__media` fills the figure's row, so a
+                 * corner mark placed on it lands on the corner of the *row* —
+                 * measured 451px clear of a portrait phone screenshot,
+                 * floating in the empty space beside it. An inline-block
+                 * shrink-wraps to the image's used size, after `max-height`
+                 * has had its say, which is the one box that is always exactly
+                 * the picture.
+                 */}
+                <span className="lightbox__shot" style={shotRatio(current)}>
+                  {mediaKind(current) === 'video' ? (
+                    <video
+                      // Keyed on src so moving between videos remounts the element
+                      // rather than leaving the previous one playing underneath.
+                      key={current.src}
+                      src={current.src}
+                      controls
+                      autoPlay
+                      playsInline
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={current.src} alt={current.alt} />
+                  )}
+
+                  {current.nda ? <NdaWatermark /> : null}
+                </span>
+              </span>
+
+              <figcaption>
+                {current.nda ? <b className="lightbox__nda">Under NDA</b> : null}
+                {current.caption ?? current.alt}
+              </figcaption>
+            </figure>
+
+            {items.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="lightbox__step lightbox__step--prev"
+                  onClick={() => step(-1)}
+                  aria-label="Previous"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M15 4 7 12l8 8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="lightbox__step lightbox__step--next"
+                  onClick={() => step(1)}
+                  aria-label="Next"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="m9 4 8 8-8 8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                  </svg>
+                </button>
+              </>
             )}
-
-            <figcaption>{current.caption ?? current.alt}</figcaption>
-          </figure>
-
-          {items.length > 1 && (
-            <>
-              <button
-                type="button"
-                className="lightbox__step lightbox__step--prev"
-                onClick={() => step(-1)}
-                aria-label="Previous"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path
-                    d="M15 4 7 12l8 8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className="lightbox__step lightbox__step--next"
-                onClick={() => step(1)}
-                aria-label="Next"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path
-                    d="m9 4 8 8-8 8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>,
+          </div>,
           document.body,
         )}
     </>

@@ -224,7 +224,11 @@ export function SectionPager() {
           const title = sub.dataset.substepTitle ?? '';
           const y = Number(sub.dataset.substepY);
           const top = Number.isFinite(y) ? y : sub.getBoundingClientRect().top + window.scrollY;
-          found.push({ id: `${label}-${i}`, label: title ? `${label} — ${title}` : label, top });
+          found.push({
+            id: `${label}-${i}`,
+            label: title ? `${label} — ${title}` : label,
+            top,
+          });
         });
         return;
       }

@@ -11,21 +11,21 @@ placeholder. See §6.
 
 ## 1. Identity
 
-| Field | Value |
-|-------|-------|
-| Full name | Chrysanly John Corpuz Roma |
-| Display name | Chrys |
-| Title | Senior Full-Stack Developer |
-| Location | Dubai, UAE |
-| Experience | 5+ years |
-| Email | chrys.romao21@gmail.com |
-| Phone | +971 52 925 8013 |
-| WhatsApp | Same number — +971 52 925 8013 |
-| LinkedIn | https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/ |
-| Languages | English, Filipino |
-| Existing portfolio | https://chrysanly.github.io/portfolio_v2/ |
-| GitHub handle | chrysanly |
-| Education | BS Information Technology, Our Lady of Lourdes College, Valenzuela City, 2020 |
+| Field              | Value                                                                         |
+| ------------------ | ----------------------------------------------------------------------------- |
+| Full name          | Chrysanly John Corpuz Roma                                                    |
+| Display name       | Chrys                                                                         |
+| Title              | Senior Full-Stack Developer                                                   |
+| Location           | Dubai, UAE                                                                    |
+| Experience         | 5+ years                                                                      |
+| Email              | chrys.romao21@gmail.com                                                       |
+| Phone              | +971 52 925 8013                                                              |
+| WhatsApp           | Same number — +971 52 925 8013                                                |
+| LinkedIn           | https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/                    |
+| Languages          | English, Filipino                                                             |
+| Existing portfolio | https://chrysanly.github.io/portfolio_v2/                                     |
+| GitHub handle      | chrysanly                                                                     |
+| Education          | BS Information Technology, Our Lady of Lourdes College, Valenzuela City, 2020 |
 
 ### Do not publish
 
@@ -96,10 +96,10 @@ MySQL, TypeScript. The full list lives on About.
 
 Used for the About page timeline. Not every role becomes a project.
 
-| Role | Company | Location | Period |
-|------|---------|----------|--------|
-| Senior Full-Stack Developer | Almutakamela Vehicle Testing and Registration | Dubai, UAE | Nov 2025 – present |
-| Senior Software Engineer | OmniQuest PH (Unilab) | Philippines | Mar 2025 – Aug 2025 |
+| Role                        | Company                                       | Location    | Period              |
+| --------------------------- | --------------------------------------------- | ----------- | ------------------- |
+| Senior Full-Stack Developer | Almutakamela Vehicle Testing and Registration | Dubai, UAE  | Nov 2025 – present  |
+| Senior Software Engineer    | OmniQuest PH (Unilab)                         | Philippines | Mar 2025 – Aug 2025 |
 
 > Chrys corrected this title on 19 Sep 2026: it was given here as
 > "Senior PHP Developer" and is now Senior Software Engineer. The role string
@@ -123,7 +123,7 @@ these as `content/projects/*.mdx` per `05-DATA-SCHEMA.md`.
 type: erp
 year: 2025
 role: Senior Full-Stack Developer
-confidential: true          # see §5.7 before changing
+confidential: true # see §5.7 before changing
 sector: Vehicle testing and registration
 ```
 
@@ -135,6 +135,7 @@ finance and field service had no single system; access control and financial
 tracking were the weak points.
 
 **Approach material:**
+
 - Role-based middleware for authentication and permission management across
   all four modules
 - Finance module: role-permissioned accounting pages, financial aging logic
@@ -169,6 +170,7 @@ sector: Pharmaceutical
 reusable event registration module.
 
 **Approach material:**
+
 - Managed one project spanning four interconnected systems feeding a central
   CRM, keeping data flow consistent across platforms
 - Built a dynamic CRM registration module reusable across multiple events,
@@ -199,6 +201,7 @@ third-party integrations and secure authentication, plus a legacy Laravel 5
 modernisation.
 
 **Approach material:**
+
 - Full-stack Laravel across several high-performance applications
 - Real-time backends with Pusher, Firebase and Twilio
 - Integrations: Google Maps, Monday.com, AWS S3
@@ -228,6 +231,7 @@ sector: Travel and tourism
 vendor management platform migrated from a Laravel CMS to Node.js.
 
 **Approach material:**
+
 - Booking system with real-time availability, REST APIs, React front end
 - Vendor management system: Laravel CMS migrated to Node.js, subscription
   features, Angular dashboards documented with Swagger
@@ -257,7 +261,7 @@ per-company branding applied to generated output.
 
 **Outcome:** `[METRIC]` / `[what it improved]`
 
-*Screenshots permitted — this is his own work. Prioritise capturing them.*
+_Screenshots permitted — this is his own work. Prioritise capturing them._
 
 ---
 
@@ -276,7 +280,7 @@ internal tooling for small businesses.
 
 **Outcome:** `[METRIC]` / `[what it improved]`
 
-*Screenshots permitted.*
+_Screenshots permitted._
 
 ---
 
@@ -311,11 +315,11 @@ Do not change any of these defaults without his explicit instruction.
 
 ## 6. Still unknown — must ship as placeholders
 
-| Placeholder | What's needed |
-|-------------|---------------|
+| Placeholder                       | What's needed                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------------- |
 | `[METRIC]` / `[what it improved]` | One measurable outcome per project. The single highest-value gap on the site. |
-| `[X] days weekly` | Availability, if he wants it public |
-| Screenshots | For the two projects where they're permitted |
+| `[X] days weekly`                 | Availability, if he wants it public                                           |
+| Screenshots                       | For the two projects where they're permitted                                  |
 
 The LinkedIn URL was supplied on 2026-09-20 and is recorded in §1. It is live
 on `/contact` and in the contact band that closes every page.

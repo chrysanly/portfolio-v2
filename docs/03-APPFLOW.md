@@ -36,13 +36,13 @@ link persists after the hero resolves, and a contact band closes every page.
 
 ## 3. Home route states
 
-| State | Trigger | What renders |
-|-------|---------|--------------|
-| `initial` | Load, scroll 0 | Masthead at full width, location line, scroll cue |
-| `transition` | Scroll 0 → 1 of the pinned section | Masthead contracting, intro lines revealing |
-| `resolved` | Pinned section complete | Masthead as compact logo in a sticky header, work index below |
-| `reduced` | `prefers-reduced-motion` | `resolved` immediately, no pin, no scroll dependency |
-| `no-js` | JavaScript unavailable | `resolved` markup, static |
+| State        | Trigger                            | What renders                                                  |
+| ------------ | ---------------------------------- | ------------------------------------------------------------- |
+| `initial`    | Load, scroll 0                     | Masthead at full width, location line, scroll cue             |
+| `transition` | Scroll 0 → 1 of the pinned section | Masthead contracting, intro lines revealing                   |
+| `resolved`   | Pinned section complete            | Masthead as compact logo in a sticky header, work index below |
+| `reduced`    | `prefers-reduced-motion`           | `resolved` immediately, no pin, no scroll dependency          |
+| `no-js`      | JavaScript unavailable             | `resolved` markup, static                                     |
 
 ### The identity badge
 
@@ -89,7 +89,7 @@ entry is one of ours — checked by referrer origin, because `history.length > 1
 is true for any tab that has been anywhere — and otherwise falls back to a plain
 link to `/`, which is also what it is before hydration and with JavaScript off.
 
-**Two delivery paths.** The form emails through Resend *and* posts a copy to the
+**Two delivery paths.** The form emails through Resend _and_ posts a copy to the
 Laravel inbox, and it only reports failure when both fail. It used to be
 email-only, so a missing `RESEND_API_KEY` lost the message and told the sender
 it had failed. See `08-BACKEND.md` §5.
@@ -157,6 +157,7 @@ Where the API is missing the swap is instant, which is the right fallback.
    container, capped to the stage. On a 900px-tall screen nothing scrolls; on a
    short laptop the longest stops scroll rather than silently cutting the last
    contributions off the bottom.
+
 4. Stack — the technology marquee
 5. Contact band
 
@@ -201,13 +202,13 @@ Fixed order, every project:
 
 ## 6. Contact form states
 
-| State | Behaviour |
-|-------|-----------|
-| `idle` | Empty fields, submit enabled |
-| `invalid` | Inline errors under each field on blur and on submit; focus moves to the first invalid field |
-| `submitting` | Submit disabled, label reads "Sending" |
-| `success` | Form replaced by confirmation naming what happens next and the expected reply window |
-| `error` | Form values preserved, message explains the failure and offers the direct email address as a fallback |
+| State        | Behaviour                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| `idle`       | Empty fields, submit enabled                                                                          |
+| `invalid`    | Inline errors under each field on blur and on submit; focus moves to the first invalid field          |
+| `submitting` | Submit disabled, label reads "Sending"                                                                |
+| `success`    | Form replaced by confirmation naming what happens next and the expected reply window                  |
+| `error`      | Form values preserved, message explains the failure and offers the direct email address as a fallback |
 
 Fields: name (required, 2–80), email (required, valid), company (optional),
 message (required, 20–2000), plus a hidden honeypot. The message minimum

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T06:59:15Z",
+  "generated_at": "2026-09-22T07:03:44Z",
   "site": {
     "name": "Chrys",
     "fullName": "Chrysanly John Corpuz Roma",
@@ -70,9 +70,10 @@
       ],
       "images": [
         {
-          "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
+          "src": "/shots/51ceed9e.png",
           "alt": "Placeholder — no laptop screenshot is published for this confidential project",
           "kind": "image",
+          "nda": true,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -81,6 +82,7 @@
           "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
           "alt": "Placeholder — no tablet screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -89,6 +91,7 @@
           "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
           "alt": "Placeholder — no mobile screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
@@ -132,6 +135,7 @@
           "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
           "alt": "Placeholder — no laptop screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -140,6 +144,7 @@
           "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
           "alt": "Placeholder — no tablet screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -148,6 +153,7 @@
           "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
           "alt": "Placeholder — no mobile screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
@@ -196,6 +202,7 @@
           "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
           "alt": "Placeholder — no laptop screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -204,6 +211,7 @@
           "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
           "alt": "Placeholder — no tablet screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -212,9 +220,19 @@
           "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
           "alt": "Placeholder — no mobile screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
+        },
+        {
+          "src": "/shots/775b980b.jpg",
+          "alt": "ERP Dashboard Example",
+          "kind": "image",
+          "nda": true,
+          "device": "laptop",
+          "width": 1440,
+          "height": 900
         }
       ],
       "featured": true,
@@ -248,6 +266,7 @@
           "src": "https://picsum.photos/seed/dpe-laptop/1440/900",
           "alt": "Placeholder standing in for the parsing engine on a laptop browser",
           "kind": "image",
+          "nda": false,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -256,6 +275,7 @@
           "src": "https://picsum.photos/seed/dpe-tablet/1024/768",
           "alt": "Placeholder standing in for the parsing engine on a tablet",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -264,6 +284,7 @@
           "src": "https://picsum.photos/seed/dpe-mobile/390/844",
           "alt": "Placeholder standing in for the parsing engine on a phone",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
@@ -308,6 +329,7 @@
           "src": "https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900",
           "alt": "Placeholder — no laptop screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -316,6 +338,7 @@
           "src": "https://placehold.co/1024x768/eceae4/83807a?text=1024+x+768",
           "alt": "Placeholder — no tablet screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -324,6 +347,7 @@
           "src": "https://placehold.co/390x844/eceae4/83807a?text=390+x+844",
           "alt": "Placeholder — no mobile screenshot is published for this confidential project",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
@@ -358,6 +382,7 @@
           "src": "https://picsum.photos/seed/devio-laptop/1440/900",
           "alt": "Placeholder image standing in for a laptop screenshot",
           "kind": "image",
+          "nda": false,
           "device": "laptop",
           "width": 1440,
           "height": 900
@@ -366,6 +391,7 @@
           "src": "https://picsum.photos/seed/devio-tablet/1024/768",
           "alt": "Placeholder image standing in for a tablet screenshot",
           "kind": "image",
+          "nda": false,
           "device": "tablet",
           "width": 1024,
           "height": 768
@@ -374,6 +400,7 @@
           "src": "https://picsum.photos/seed/devio-mobile/390/844",
           "alt": "Placeholder image standing in for a mobile screenshot",
           "kind": "image",
+          "nda": false,
           "device": "mobile",
           "width": 390,
           "height": 844
@@ -395,6 +422,7 @@
       "period": "2020",
       "phase": null,
       "learned": null,
+      "projects": [],
       "order": 1
     },
     {
@@ -405,6 +433,7 @@
       "period": "Nov 2018 – Dec 2020",
       "phase": "Web developer",
       "learned": "[what I learned here]",
+      "projects": [],
       "order": 2
     },
     {
@@ -412,9 +441,10 @@
       "title": "Mid Software Developer",
       "organisation": "TourismoPH",
       "location": "Philippines",
-      "period": "Sep 2020 – Oct 2022",
+      "period": "Jan 2021 – Oct 2022",
       "phase": "Software engineer",
       "learned": "[what I learned here]",
+      "projects": [],
       "order": 3
     },
     {
@@ -425,6 +455,9 @@
       "period": "Nov 2022 – Feb 2025",
       "phase": "Full-stack developer",
       "learned": "[what I learned here]",
+      "projects": [
+        "realtime-platform-suite"
+      ],
       "order": 4
     },
     {
@@ -435,6 +468,9 @@
       "period": "Mar 2025 – Aug 2025",
       "phase": "Senior software engineer",
       "learned": "[what I learned here]",
+      "projects": [
+        "crm-systems-integration"
+      ],
       "order": 5
     },
     {
@@ -445,6 +481,9 @@
       "period": "Nov 2025 – present",
       "phase": "Senior full-stack engineer",
       "learned": "[what I learned here]",
+      "projects": [
+        "modular-erp-platform"
+      ],
       "order": 6
     }
   ]

@@ -12,17 +12,17 @@ grep -rlo '\[METRIC\]\|\[what it improved\]\|\[X\] days weekly\|\[problem statem
 
 Mapped to the launch blockers in `06-IMPLEMENTATION-PLAN.md`:
 
-| Blocker | Section below |
-|---------|---------------|
-| 1 — `[METRIC]` / `[what it improved]` visible | §2 |
-| 2 — `[X] days weekly` unfilled or unwanted | §1 |
-| 3 — `[linkedin-url]` unfilled | **resolved 2026-09-20** — see §1 |
-| 4 — fewer than two real sentences under `## Problem` | §3 |
-| 5 — zero screenshots site-wide | §6 |
-| 6 — NDA decision not made per project | §7 |
-| 7 — date of birth or civil status in the output | **clear in the built site**; NOT clear in `docs/resume.pdf` — see §5 |
-| — placeholders on every project | **live now, intentional until the backend lands** — see §6a |
-| — `[what I learned here]` x5 | see §1b |
+| Blocker                                              | Section below                                                        |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| 1 — `[METRIC]` / `[what it improved]` visible        | §2                                                                   |
+| 2 — `[X] days weekly` unfilled or unwanted           | §1                                                                   |
+| 3 — `[linkedin-url]` unfilled                        | **resolved 2026-09-20** — see §1                                     |
+| 4 — fewer than two real sentences under `## Problem` | §3                                                                   |
+| 5 — zero screenshots site-wide                       | §6                                                                   |
+| 6 — NDA decision not made per project                | §7                                                                   |
+| 7 — date of birth or civil status in the output      | **clear in the built site**; NOT clear in `docs/resume.pdf` — see §5 |
+| — placeholders on every project                      | **live now, intentional until the backend lands** — see §6a          |
+| — `[what I learned here]` x5                         | see §1b                                                              |
 
 §4 (devio's stack) and §5 (the missing résumé) are not numbered blockers but
 both must be resolved before launch.
@@ -31,14 +31,14 @@ both must be resolved before launch.
 
 ## 1. `content/site.ts`
 
-| Line | Placeholder | What to supply |
-|------|-------------|----------------|
-| 15 | `availability: '[X] days weekly'` | The number of days a week you want to take on work — or tell me to remove the availability line entirely. It currently renders on **`/about`** and in the home metadata row on **`/`**. Launch blocker 2 says an unfilled value *and* an unwanted-but-still-shown line both block launch. |
-**LinkedIn — done, 2026-09-20.** The URL was supplied and is in
-`content/site.ts`. It renders on `/contact`, in the Direct list, and in the
-"Keep exploring" column of the contact band that closes every page. It is
-deliberately *not* in the `Person` JSON-LD `sameAs` array yet — say the word
-and I will add it.
+| Line                                                                         | Placeholder                       | What to supply                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15                                                                           | `availability: '[X] days weekly'` | The number of days a week you want to take on work — or tell me to remove the availability line entirely. It currently renders on **`/about`** and in the home metadata row on **`/`**. Launch blocker 2 says an unfilled value _and_ an unwanted-but-still-shown line both block launch. |
+| **LinkedIn — done, 2026-09-20.** The URL was supplied and is in              |
+| `content/site.ts`. It renders on `/contact`, in the Direct list, and in the  |
+| "Keep exploring" column of the contact band that closes every page. It is    |
+| deliberately _not_ in the `Person` JSON-LD `sameAs` array yet — say the word |
+| and I will add it.                                                           |
 
 **WhatsApp — added 2026-09-20.** `site.whatsapp`, the same number as
 `site.phone`, linked through `wa.me`. Because it is the phone number it
@@ -51,18 +51,18 @@ never structured data.
 
 The journey on the home route asks a question the source document cannot
 answer. `07-SOURCE-CONTENT.md` §4 records where you worked and §5 records what
-you built, but nothing records what you *took* from each place — so it ships as
+you built, but nothing records what you _took_ from each place — so it ships as
 a placeholder rather than being invented.
 
 One or two sentences per role, in `content/site.ts`:
 
-| Role | Field |
-|------|-------|
+| Role                                      | Field                   |
+| ----------------------------------------- | ----------------------- |
 | Senior Full-Stack Developer, Almutakamela | `employment[0].learned` |
-| Senior Software Engineer, OmniQuest PH | `employment[1].learned` |
-| Web Developer, ThinkBit | `employment[2].learned` |
-| Mid Software Developer, TourismoPH | `employment[3].learned` |
-| Junior Web Developer, V. Zuniga | `employment[4].learned` |
+| Senior Software Engineer, OmniQuest PH    | `employment[1].learned` |
+| Web Developer, ThinkBit                   | `employment[2].learned` |
+| Mid Software Developer, TourismoPH        | `employment[3].learned` |
+| Junior Web Developer, V. Zuniga           | `employment[4].learned` |
 
 This is the part of the journey a hiring manager actually reads for judgement —
 "what I built" is on the CV, "what I took from it" is not. Worth writing
@@ -80,14 +80,14 @@ For each, supply **one** of: time saved, error rate reduced, throughput
 increased, cost avoided, or users served. An honest approximation stated as
 approximate is fine.
 
-| File | Lines | Fields |
-|------|-------|--------|
-| `content/projects/modular-erp-platform.mdx` | 14–15, 59 | `outcome.value`, `outcome.label`, and the `## Outcome` body line |
-| `content/projects/crm-systems-integration.mdx` | 14–15, 50 | same three |
-| `content/projects/realtime-platform-suite.mdx` | 14–15, 55 | same three |
-| `content/projects/document-parsing-engine.mdx` | 14–15, 41 | same three |
-| `content/projects/booking-vendor-platform.mdx` | 14–15, 50 | same three |
-| `content/projects/devio.mdx` | 14–15, 38 | same three |
+| File                                           | Lines     | Fields                                                           |
+| ---------------------------------------------- | --------- | ---------------------------------------------------------------- |
+| `content/projects/modular-erp-platform.mdx`    | 14–15, 59 | `outcome.value`, `outcome.label`, and the `## Outcome` body line |
+| `content/projects/crm-systems-integration.mdx` | 14–15, 50 | same three                                                       |
+| `content/projects/realtime-platform-suite.mdx` | 14–15, 55 | same three                                                       |
+| `content/projects/document-parsing-engine.mdx` | 14–15, 41 | same three                                                       |
+| `content/projects/booking-vendor-platform.mdx` | 14–15, 50 | same three                                                       |
+| `content/projects/devio.mdx`                   | 14–15, 38 | same three                                                       |
 
 Visible on: `/`, `/work`, all four `/work/type/*` pages, and all six
 `/work/[slug]` pages.
@@ -100,16 +100,16 @@ Visible on: `/`, `/work`, all four `/work/type/*` pages, and all six
 under `## Problem`. Only the ERP platform had problem material in the CV, so the
 other five ship a bracketed placeholder rather than an invented paragraph.
 
-What each needs: what was broken, slow, manual or risky *before* you built it.
+What each needs: what was broken, slow, manual or risky _before_ you built it.
 Not what you built — that is already written under `## Approach`.
 
-| File | Line | Placeholder |
-|------|------|-------------|
-| `content/projects/crm-systems-integration.mdx` | 29 | `[problem statement — what was broken before]` |
-| `content/projects/realtime-platform-suite.mdx` | 31 | `[problem statement — what was broken before]` |
-| `content/projects/document-parsing-engine.mdx` | 27 | `[problem statement — what was broken before]` |
-| `content/projects/booking-vendor-platform.mdx` | 31 | `[problem statement — what was broken before]` |
-| `content/projects/devio.mdx` | 25 | `[problem statement — what was broken before]` |
+| File                                           | Line | Placeholder                                    |
+| ---------------------------------------------- | ---- | ---------------------------------------------- |
+| `content/projects/crm-systems-integration.mdx` | 29   | `[problem statement — what was broken before]` |
+| `content/projects/realtime-platform-suite.mdx` | 31   | `[problem statement — what was broken before]` |
+| `content/projects/document-parsing-engine.mdx` | 27   | `[problem statement — what was broken before]` |
+| `content/projects/booking-vendor-platform.mdx` | 31   | `[problem statement — what was broken before]` |
+| `content/projects/devio.mdx`                   | 25   | `[problem statement — what was broken before]` |
 
 `modular-erp-platform.mdx` already has a real two-sentence problem statement
 taken from `07-SOURCE-CONTENT.md` §5.1 and needs nothing.
@@ -118,10 +118,10 @@ taken from `07-SOURCE-CONTENT.md` §5.1 and needs nothing.
 
 ## 4. `content/projects/devio.mdx` — stack
 
-| Line | Placeholder | What to supply |
-|------|-------------|----------------|
-| 17 | `stack: ["[stack]"]` | §5.6 of the source document gives devio no stack, and the Zod schema requires 1–12 entries, so it ships as a literal placeholder. List what you actually build devio sites with. |
-| 34 | `## Stack notes` body reads `[stack notes]` | One or two sentences, or tell me to drop the section for this project. |
+| Line | Placeholder                                 | What to supply                                                                                                                                                                   |
+| ---- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 17   | `stack: ["[stack]"]`                        | §5.6 of the source document gives devio no stack, and the Zod schema requires 1–12 entries, so it ships as a literal placeholder. List what you actually build devio sites with. |
+| 34   | `## Stack notes` body reads `[stack notes]` | One or two sentences, or tell me to drop the section for this project.                                                                                                           |
 
 ---
 
@@ -198,22 +198,21 @@ device:
 images:
   - src: /shots/devio-desktop.png
     alt: devio home page on a desktop browser
-    device: desktop          # desktop | tablet | mobile
+    device: desktop # desktop | tablet | mobile
 ```
 
 `alt` is required by the schema and the build fails without it. Files go in
 `public/`. One image per device per project is enough; the frames size
 themselves from the stage height.
 
-
 `images: []` on every project, so the Evidence section is omitted entirely
 everywhere. That is correct behaviour, not a gap to patch — but launch blocker 5
 requires at least the two projects that permit visuals to have them.
 
-| File | Why it is permitted |
-|------|---------------------|
-| `content/projects/document-parsing-engine.mdx` | Your own work, `confidential: false` |
-| `content/projects/devio.mdx` | Your own practice, `confidential: false` |
+| File                                           | Why it is permitted                      |
+| ---------------------------------------------- | ---------------------------------------- |
+| `content/projects/document-parsing-engine.mdx` | Your own work, `confidential: false`     |
+| `content/projects/devio.mdx`                   | Your own practice, `confidential: false` |
 
 Each image needs `src`, and **`alt` is required by the schema** — the build
 fails without it. A `caption` is optional.
@@ -228,12 +227,12 @@ Do **not** add screenshots to the four confidential projects.
 default: `confidential: true`, `client: null`. Nothing changes without your
 explicit instruction, project by project.
 
-| File | Current sector line | If you permit naming the client |
-|------|--------------------|----------------------------------|
-| `content/projects/modular-erp-platform.mdx` | Vehicle testing and registration | `confidential: false` + `client: Almutakamela Vehicle Testing and Registration` |
-| `content/projects/crm-systems-integration.mdx` | Pharmaceutical | `confidential: false` + the client name |
-| `content/projects/realtime-platform-suite.mdx` | Software services | `confidential: false` + the client name |
-| `content/projects/booking-vendor-platform.mdx` | Travel and tourism | `confidential: false` + the client name |
+| File                                           | Current sector line              | If you permit naming the client                                                 |
+| ---------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------- |
+| `content/projects/modular-erp-platform.mdx`    | Vehicle testing and registration | `confidential: false` + `client: Almutakamela Vehicle Testing and Registration` |
+| `content/projects/crm-systems-integration.mdx` | Pharmaceutical                   | `confidential: false` + the client name                                         |
+| `content/projects/realtime-platform-suite.mdx` | Software services                | `confidential: false` + the client name                                         |
+| `content/projects/booking-vendor-platform.mdx` | Travel and tourism               | `confidential: false` + the client name                                         |
 
 The schema enforces the pairing in both directions, so a half-finished change
 fails the build rather than leaking a name.

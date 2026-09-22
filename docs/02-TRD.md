@@ -2,19 +2,19 @@
 
 ## 1. Stack
 
-| Layer | Choice | Reason |
-|-------|--------|--------|
-| Framework | Next.js 15.5.x | App Router. 15.5.25 or later — 15.1.x carries CVE-2025-66478 |
-| Language | TypeScript, `strict: true` | Content model is typed end to end |
-| Styling | Tailwind CSS v4 | Tokens declared in `@theme`, see the design brief |
-| Motion | Framer Motion | Needed only for the hero; nothing else justifies it |
-| Content | Local MDX + typed frontmatter | No CMS, no database for content |
-| Frontmatter parser | `gray-matter` | Required by the MDX choice above |
-| MDX renderer | `next-mdx-remote` | Required by the MDX choice above |
-| Forms | React Hook Form + Zod | Same Zod schema validates client and server |
-| Mail | Resend | Free tier sufficient; swap point isolated in one module |
-| Hosting | Vercel | Zero config, free tier |
-| Fonts | `next/font/google` — Bodoni Moda, Public Sans | Self-hosted at build, no layout shift |
+| Layer              | Choice                                        | Reason                                                       |
+| ------------------ | --------------------------------------------- | ------------------------------------------------------------ |
+| Framework          | Next.js 15.5.x                                | App Router. 15.5.25 or later — 15.1.x carries CVE-2025-66478 |
+| Language           | TypeScript, `strict: true`                    | Content model is typed end to end                            |
+| Styling            | Tailwind CSS v4                               | Tokens declared in `@theme`, see the design brief            |
+| Motion             | Framer Motion                                 | Needed only for the hero; nothing else justifies it          |
+| Content            | Local MDX + typed frontmatter                 | No CMS, no database for content                              |
+| Frontmatter parser | `gray-matter`                                 | Required by the MDX choice above                             |
+| MDX renderer       | `next-mdx-remote`                             | Required by the MDX choice above                             |
+| Forms              | React Hook Form + Zod                         | Same Zod schema validates client and server                  |
+| Mail               | Resend                                        | Free tier sufficient; swap point isolated in one module      |
+| Hosting            | Vercel                                        | Zero config, free tier                                       |
+| Fonts              | `next/font/google` — Bodoni Moda, Public Sans | Self-hosted at build, no layout shift                        |
 
 **Do not add** a CMS, state manager, component library, animation library
 beyond Framer Motion, icon package (inline SVG only), or analytics beyond a
@@ -67,13 +67,13 @@ lib/
 
 ## 4. Budgets
 
-| Metric | Budget |
-|--------|--------|
-| LCP (mobile, 4G) | ≤ 1.8s |
-| CLS | ≤ 0.02 |
-| INP | ≤ 200ms |
-| JS shipped to the home route | ≤ 120KB gzipped |
-| Lighthouse Accessibility | 100, no exceptions |
+| Metric                       | Budget             |
+| ---------------------------- | ------------------ |
+| LCP (mobile, 4G)             | ≤ 1.8s             |
+| CLS                          | ≤ 0.02             |
+| INP                          | ≤ 200ms            |
+| JS shipped to the home route | ≤ 120KB gzipped    |
+| Lighthouse Accessibility     | 100, no exceptions |
 
 **The splash is a loading state, not a timer.** It was a fixed 1s hold, which
 delayed fast loads without waiting for slow ones — the worst of both. It now
@@ -84,26 +84,26 @@ animation clears it at the ceiling.
 
 Measured on the home route, same build:
 
-| Splash | Perf | LCP | Speed Index |
-|--------|------|-----|-------------|
-| Fixed 1s timer (old) | 89 | 3.1s | 4.5s |
-| Load-gated (current) | **94–95** | 2.8s | 2.4s |
-| Removed entirely | 100 | 1.1s | 0.9s |
+| Splash               | Perf      | LCP  | Speed Index |
+| -------------------- | --------- | ---- | ----------- |
+| Fixed 1s timer (old) | 89        | 3.1s | 4.5s        |
+| Load-gated (current) | **94–95** | 2.8s | 2.4s        |
+| Removed entirely     | 100       | 1.1s | 0.9s        |
 
 Speed Index nearly halved. What remains is inherent: while the hold is up it
-*is* the largest contentful paint, so LCP cannot land before it clears, and
+_is_ the largest contentful paint, so LCP cannot land before it clears, and
 under Lighthouse's throttling the fonts take ~2.4s. LCP stays over this table's
 1.8s budget for as long as there is an opening hold at all.
 
 **Earlier measurement, for reference** (mobile, `next start`):
 
-| Route | Perf | A11y | BP | SEO | CLS |
-|-------|------|------|----|-----|-----|
-| `/` | 91 | 100 | 100 | 100 | 0.015 |
-| others | 97–98 | 100 | 100 | 100 | ≤0.004 |
+| Route  | Perf  | A11y | BP  | SEO | CLS    |
+| ------ | ----- | ---- | --- | --- | ------ |
+| `/`    | 91    | 100  | 100 | 100 | 0.015  |
+| others | 97–98 | 100  | 100 | 100 | ≤0.004 |
 
 The home route misses `01-PRD.md` §8's ≥95 and this table's LCP ≤1.8s (it is
-~2.8s). The cause is the splash: for its first second the hold *is* the largest
+~2.8s). The cause is the splash: for its first second the hold _is_ the largest
 contentful paint, so LCP cannot land before it clears. Removing the hold
 returns home to 96–99 and LCP to ~1.5s; scoping it to the first visit per
 session would limit the cost to first loads. Chrys's call — currently it runs

@@ -10,6 +10,7 @@ Effort assumes roughly two days per week.
 ## Phase 1 — Foundation
 
 **Build**
+
 - Next.js 15 + TypeScript (`strict`) + Tailwind v4.
 - Colour and type tokens from the design brief declared in `@theme`.
 - Fonts via `next/font/google`: Bodoni Moda (400, 600), Public Sans (400, 500, 600).
@@ -17,6 +18,7 @@ Effort assumes roughly two days per week.
 - ESLint, Prettier, `tsc --noEmit` in CI.
 
 **Acceptance**
+
 - A page rendering every token and type size builds and passes type-check.
 - No layout shift on font load (`next/font` handles this — verify, don't assume).
 
@@ -25,6 +27,7 @@ Effort assumes roughly two days per week.
 ## Phase 2 — Content pipeline
 
 **Build**
+
 - Zod schemas from `05-DATA-SCHEMA.md`.
 - `lib/projects.ts`: read `content/projects/*.mdx`, validate, sort by `order`.
 - The confidential/client cross-validation rule.
@@ -34,6 +37,7 @@ Effort assumes roughly two days per week.
 - `content/site.ts` with the real values from `05-DATA-SCHEMA.md` §3.
 
 **Acceptance**
+
 - An MDX file with `confidential: true` and a non-null `client` **fails the
   build**. Prove this, then revert the test file.
 - Projects load with correct types; no `any` anywhere in the path.
@@ -42,17 +46,19 @@ Effort assumes roughly two days per week.
 
 ## Phase 3 — Static home, resolved state only
 
-Build the home route as it looks *after* the hero sequence finishes. No motion
+Build the home route as it looks _after_ the hero sequence finishes. No motion
 yet. This is deliberate: it guarantees the no-JS and reduced-motion paths exist
 before any animation is written.
 
 **Build**
+
 - Sticky header with the compact masthead, nav, contact link.
 - Metadata row: discipline, stack, experience, availability.
 - Work index rows per the design brief, desktop and stacked mobile.
 - Contact band closing the page.
 
 **Acceptance**
+
 - Fully usable with JavaScript disabled.
 - Keyboard navigable; focus rings visible on every interactive element.
 - Lighthouse Accessibility 100 on mobile.
@@ -64,6 +70,7 @@ before any animation is written.
 ## Phase 4 — Hero sequence
 
 **Build**
+
 - `MastheadHero` client component, pinned section ~200vh.
 - Framer Motion `useScroll` with `offset`, driving `p` from 0 to 1.
 - Stages A, B, C per design brief §5, transform and opacity only.
@@ -72,20 +79,22 @@ before any animation is written.
 - Mobile compression to ~150vh.
 
 **Acceptance**
+
 - 60fps while scrolling the sequence on a mid-range Android device. Profile it;
   do not assume.
 - Reduced-motion preference produces the Phase 3 page exactly.
 - Framer Motion appears in the home bundle only — verify with the bundle analyzer.
 - CLS ≤ 0.02 through the whole sequence.
 
-*If the sequence cannot hit 60fps on mobile, shorten it rather than adding
-`will-change` everywhere. A janky hero is worse than no hero.*
+_If the sequence cannot hit 60fps on mobile, shorten it rather than adding
+`will-change` everywhere. A janky hero is worse than no hero._
 
 ---
 
 ## Phase 5 — Remaining routes
 
 **Build**
+
 - `/work` with URL-based type filtering and the empty-filter state.
 - `/work/[slug]` in the fixed section order; evidence section omitted entirely
   when `images` is empty.
@@ -94,6 +103,7 @@ before any animation is written.
 - Previous/next project navigation.
 
 **Acceptance**
+
 - Filter state survives a page refresh and is shareable as a URL.
 - Back from a detail page returns to the filtered index.
 - Every route passes Accessibility 100.
@@ -103,12 +113,14 @@ before any animation is written.
 ## Phase 6 — Contact
 
 **Build**
+
 - `/contact` with React Hook Form + the shared Zod schema.
 - All five states from the app flow.
 - Route handler, honeypot, time-check, rate limit, Resend integration.
 - Errors tied to inputs via `aria-describedby`, announced in a live region.
 
 **Acceptance**
+
 - A real message is delivered end to end.
 - Honeypot submission returns 200 and sends nothing.
 - Sixth request within an hour returns 429.
@@ -120,12 +132,14 @@ before any animation is written.
 ## Phase 7 — Launch readiness
 
 **Build**
+
 - Per-route metadata, `Person` JSON-LD, generated OG images.
 - `sitemap.ts`, `robots.ts`.
 - `resume.pdf`.
 - Deploy to Vercel with environment variables set.
 
 **Acceptance**
+
 - Lighthouse mobile: Performance ≥ 95, Accessibility 100, Best Practices ≥ 95,
   SEO 100.
 - Tested on real iOS Safari and Android Chrome, not just a simulator.
@@ -158,6 +172,7 @@ plausible-sounding invented values to clear the list.
 Full specification in `08-BACKEND.md`.
 
 **Build**
+
 - Laravel 12 + MySQL, Repository and Service layers, Sanctum build token.
 - Schema per `08-BACKEND.md` §4, including the database-level confidential
   constraint.

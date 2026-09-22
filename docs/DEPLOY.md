@@ -6,13 +6,13 @@ Nothing below costs money. Backend first, then frontend. Tick as you go.
 
 ## The free stack
 
-| Piece | Service | Free allowance | Catch |
-|---|---|---|---|
-| Public site | **Vercel Hobby** | generous | none that affects you |
-| Admin + API | **Render Web Service** | 750 h/month | sleeps after ~15 min idle |
-| Database | **Neon Postgres** | 0.5 GB, no expiry | none |
-| Images & video | **Cloudinary** | 25 credits/month | 10 MB an image, 100 MB a video — see §1.5 |
-| Queue | `sync` — no worker | — | saving is slightly slower |
+| Piece          | Service                | Free allowance    | Catch                                     |
+| -------------- | ---------------------- | ----------------- | ----------------------------------------- |
+| Public site    | **Vercel Hobby**       | generous          | none that affects you                     |
+| Admin + API    | **Render Web Service** | 750 h/month       | sleeps after ~15 min idle                 |
+| Database       | **Neon Postgres**      | 0.5 GB, no expiry | none                                      |
+| Images & video | **Cloudinary**         | 25 credits/month  | 10 MB an image, 100 MB a video — see §1.5 |
+| Queue          | `sync` — no worker     | —                 | saving is slightly slower                 |
 
 **Total: $0.** Three things make that work:
 
@@ -75,7 +75,7 @@ succeeds, you just press **Sync site** afterwards.
 
 **Backend first.** The two apps reference each other, so one has to go first:
 
-- The frontend's build *pulls content from the API*. With no API live it falls
+- The frontend's build _pulls content from the API_. With no API live it falls
   back to the committed `content/snapshot.json` — the site would work, but with
   today's content frozen in, and you'd redeploy the moment the API appeared.
 - The backend does **not** need the frontend. Without `SITE_REVALIDATE_URL` it
@@ -114,7 +114,7 @@ the backend the frontend's URL. **Part 3 closes the loop.**
 
 - [ ] `APP_NAME` = `Portfolio Admin`
 - [ ] `APP_ENV` = `production`
-- [ ] `APP_DEBUG` = `false`  ← **critical.** `true` leaks your env and stack traces.
+- [ ] `APP_DEBUG` = `false` ← **critical.** `true` leaks your env and stack traces.
 - [ ] `APP_KEY` = run `php artisan key:generate --show` locally, paste the output
 - [ ] `APP_URL` = your Render URL, e.g. `https://portfolio-api.onrender.com`
 
@@ -124,7 +124,7 @@ Database, from the Neon string:
 - [ ] `DB_HOST` = the `ep-xxx...neon.tech` host
 - [ ] `DB_PORT` = `5432`
 - [ ] `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` = the rest
-- [ ] `DB_SSLMODE` = `require`  ← Neon refuses the connection without it
+- [ ] `DB_SSLMODE` = `require` ← Neon refuses the connection without it
 
 Admin access:
 
@@ -138,7 +138,7 @@ Session, cache, queue:
 
 - [ ] `SESSION_DRIVER` = `database`
 - [ ] `CACHE_STORE` = `database`
-- [ ] `QUEUE_CONNECTION` = `sync`  ← **not** `database`. A worker costs money.
+- [ ] `QUEUE_CONNECTION` = `sync` ← **not** `database`. A worker costs money.
 
 Site constants the API serves to the frontend:
 
@@ -170,7 +170,7 @@ Part 3 and it happens on its own.
 
 **What that does not cover, and why Cloudinary is now wired in.** The copy
 inside Render is ephemeral — wiped on every deploy and every wake from sleep.
-Mirroring protects the *published site*, but only for images that were still
+Mirroring protects the _published site_, but only for images that were still
 alive when a build ran. Two things it cannot help:
 
 - **The admin itself.** It reads live from Render, so the moment the disk is
@@ -193,15 +193,15 @@ allowance.
       **Cloud name**, **API Key**, **API Secret** (click the eye to reveal it)
 - [ ] Add them on Render → your service → **Environment**:
 
-| Variable | Value |
-|---|---|
-| `CLOUDINARY_CLOUD_NAME` | your cloud name, e.g. `dxxxxxxxx` |
-| `CLOUDINARY_API_KEY` | the numeric key |
+| Variable                | Value                                 |
+| ----------------------- | ------------------------------------- |
+| `CLOUDINARY_CLOUD_NAME` | your cloud name, e.g. `dxxxxxxxx`     |
+| `CLOUDINARY_API_KEY`    | the numeric key                       |
 | `CLOUDINARY_API_SECRET` | the secret — treat it like a password |
-| `CLOUDINARY_FOLDER` | optional, defaults to `portfolio` |
+| `CLOUDINARY_FOLDER`     | optional, defaults to `portfolio`     |
 
 - [ ] Save. Render redeploys on its own.
-- [ ] Leave `PORTFOLIO_IMAGES_DISK` unset. It selects the *local* disk and is
+- [ ] Leave `PORTFOLIO_IMAGES_DISK` unset. It selects the _local_ disk and is
       only used when Cloudinary is not configured.
 - [ ] Set up the deploy hook in Part 3 so uploads reach the site by themselves
 
@@ -211,11 +211,11 @@ need an account.
 
 **The free plan's ceilings, and ours:**
 
-| | Cloudinary free | This admin enforces |
-|---|---|---|
-| Image | 10 MB | **4 MB** |
-| Video | 100 MB | **100 MB** |
-| Storage | 25 credits/month — 1 credit = 1 GB stored *or* 1 GB delivered | — |
+|         | Cloudinary free                                               | This admin enforces |
+| ------- | ------------------------------------------------------------- | ------------------- |
+| Image   | 10 MB                                                         | **4 MB**            |
+| Video   | 100 MB                                                        | **100 MB**          |
+| Storage | 25 credits/month — 1 credit = 1 GB stored _or_ 1 GB delivered | —                   |
 
 Ours is the limit that speaks first on images, which is what you want: its
 message names the real problem. On video the two are equal, so a file just
@@ -233,14 +233,12 @@ they are deliberately third-party and are not baked into the build.
 - [ ] Open `https://<your-api>.onrender.com/login` → the PIN screen
 - [ ] Sign in with your new `ADMIN_PIN`
 - [ ] Seed the content — Render **Shell** tab:
-      ```
-      php artisan db:seed --force
-      ```
+      `     php artisan db:seed --force
+    `
       Creates the admin account and imports the six projects.
 - [ ] Issue the build token:
-      ```
-      php artisan portfolio:build-token --email=<your admin email>
-      ```
+      `     php artisan portfolio:build-token --email=<your admin email>
+    `
       **Copy it — shown once.**
 
 ### 1.7 Confirm the API
@@ -286,11 +284,10 @@ they are deliberately third-party and are not baked into the build.
 - [ ] **Wake the API first** — open the admin in a tab so Render is warm, then
       deploy. Otherwise the first build may not reach it.
 - [ ] In the build log expect:
-      ```
-      [content] Fetching https://<your-api>.onrender.com/api/v1/content
-      [content] Wrote 6 projects to content/snapshot.json
-      ```
-      If it says *"Could not reach the API"* the site still builds, from the
+      `     [content] Fetching https://<your-api>.onrender.com/api/v1/content
+    [content] Wrote 6 projects to content/snapshot.json
+    `
+      If it says _"Could not reach the API"_ the site still builds, from the
       snapshot. Check the token and URL, wake the API, redeploy.
 - [ ] `/`, `/work`, `/about`, `/contact` all load
 - [ ] A project page renders, e.g. `/work/modular-erp-platform`
@@ -299,9 +296,7 @@ they are deliberately third-party and are not baked into the build.
 
 ## Part 3 — Close the loop
 
-- [ ] On Render, set:
-      - `SITE_REVALIDATE_URL` = `https://<your-site>.vercel.app/api/revalidate`
-      - `SITE_REVALIDATE_SECRET` = **the same string** as Vercel's `REVALIDATE_SECRET`
+- [ ] On Render, set: - `SITE_REVALIDATE_URL` = `https://<your-site>.vercel.app/api/revalidate` - `SITE_REVALIDATE_SECRET` = **the same string** as Vercel's `REVALIDATE_SECRET`
 - [ ] Redeploy the backend so it picks them up
 - [ ] Optional: Vercel → Settings → Git → **Deploy Hooks**, then set
       `VERCEL_DEPLOY_HOOK_URL` on Render. Only for full redeploys — content
@@ -311,7 +306,7 @@ they are deliberately third-party and are not baked into the build.
 
 - [ ] Edit a project in the admin → Save
 - [ ] Hard-refresh the live site → your change is there, **no redeploy**
-- [ ] The admin dashboard shows a fresh *Content synced* time
+- [ ] The admin dashboard shows a fresh _Content synced_ time
 
 ---
 

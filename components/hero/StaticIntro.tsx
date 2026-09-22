@@ -29,7 +29,8 @@ export async function StaticIntro() {
             <strong>Experience</strong>
           </dt>
           <dd>
-            {profile.yearsExperience} years, {profile.location} — available {profile.availability}
+            {profile.yearsExperience} years, {profile.location} — available{' '}
+            {profile.availability}
           </dd>
         </div>
       </dl>

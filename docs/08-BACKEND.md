@@ -53,16 +53,16 @@ must never fail because the backend is asleep on a free tier.
 
 ## 3. Stack
 
-| Concern | Choice |
-|---------|--------|
-| Framework | Laravel 12 |
-| Database | MySQL 8 |
-| Admin auth | PIN (session), single user |
-| Build-token auth | Laravel Sanctum, one token for the Next.js build |
-| Admin UI | Inertia + React + TypeScript, hand-built |
-| Images | Local disk in development, S3-compatible in production |
-| Testing | Pest |
-| PHP | 8.3 minimum (8.4 in development) |
+| Concern          | Choice                                                 |
+| ---------------- | ------------------------------------------------------ |
+| Framework        | Laravel 12                                             |
+| Database         | MySQL 8                                                |
+| Admin auth       | PIN (session), single user                             |
+| Build-token auth | Laravel Sanctum, one token for the Next.js build       |
+| Admin UI         | Inertia + React + TypeScript, hand-built               |
+| Images           | Local disk in development, S3-compatible in production |
+| Testing          | Pest                                                   |
+| PHP              | 8.3 minimum (8.4 in development)                       |
 
 **Do not use Filament or Nova.** They would build the admin for you, which
 defeats purpose #1 — there is nothing to write up if a package generated it.
@@ -83,7 +83,7 @@ defeats purpose #1 — there is nothing to write up if a package generated it.
 > React 19 + TypeScript + Tailwind 4). That kit's tagged release targets
 > Laravel 12; its `main` branch targets 13 but is untagged, and an unreleased
 > branch is the wrong foundation for something meant to be shown to employers.
-Hand-built Blade CRUD is the artefact here.
+> Hand-built Blade CRUD is the artefact here.
 
 Architecture follows Chrys's existing practice: Repository pattern for data
 access, Service layer for business rules, form requests for validation,
@@ -94,28 +94,28 @@ pattern is the point, and it's what he'll be asked about).
 
 ### `projects`
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| slug | string(80) unique | URL segment |
-| title | string(120) | |
-| type | enum | erp, automation, web, integration |
-| confidential | boolean, default **true** | safe default |
-| client | string(160) nullable | must be null when confidential |
-| sector | string(120) nullable | required when confidential |
-| year | smallint | |
-| role | string(120) | |
-| summary | string(200) | shown in the index |
-| problem | text | |
-| approach | text | markdown |
-| stack_notes | text nullable | |
-| outcome_value | string(40) | `[METRIC]` until real |
-| outcome_label | string(80) | |
-| stack | json | array of strings, 1–12 |
-| featured | boolean | |
-| sort_order | smallint | |
-| published_at | timestamp nullable | null = draft, excluded from the API |
-| created_at / updated_at | timestamps | |
+| Column                  | Type                      | Notes                               |
+| ----------------------- | ------------------------- | ----------------------------------- |
+| id                      | bigint PK                 |                                     |
+| slug                    | string(80) unique         | URL segment                         |
+| title                   | string(120)               |                                     |
+| type                    | enum                      | erp, automation, web, integration   |
+| confidential            | boolean, default **true** | safe default                        |
+| client                  | string(160) nullable      | must be null when confidential      |
+| sector                  | string(120) nullable      | required when confidential          |
+| year                    | smallint                  |                                     |
+| role                    | string(120)               |                                     |
+| summary                 | string(200)               | shown in the index                  |
+| problem                 | text                      |                                     |
+| approach                | text                      | markdown                            |
+| stack_notes             | text nullable             |                                     |
+| outcome_value           | string(40)                | `[METRIC]` until real               |
+| outcome_label           | string(80)                |                                     |
+| stack                   | json                      | array of strings, 1–12              |
+| featured                | boolean                   |                                     |
+| sort_order              | smallint                  |                                     |
+| published_at            | timestamp nullable        | null = draft, excluded from the API |
+| created_at / updated_at | timestamps                |                                     |
 
 **Database-level integrity, not just validation:** add a check constraint so
 `confidential = 1` requires `client IS NULL AND sector IS NOT NULL`, and
@@ -125,12 +125,63 @@ an accidental NDA breach is the one failure with real consequences.
 
 ### `project_images`
 
-`id`, `project_id` FK cascade, `path`, `alt` (**required**, non-empty),
-`caption` nullable, `sort_order`, timestamps.
+`id`, `project_id` FK cascade, `path`, `storage_id` nullable, `alt`
+(**required**, non-empty), `caption` nullable, `device`, `nda` (boolean,
+default **true**), `width`/`height` nullable, `sort_order`, timestamps.
 
-Uploads are blocked in the service layer when the parent project has
-`confidential = true`, unless an explicit `images_cleared` flag is set on the
-project. Prevents uploading a client screenshot by accident.
+**Amended (2026-09-22).** As originally specified, uploads were _blocked_ in
+the service layer when the parent project was `confidential = true` unless
+`images_cleared` was set on it. That refused the file outright, which meant a
+confidential project could hold no screenshot at all until a clearance that
+typically arrives weeks after the work — so the image could not even be kept.
+
+The upload is now accepted and the restriction recorded on the file:
+
+- `nda` is set per image, and defaults **true** on a confidential project.
+- `confidential = true` with `images_cleared = false` forces `nda = true`
+  whatever the form posts. That is the guard, moved rather than removed.
+- `images_cleared` keeps its job one step further along: it is what permits
+  `nda` to be turned **off**, on upload or afterwards.
+- `PATCH /admin/projects/{project}/images/{image}` edits what an image says —
+  alt text, caption, frame and the mark. Fields are optional individually (the
+  thumbnail's badge posts only `nda`), `alt` may not be emptied, and changing
+  the frame updates the stored intrinsic size with it.
+- `POST /admin/projects/{project}/images/{image}` replaces the file itself,
+  keeping the row, so the image holds its place in the order and its
+  description survives the swap. Behind the PIN, as the upload is: it puts a
+  new file on the public site. The new file is stored before the row is
+  written and the old one deleted after, so a storage refusal leaves the image
+  as it was.
+- The public site draws the mark from the flag — an angled, repeated "under
+  nda" across the image (`components/work/NdaWatermark.tsx`). It is drawn in
+  CSS, never composited into the file: a burned-in mark cannot come off when
+  a clearance arrives, and CSS stays legible on a light screenshot and a dark
+  one alike.
+
+The accident being prevented was never the _storing_ of a client screen. It
+was publishing one with nothing on it to say whose it was.
+
+### `journey_stops`
+
+`id`, `kind` (work/education), `title`, `organisation`, `location`, `period`,
+`phase` nullable, `learned` nullable, `sort_order`, `published_at` nullable,
+timestamps.
+
+Two amendments to how this table is used, both 2026-09-22:
+
+- **`learned` holds HTML.** It is written in a TipTap field in the admin — the
+  plain textarea could not produce a paragraph break, because Enter inside the
+  form either submitted it or was swallowed. The markup is sanitised on the way
+  in against an allowlist (`App\Services\RichText`): p, br, strong, em, s, ul,
+  ol, li, blockquote, code, a. Rows written before this are plain text, and the
+  site wraps anything not opening with a tag in a paragraph.
+- **Projects attach to a stop explicitly**, through a nullable
+  `projects.journey_stop_id`. The site used to derive the connection by
+  matching a project's `role` against the stop's `title`, which made the job
+  title load-bearing — rewording either side emptied a stop on the public site
+  with nothing anywhere to report it. The payload carries the attached slugs,
+  and the site keeps the old matching as a fallback for payloads written before
+  the relation existed.
 
 ### `messages`
 
@@ -159,7 +210,7 @@ projects with images, ordered. One call, one round trip, no N+1.
 {
   "generated_at": "2026-09-18T10:00:00Z",
   "site": { "name": "Chrys", "role": "...", "yearsExperience": "5+", "...": "..." },
-  "projects": [ { "slug": "...", "title": "...", "images": [] } ]
+  "projects": [{ "slug": "...", "title": "...", "images": [] }]
 }
 ```
 
@@ -223,7 +274,12 @@ Routes under `/admin`, session-authenticated, all behind `auth` and a
 - Project create/edit form, with the confidential toggle disabling and clearing
   the client field in the UI
 - Image upload with a **required** alt-text field — the form will not submit
-  without it
+  without it, and an "Under NDA" switch that is locked on while the project is
+  confidential and uncleared
+- Journey list and form, where the stops are ordered, the "what I took from it"
+  text is written in a TipTap editor, and the projects built at each stop are
+  ticked
+- A light/dark switch on the admin's own header bar
 - Message inbox, read-only, with delivered status
 - A "Rebuild site" button showing the last build time
 

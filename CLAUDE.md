@@ -3,12 +3,18 @@
 Next.js 15 App Router, React 19, TypeScript, Tailwind v4. Deployed static to
 Vercel. This is one of two repositories:
 
-| Repo | What it is | Where it runs |
-|------|------------|---------------|
-| `chrysanly/portfolio-v2` (this one) | the public site | Vercel, static |
-| `chrysanly/portfolio-api` | Laravel 12 + Inertia + React admin | a PHP host |
+| Repo                                | What it is                         | Where it runs  |
+| ----------------------------------- | ---------------------------------- | -------------- |
+| `chrysanly/portfolio-v2` (this one) | the public site                    | Vercel, static |
+| `chrysanly/portfolio-api`           | Laravel 12 + Inertia + React admin | a PHP host     |
 
 Usually checked out side by side, as `portfolio/` and `portfolio-api/`.
+
+**"The backend", "the API" and "the admin" always mean the `portfolio-api`
+repo** — a separate checkout with its own `CLAUDE.md`, whose rules take
+precedence inside that directory. On the **work PC** it lives at
+`C:\Users\admin\Desktop\Chrys\Personal\portfolio-api`; other machines are
+listed in `docs/BACKEND-LOCATION.md`, which also covers the crossing points.
 
 ## Read the specification first
 
@@ -31,6 +37,15 @@ every fact on the site.
    `client: null`. Do not change one without explicit per-project instruction.
    The rule is enforced in `lib/schema.ts` and fails the build in both
    directions.
+   **Screenshots of NDA work may be shown, marked and blurred.** Each image
+   carries an `nda` flag from the API, and this site draws the treatment from
+   it — an `NDA` ribbon in the selected accent across the top-right corner,
+   plus a blur on the picture (`components/work/NdaWatermark.tsx`, `.nda` in `globals.css`).
+   Never render an image that arrives with `nda: true` without both, and never
+   composite either into a file: they are CSS so that a clearance can take
+   them off later, and so that the mark reads on a light screenshot and a dark
+   one. The blur is the part that actually withholds the contents — the ribbon
+   only states the restriction.
 4. **No new dependencies** beyond `docs/02-TRD.md` §1 without asking. There is
    no icon package — icons are inline SVG. react-three-fiber was asked for and
    refused: ~600kB against a 120kB first-load budget.
@@ -45,11 +60,11 @@ Three sources, in order of preference, all resolved in `lib/projects.ts`:
 
 `npm run build` runs the pull first (via `prebuild`). Behaviour:
 
-| `PORTFOLIO_API_URL` | What happens |
-|---------------------|--------------|
-| empty | builds from the MDX. No backend needed. |
-| set, API reachable | pulls, rewrites the snapshot, builds from it |
-| set, API unreachable | warns, builds from the committed snapshot |
+| `PORTFOLIO_API_URL`  | What happens                                 |
+| -------------------- | -------------------------------------------- |
+| empty                | builds from the MDX. No backend needed.      |
+| set, API reachable   | pulls, rewrites the snapshot, builds from it |
+| set, API unreachable | warns, builds from the committed snapshot    |
 
 The build never fails because the backend is asleep — `docs/08-BACKEND.md` §2,
 "Build resilience". To go back to MDX, delete `content/snapshot.json`.
@@ -92,13 +107,13 @@ false alarms repeatedly:
 
 ## Commands
 
-| Task | Command |
-|------|---------|
-| Dev | `npm run dev` |
-| Build | `npm run build` (pulls content first) |
-| Types + lint | `npm run check` |
-| Format | `npm run format` |
-| Pull content only | `npm run content:pull` |
+| Task              | Command                               |
+| ----------------- | ------------------------------------- |
+| Dev               | `npm run dev`                         |
+| Build             | `npm run build` (pulls content first) |
+| Types + lint      | `npm run check`                       |
+| Format            | `npm run format`                      |
+| Pull content only | `npm run content:pull`                |
 
 ## Connecting to the backend
 

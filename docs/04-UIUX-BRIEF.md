@@ -13,13 +13,13 @@ Spend all boldness on the masthead. Nothing else on the page competes with it.
 ## 2. Colour tokens
 
 ```css
---ink:      #1A1A18;   /* primary text, rules */
---ground:   #ECEAE4;   /* page background, oyster */
---surface:  #F5F3EE;   /* raised rows, cards, form fields */
---muted:    #55524B;   /* secondary text — 7.1:1 on ground */
---faint:    #83807A;   /* metadata only, never body — 4.6:1 on ground */
---rule:     #CFCCC3;   /* hairlines */
---accent:   #7B2D2D;   /* oxblood — outcome figures, links, focus */
+--ink: #1a1a18; /* primary text, rules */
+--ground: #eceae4; /* page background, oyster */
+--surface: #f5f3ee; /* raised rows, cards, form fields */
+--muted: #55524b; /* secondary text — 7.1:1 on ground */
+--faint: #83807a; /* metadata only, never body — 4.6:1 on ground */
+--rule: #cfccc3; /* hairlines */
+--accent: #7b2d2d; /* oxblood — outcome figures, links, focus */
 ```
 
 Accent is used for outcome figures, link hover, focus rings and the NDA
@@ -31,13 +31,13 @@ Verify `--faint` at its final size before shipping: it is only permitted at
 
 ## 3. Typography
 
-| Role | Face | Setting |
-|------|------|---------|
-| Masthead | Bodoni Moda 400 | 96–210px fluid, `line-height: 0.86`, letter-spacing 0 |
-| Project titles | Bodoni Moda 600 | 26–30px, `line-height: 1.15` |
-| Outcome figures | Bodoni Moda 600 | 30px, accent coloured |
-| Body | Public Sans 400 | 15–17px, `line-height: 1.6` |
-| Metadata | Public Sans 500 | 11–13px, letter-spacing 0.12em |
+| Role            | Face            | Setting                                               |
+| --------------- | --------------- | ----------------------------------------------------- |
+| Masthead        | Bodoni Moda 400 | 96–210px fluid, `line-height: 0.86`, letter-spacing 0 |
+| Project titles  | Bodoni Moda 600 | 26–30px, `line-height: 1.15`                          |
+| Outcome figures | Bodoni Moda 600 | 30px, accent coloured                                 |
+| Body            | Public Sans 400 | 15–17px, `line-height: 1.6`                           |
+| Metadata        | Public Sans 500 | 11–13px, letter-spacing 0.12em                        |
 
 Scale: 11 / 13 / 15 / 17 / 22 / 26 / 30 / 44 / 96+.
 Body line length capped at 68 characters.
@@ -86,6 +86,7 @@ Masthead at full width, roughly 210px on desktop. Location line above it.
 "Scroll to begin" and a short vertical rule at the bottom. Nothing else.
 
 **Stage B — `p = 0.15 → 0.7`**
+
 - Masthead scales to roughly 132px and moves from centre to upper-left; the
   letters close from edge-to-edge distribution to normal spacing.
 - Three intro lines reveal sequentially, each as a mask-wipe upward, not a
@@ -97,6 +98,7 @@ Masthead at full width, roughly 210px on desktop. Location line above it.
 - A thin progress rule tracks `p` at the bottom.
 
 **Stage C — `p = 0.7 → 1`**
+
 - Masthead settles to 28px inside a sticky header that gains a 2px `--ink`
   bottom rule.
 - The metadata row (discipline, stack, experience and availability) fades in
@@ -141,11 +143,11 @@ Focus ring: 2px `--accent`, 2px offset, on every interactive element.
 
 ## 8. Responsive
 
-| Breakpoint | Behaviour |
-|-----------|-----------|
-| ≥ 1280px | Full grid, masthead 210px → 28px |
-| 768–1279px | Margins to 40px, masthead 150px → 26px |
-| < 768px | Single column, margins 20px, index rows stack, masthead 84px → 22px |
+| Breakpoint | Behaviour                                                           |
+| ---------- | ------------------------------------------------------------------- |
+| ≥ 1280px   | Full grid, masthead 210px → 28px                                    |
+| 768–1279px | Margins to 40px, masthead 150px → 26px                              |
+| < 768px    | Single column, margins 20px, index rows stack, masthead 84px → 22px |
 
 ## 8b. Changes made during the build
 
@@ -153,19 +155,19 @@ This document was settled before the first build. These are the points where
 the built site now differs, each with its reason. They are decisions Chrys
 approved, not drift.
 
-| Item | Spec said | Built | Why |
-|------|-----------|-------|-----|
-| Hero track | ~200vh | **180vh** | §5.6 warns the sequence must not be a wall; the shorter track ends into Selected Work instead of dead scroll |
-| Masthead in stages A–B | moves centre to upper-left | stays **horizontally centred**, docks left only in stage C | Chrys's direction |
-| Outcome figure | accent (§2) | **ink at rest, accent on hover** | `03-APPFLOW.md` §4 already specified accent on hover; four accent figures down the index broke the ~5% oxblood cap in §2 |
-| Ground | flat colour | flat colour **plus a two-layer inline grain**, the coarse layer drifting | Chrys's direction; no gradient, no image dependency |
-| Cursor | not specified | a spot that inverts by `mix-blend-mode: difference` | Chrys's direction; one treatment legible on both themes |
-| Border radius | 0 everywhere | 0 everywhere **except** the cursor spot and the identity badge | A round cursor is an affordance, not visual language; the badge depicts a physical object |
-| Shadows | none | none **except** the identity badge | Same reason |
-| Theme | light only | **light and dark, with a toggle** | `01-PRD.md` F12, brought forward from the post-launch backlog |
-| Opening | none | **A load-gated splash** | Chrys's direction. Clears when fonts and document are ready, 420ms floor, 2.6s ceiling — see `02-TRD.md` §4 |
-| Home header | logo, nav, contact | **Logo and theme toggle only** | Chrys's direction; home carries its own links. Other routes keep the nav |
-| Experience | not specified | **A horizontal journey**, vertical scroll driving sideways travel | Chrys's direction; a career is a path, and an axis says that better than a stack of rows |
+| Item                   | Spec said                  | Built                                                                    | Why                                                                                                                      |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Hero track             | ~200vh                     | **180vh**                                                                | §5.6 warns the sequence must not be a wall; the shorter track ends into Selected Work instead of dead scroll             |
+| Masthead in stages A–B | moves centre to upper-left | stays **horizontally centred**, docks left only in stage C               | Chrys's direction                                                                                                        |
+| Outcome figure         | accent (§2)                | **ink at rest, accent on hover**                                         | `03-APPFLOW.md` §4 already specified accent on hover; four accent figures down the index broke the ~5% oxblood cap in §2 |
+| Ground                 | flat colour                | flat colour **plus a two-layer inline grain**, the coarse layer drifting | Chrys's direction; no gradient, no image dependency                                                                      |
+| Cursor                 | not specified              | a spot that inverts by `mix-blend-mode: difference`                      | Chrys's direction; one treatment legible on both themes                                                                  |
+| Border radius          | 0 everywhere               | 0 everywhere **except** the cursor spot and the identity badge           | A round cursor is an affordance, not visual language; the badge depicts a physical object                                |
+| Shadows                | none                       | none **except** the identity badge                                       | Same reason                                                                                                              |
+| Theme                  | light only                 | **light and dark, with a toggle**                                        | `01-PRD.md` F12, brought forward from the post-launch backlog                                                            |
+| Opening                | none                       | **A load-gated splash**                                                  | Chrys's direction. Clears when fonts and document are ready, 420ms floor, 2.6s ceiling — see `02-TRD.md` §4              |
+| Home header            | logo, nav, contact         | **Logo and theme toggle only**                                           | Chrys's direction; home carries its own links. Other routes keep the nav                                                 |
+| Experience             | not specified              | **A horizontal journey**, vertical scroll driving sideways travel        | Chrys's direction; a career is a path, and an axis says that better than a stack of rows                                 |
 
 ### Dark palette
 

@@ -12,11 +12,11 @@ The showcase renders one project at a time with up to three device frames. Each
 frame's CSS aspect ratio is derived from these numbers, so an image at the exact
 size fills its frame with no letterboxing and no crop.
 
-| `device` | Width | Height | Ratio | What it is |
-|----------|-------|--------|-------|------------|
-| `laptop` | **1440** | **900** | 16:10 | Drawn browser bar above the image |
-| `tablet` | **1024** | **768** | 4:3 | Plain bezel |
-| `mobile` | **390** | **844** | 195:422 | Plain bezel, iPhone-sized |
+| `device` | Width    | Height  | Ratio   | What it is                        |
+| -------- | -------- | ------- | ------- | --------------------------------- |
+| `laptop` | **1440** | **900** | 16:10   | Drawn browser bar above the image |
+| `tablet` | **1024** | **768** | 4:3     | Plain bezel                       |
+| `mobile` | **390**  | **844** | 195:422 | Plain bezel, iPhone-sized         |
 
 The single source of truth is `DEVICE_SIZES` in `lib/schema.ts`. Change a number
 there and the frames follow — `app/globals.css` sets each frame's
@@ -34,8 +34,8 @@ with no images at all falls back to a full-width typographic panel.
 images:
   - src: /shots/parsing-laptop.png
     alt: Supplier invoice parsed into structured fields, laptop browser
-    device: laptop        # laptop | tablet | mobile
-    width: 1440           # optional but recommended — see below
+    device: laptop # laptop | tablet | mobile
+    width: 1440 # optional but recommended — see below
     height: 900
     caption: Optional single line shown on the project detail page
 ```
@@ -97,10 +97,10 @@ https://placehold.co/1440x900?text=Laptop+1440x900
 Every project carries placeholders so no panel is blank while the backend is
 being built. They are split deliberately:
 
-| Projects | Service | Why |
-|----------|---------|-----|
+| Projects                                      | Service                                                                                           | Why                                                                                                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The four `confidential: true` client projects | **placehold.co** — a labelled box in the palette (`eceae4` on `83807a`) reading e.g. `1440 x 900` | A realistic photograph framed as a confidential client system is the one placeholder that could actually mislead. A labelled box cannot be mistaken for a screenshot |
-| `document-parsing-engine`, `devio` | **picsum.photos**, seeded | These two may legitimately show screenshots (`07-SOURCE-CONTENT.md` §5.5, §5.6), so a realistic image shows what the panel will look like |
+| `document-parsing-engine`, `devio`            | **picsum.photos**, seeded                                                                         | These two may legitimately show screenshots (`07-SOURCE-CONTENT.md` §5.5, §5.6), so a realistic image shows what the panel will look like                            |
 
 Each file carries a comment block at `images:` saying it is a placeholder.
 
@@ -116,11 +116,11 @@ composition that reads as finished.
 
 Set the browser viewport to the exact size, then capture:
 
-| Device | Viewport | Chrome DevTools device toolbar |
-|--------|----------|-------------------------------|
-| laptop | 1440 × 900 | Responsive, type the numbers |
-| tablet | 1024 × 768 | iPad |
-| mobile | 390 × 844 | iPhone 14 / 15 |
+| Device | Viewport   | Chrome DevTools device toolbar |
+| ------ | ---------- | ------------------------------ |
+| laptop | 1440 × 900 | Responsive, type the numbers   |
+| tablet | 1024 × 768 | iPad                           |
+| mobile | 390 × 844  | iPhone 14 / 15                 |
 
 Capture the viewport, not the full page — a full-page capture is the wrong
 ratio and will be cropped. In DevTools: Ctrl/Cmd-Shift-P → "Capture screenshot".

@@ -32,11 +32,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function WorkTypePage({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}) {
+export default async function WorkTypePage({ params }: { params: Promise<{ type: string }> }) {
   const { type } = await params;
   if (!isProjectType(type)) notFound();
 

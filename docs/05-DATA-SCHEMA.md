@@ -11,27 +11,27 @@ One file per project: `content/projects/<slug>.mdx`.
 
 ```yaml
 ---
-slug: modular-erp-platform          # required, matches filename
-title: Modular ERP Platform         # required, ≤ 60 chars
-type: erp                           # required: erp | automation | web | integration
-confidential: true                  # required
-client: null                        # null when confidential is true
-sector: Vehicle testing             # required when confidential is true
-year: 2025                          # required
-role: Senior full-stack developer   # required
-summary: >                          # required, ≤ 200 chars — used in the index
+slug: modular-erp-platform # required, matches filename
+title: Modular ERP Platform # required, ≤ 60 chars
+type: erp # required: erp | automation | web | integration
+confidential: true # required
+client: null # null when confidential is true
+sector: Vehicle testing # required when confidential is true
+year: 2025 # required
+role: Senior full-stack developer # required
+summary: > # required, ≤ 200 chars — used in the index
   Dashboard, finance, mobile field inspection and public API on one codebase,
   role-based access throughout.
 outcome:
-  value: "[METRIC]"                 # required — placeholder until the real figure exists
-  label: "[what it improved]"       # required
-stack:                              # required, 1–12 entries
+  value: '[METRIC]' # required — placeholder until the real figure exists
+  label: '[what it improved]' # required
+stack: # required, 1–12 entries
   - Laravel
   - MySQL
   - Sanctum
-images: []                          # may be empty — layout must not depend on it
-featured: true                      # required
-order: 1                            # required, ascending
+images: [] # may be empty — layout must not depend on it
+featured: true # required
+order: 1 # required, ascending
 ---
 ```
 
@@ -51,12 +51,12 @@ export type ProjectType = 'erp' | 'automation' | 'web' | 'integration';
 
 export interface ProjectImage {
   src: string;
-  alt: string;          // required — never generated from the filename
+  alt: string; // required — never generated from the filename
   caption?: string;
 }
 
 export interface Outcome {
-  value: string;        // "[METRIC]" until a real figure exists
+  value: string; // "[METRIC]" until a real figure exists
   label: string;
 }
 
@@ -72,7 +72,7 @@ export interface Project {
   summary: string;
   outcome: Outcome;
   stack: string[];
-  images: ProjectImage[];   // may be empty
+  images: ProjectImage[]; // may be empty
   featured: boolean;
   order: number;
   body: string;
@@ -94,11 +94,11 @@ export const site = {
   role: 'Senior Full-Stack Developer',
   location: 'Dubai, UAE',
   yearsExperience: '5+',
-  availability: '[X] days weekly',   // placeholder — still unknown
+  availability: '[X] days weekly', // placeholder — still unknown
   email: 'chrys.romao21@gmail.com',
-  phone: '+971 52 925 8013',         // render on /contact only, never in footer or JSON-LD
+  phone: '+971 52 925 8013', // render on /contact only, never in footer or JSON-LD
   links: {
-    linkedin: '[linkedin-url]',      // placeholder — still unknown
+    linkedin: '[linkedin-url]', // placeholder — still unknown
     github: 'https://github.com/chrysanly',
     resume: '/resume.pdf',
   },
@@ -120,11 +120,11 @@ the sequence with no code edit.
 
 ```ts
 export const contactSchema = z.object({
-  name:    z.string().trim().min(2).max(80),
-  email:   z.string().trim().email().max(160),
+  name: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().max(160),
   company: z.string().trim().max(120).optional().or(z.literal('')),
   message: z.string().trim().min(20).max(2000),
-  website: z.literal('').optional(),   // honeypot — any value means bot
+  website: z.literal('').optional(), // honeypot — any value means bot
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;
@@ -137,12 +137,12 @@ One schema, two consumers.
 
 `POST /api/contact`
 
-| Status | Body |
-|--------|------|
-| 200 | `{ ok: true }` |
-| 422 | `{ ok: false, errors: Record<keyof ContactInput, string> }` |
-| 429 | `{ ok: false, message: 'Too many messages. Try the direct email.' }` |
-| 500 | `{ ok: false, message: 'Message could not be sent.' }` |
+| Status | Body                                                                 |
+| ------ | -------------------------------------------------------------------- |
+| 200    | `{ ok: true }`                                                       |
+| 422    | `{ ok: false, errors: Record<keyof ContactInput, string> }`          |
+| 429    | `{ ok: false, message: 'Too many messages. Try the direct email.' }` |
+| 500    | `{ ok: false, message: 'Message could not be sent.' }`               |
 
 Rejection order: honeypot filled → return 200 without sending (do not tell a
 bot it failed); rate limit exceeded → 429; schema invalid → 422; mail provider

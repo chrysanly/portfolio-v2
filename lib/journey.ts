@@ -3,7 +3,6 @@ import { education, employment } from '@/content/site';
 import { type JourneyStopData, journeyStopSchema } from './schema';
 import { readContentPayload } from './content-source';
 
-
 /**
  * The career timeline, from the same two sources as the projects and in the
  * same order of preference — docs/08-BACKEND.md §2.
@@ -25,7 +24,14 @@ export interface JourneyEntry {
   location: string;
   period: string;
   phase: string | null;
+  /** HTML from the admin's TipTap field, or plain text on an older snapshot. */
   learned: string | null;
+  /**
+   * Slugs of the projects built at this stop, as the backend states them.
+   * Empty when the payload predates the relation — the timeline then falls
+   * back to matching a project's role against the title, as it always did.
+   */
+  projects: string[];
 }
 
 async function fromApi(): Promise<JourneyEntry[] | null> {
@@ -43,7 +49,9 @@ async function fromApi(): Promise<JourneyEntry[] | null> {
       const detail = result.error.issues
         .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
         .join('\n');
-      throw new Error(`Invalid journey stop from the content source (stop ${i + 1})\n${detail}`);
+      throw new Error(
+        `Invalid journey stop from the content source (stop ${i + 1})\n${detail}`,
+      );
     }
 
     return result.data;
@@ -60,6 +68,7 @@ async function fromApi(): Promise<JourneyEntry[] | null> {
       period: stop.period,
       phase: stop.phase,
       learned: stop.learned,
+      projects: stop.projects,
     }));
 }
 
@@ -80,6 +89,9 @@ function fromSiteContent(): JourneyEntry[] {
     period: job.period,
     phase: job.phase,
     learned: job.learned,
+    // The hardcoded fallback has no relation to carry, so the role matching
+    // downstream is what attaches work to it.
+    projects: [],
   }));
 
   const degree: JourneyEntry = {
@@ -90,6 +102,7 @@ function fromSiteContent(): JourneyEntry[] {
     period: String(education.year),
     phase: null,
     learned: null,
+    projects: [],
   };
 
   // The degree opens the run: chronologically it overlaps the first job, but

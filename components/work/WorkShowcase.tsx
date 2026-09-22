@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import type { Device, Project, ProjectImage } from '@/lib/schema';
 import { DEVICE_SIZES, PROJECT_TYPE_LABELS } from '@/lib/schema';
+import { NdaWatermark } from './NdaWatermark';
 
 /**
  * The work index as a pinned sequence — one project at a time.
@@ -64,15 +66,21 @@ function Screen({ device, image }: { device: Device; image?: ProjectImage }) {
   if (!image || isStandIn(image.src)) return null;
   const size = DEVICE_SIZES[device];
   return (
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img
-      src={image.src}
-      alt={image.alt}
-      width={image.width ?? size.width}
-      height={image.height ?? size.height}
-      loading="lazy"
-      decoding="async"
-    />
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.src}
+        alt={image.alt}
+        width={image.width ?? size.width}
+        height={image.height ?? size.height}
+        loading="lazy"
+        decoding="async"
+      />
+
+      {/* Sized down hard for this context by CSS — inside a phone shell on
+          this rig a screen is barely 120px tall. */}
+      {image.nda ? <NdaWatermark /> : null}
+    </>
   );
 }
 
@@ -193,9 +201,7 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
     for (let i = 0; i < count; i += 1) {
       const panel = panelRefs.current[i];
       if (!panel) continue;
-      panel.dataset.substepY = String(
-        Math.round(trackTop + ((i + 0.5) / count) * scrollable),
-      );
+      panel.dataset.substepY = String(Math.round(trackTop + ((i + 0.5) / count) * scrollable));
     }
   }, [count]);
 
@@ -272,8 +278,7 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
             const shell = shells[sIdx];
             if (!shell) continue;
             const delay = sIdx * 0.07;
-            const k =
-              a >= 0 && a <= 1.08 ? EASE(span(a, delay, delay + IN_END + 0.16)) : 0;
+            const k = a >= 0 && a <= 1.08 ? EASE(span(a, delay, delay + IN_END + 0.16)) : 0;
             const rise = (1 - k) * (26 + sIdx * 16);
             const dim = 0.35 + k * 0.65;
             shell.style.transform = `translate3d(0, ${rise.toFixed(1)}px, 0) scale(${(0.955 + k * 0.045).toFixed(4)})`;
@@ -295,11 +300,7 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
 
   return (
     <section className="showcase" aria-hidden="true">
-      <div
-        ref={trackRef}
-        className="showcase__track"
-        style={{ height: `${count * 88}vh` }}
-      >
+      <div ref={trackRef} className="showcase__track" style={{ height: `${count * 88}vh` }}>
         <div className="showcase__stage">
           {projects.map((project, i) => {
             /*
@@ -352,6 +353,40 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
                       <p className="panel__out">
                         <b>{project.outcome.value}</b>
                         <em>{project.outcome.label}</em>
+                      </p>
+
+                      {/*
+                       * The way into the project from the showcase. Without it
+                       * the panels were a slideshow with no exit — the only
+                       * link to a case study was in the plain list, which is
+                       * `display: none` whenever the showcase is on.
+                       *
+                       * `tabIndex={-1}` because this whole section is
+                       * `aria-hidden` (see the section element): a focusable
+                       * control inside an aria-hidden subtree is a real
+                       * violation — the focus lands somewhere a screen reader
+                       * refuses to announce. Pointer users get the link;
+                       * keyboard and AT users reach the same page through the
+                       * header's Work link. Widening that is a separate job,
+                       * noted in the reply that added this.
+                       */}
+                      <p className="panel__cta">
+                        <Link
+                          className="button panel__button"
+                          href={`/work/${project.slug}`}
+                          tabIndex={-1}
+                        >
+                          View project
+                          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path
+                              d="M6 3l5 5-5 5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="square"
+                            />
+                          </svg>
+                        </Link>
                       </p>
                     </div>
 

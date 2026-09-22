@@ -90,20 +90,20 @@ kickoff still apply.
 
 Common failures and the correction for each:
 
-| What it does | What to say |
-|---|---|
-| Fills in a number for `[METRIC]` | "Rule 1. Revert that to the placeholder." |
-| Invents a project or a skill not in the CV | "Rule 1. Only what's in 07-SOURCE-CONTENT.md." |
-| Publishes DOB, civil status, or the phone in the footer | "Rule 2. Remove it." |
-| Names a client on a confidential project | "NDA defaults. Set confidential: true, client: null." |
-| Rounds corners, adds a card shadow | "Rule 3. Border radius is 0 everywhere, see 04-UIUX-BRIEF §4." |
-| Installs shadcn, lucide, GSAP | "Rule 4. Remove it and use what's in 02-TRD §1." |
-| Rewrites the hero with its own animation | "MastheadHero.tsx is approved. Restore it and apply only the two listed changes." |
-| Builds several phases at once | "Stop. Finish Phase N's acceptance criteria only." |
-| Starts scaffolding Laravel early | "08-BACKEND.md is Phase 8, post-launch. Remove it." |
-| Wires the site to fetch the API at runtime | "08-BACKEND.md §2. Build time only. The site stays static." |
-| Installs Filament for the admin | "08-BACKEND.md §3. Hand-built Blade. The point is that I built it." |
-| Adds fade-in on every section | "04-UIUX-BRIEF §6. One motion moment on the site. Remove the rest." |
+| What it does                                            | What to say                                                                       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Fills in a number for `[METRIC]`                        | "Rule 1. Revert that to the placeholder."                                         |
+| Invents a project or a skill not in the CV              | "Rule 1. Only what's in 07-SOURCE-CONTENT.md."                                    |
+| Publishes DOB, civil status, or the phone in the footer | "Rule 2. Remove it."                                                              |
+| Names a client on a confidential project                | "NDA defaults. Set confidential: true, client: null."                             |
+| Rounds corners, adds a card shadow                      | "Rule 3. Border radius is 0 everywhere, see 04-UIUX-BRIEF §4."                    |
+| Installs shadcn, lucide, GSAP                           | "Rule 4. Remove it and use what's in 02-TRD §1."                                  |
+| Rewrites the hero with its own animation                | "MastheadHero.tsx is approved. Restore it and apply only the two listed changes." |
+| Builds several phases at once                           | "Stop. Finish Phase N's acceptance criteria only."                                |
+| Starts scaffolding Laravel early                        | "08-BACKEND.md is Phase 8, post-launch. Remove it."                               |
+| Wires the site to fetch the API at runtime              | "08-BACKEND.md §2. Build time only. The site stays static."                       |
+| Installs Filament for the admin                         | "08-BACKEND.md §3. Hand-built Blade. The point is that I built it."               |
+| Adds fade-in on every section                           | "04-UIUX-BRIEF §6. One motion moment on the site. Remove the rest."               |
 
 ## Before launch
 

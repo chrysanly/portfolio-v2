@@ -116,7 +116,14 @@ export default function ContactPage() {
                       strokeWidth="1.5"
                       strokeLinejoin="round"
                     />
-                    <circle cx="12" cy="10.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                    <circle
+                      cx="12"
+                      cy="10.5"
+                      r="2.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
                   </svg>
                   {site.location}
                 </li>

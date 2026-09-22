@@ -23,6 +23,22 @@ import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'fra
 const EASE = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
+/**
+ * "What I took from it" is HTML now — written in the admin's TipTap field, where the
+ * point was that the Enter key produces a paragraph, and sanitised there
+ * against an allowlist (`App\Services\RichText`) before it is ever stored.
+ *
+ * Older snapshots and `content/site.ts` hold plain text for the same field, so
+ * markup is not assumed: anything that does not open with a tag is escaped and
+ * wrapped in a paragraph, which is both the safe reading and the one that
+ * renders identically to what shipped before.
+ */
+function asProse(value: string): string {
+  if (/^\s*</.test(value)) return value;
+
+  return `<p>${value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+}
+
 export interface JourneyStop {
   kind: 'education' | 'role';
   period: string;
@@ -75,7 +91,12 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
    * paint() uses — the pager needs the immediate position, not the same
    * trailing motion the cards animate with.
    */
-  const journeyGeometry = useRef({ trackTop: 0, scrollable: 0, travel: 0, centers: [] as number[] });
+  const journeyGeometry = useRef({
+    trackTop: 0,
+    scrollable: 0,
+    travel: 0,
+    centers: [] as number[],
+  });
 
   const measureJourneyGeometry = useCallback(() => {
     const track = trackRef.current;
@@ -257,10 +278,16 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
                 ))}
 
                 {stop.learned ? (
-                  <p className="journey__learned">
+                  <div className="journey__learned">
                     <span>What I took from it</span>
-                    {stop.learned}
-                  </p>
+                    {/* The admin is the only author, and the markup was
+                        allowlisted on the way into the database rather than
+                        trusted on the way out — see asProse above. */}
+                    <div
+                      className="journey__prose"
+                      dangerouslySetInnerHTML={{ __html: asProse(stop.learned) }}
+                    />
+                  </div>
                 ) : null}
               </div>
             </li>
