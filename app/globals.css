@@ -1841,6 +1841,19 @@
        and the last one closes there. With a flat page gutter the degree and the
        current post sat at the edges and never became the card being read. */
     --card-w: min(560px, 82vw);
+    /*
+     * One height for every card, from the viewport rather than from the
+     * content. Asked for on 2026-09-22: cards that each sized themselves left
+     * the run jumping between a 700px panel and a 300px one as it travelled,
+     * and the tallest of them ended a line flush against its own bottom
+     * border, which reads as text spilling out of the card.
+     *
+     * The subtrahend is the stage's bottom padding plus the rail and a little
+     * air — the same budget the body's max-height used to carry. The clamp is
+     * what makes it work from a phone to a 4K display: no card is ever shorter
+     * than 320px or taller than 760px, whatever the window does.
+     */
+    --card-h: clamp(320px, calc(100svh - var(--header-h) - 132px), 760px);
     padding-inline: max(var(--page-x), calc(50vw - var(--card-w) / 2));
     will-change: transform;
   }
@@ -1849,6 +1862,7 @@
     position: relative;
     flex: 0 0 auto;
     width: var(--card-w);
+    height: var(--card-h);
     overflow: hidden;
     border: 1px solid var(--color-rule);
     border-top: 3px solid var(--color-rule);
@@ -1867,12 +1881,28 @@
 
   /* A short laptop screen cannot hold the longest stop whatever the budget,
      and silently cutting the last contributions off the bottom is worse than a
-     scrollbar. Contained, so the wheel cannot escape and skip the whole run. */
+     scrollbar. Contained, so the wheel cannot escape and skip the whole run.
+     The height comes from the card now (`--card-h`), so every stop scrolls
+     inside the same box rather than each choosing its own. */
   [data-motion='on'] .journey__body {
-    max-height: calc(100svh - var(--header-h) - 130px);
+    height: 100%;
     overflow: hidden auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
+    /*
+     * The bottom edge fades rather than cutting, so a line the scroller has
+     * clipped reads as "there is more" instead of as text spilling out of the
+     * card. A mask, not a gradient overlay in the card's colour: the first
+     * attempt was an overlay, and over the nested "what I took from it" panel
+     * — which has a ground of its own — it did not blend and still looked
+     * like a hard cut. A mask fades the content itself and lets whatever is
+     * behind show through, whatever that happens to be.
+     *
+     * Attached to the visible box, not the scrolled content, so it stays at
+     * the edge as the card scrolls. With every card now the same height, a
+     * short stop's text ends well above it and nothing is faded at all.
+     */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent);
     padding: 26px 28px 28px;
   }
 
@@ -4173,8 +4203,13 @@
     padding-bottom: 80px;
   }
 
+  [data-motion='on'] .journey__strip {
+    /* The stage gives 12px of its bottom padding back above, so the card may
+       take them. */
+    --card-h: clamp(320px, calc(100svh - var(--header-h) - 120px), 760px);
+  }
+
   [data-motion='on'] .journey__body {
-    max-height: calc(100svh - var(--header-h) - 108px);
     padding: 20px 22px 22px;
   }
 
