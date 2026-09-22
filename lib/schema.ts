@@ -1,4 +1,37 @@
 import { z } from 'zod';
+import { cleanLine, cleanList, cleanText } from './text';
+
+/**
+ * Every string and every list from the content source is normalised before it
+ * is validated, not after.
+ *
+ * Three sources feed this schema and only one of them is written by hand, so
+ * the imperfections are the ordinary ones: a stray emphasis marker left in a
+ * form field, a pasted non-breaking space, a Windows line break inside a
+ * one-line value, a blank row somebody left in a list. Cleaning on the way in
+ * means one place decides what a usable string is, and every consumer — pages,
+ * metadata, the OG image, the journey — sees the same value. See lib/text.ts.
+ *
+ * Chrys asked for this filtering inside the components, on 2026-09-22. It is
+ * here instead, one layer earlier, so that a component written later cannot
+ * forget to do it; the components keep their own "is this list empty" guards,
+ * which is what collapses a section cleanly.
+ */
+
+/** A one-line value: no line breaks, no stray emphasis, trimmed. */
+const line = (schema: z.ZodString) => z.preprocess((value) => cleanLine(value), schema);
+
+/** Markdown or prose, where the line breaks are content. */
+const prose = (schema: z.ZodString) => z.preprocess((value) => cleanText(value), schema);
+
+/**
+ * A list with the holes taken out: nulls, blanks and duplicates are dropped
+ * rather than failing validation. An empty list is a valid state — the UI
+ * collapses the section — because a build that dies when somebody clears a
+ * field in the admin is a worse failure than a missing row.
+ */
+const list = (max: number) =>
+  z.preprocess((value) => cleanList(value), z.array(z.string().min(1)).max(max));
 
 /** docs/05-DATA-SCHEMA.md §1 and §2. */
 export const PROJECT_TYPES = ['erp', 'automation', 'web', 'integration'] as const;
@@ -33,9 +66,9 @@ export const MEDIA_KINDS = ['image', 'video'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 export const projectImageSchema = z.object({
-  src: z.string().min(1),
-  alt: z.string().min(1, 'alt is required — never generate it from the filename'),
-  caption: z.string().optional(),
+  src: line(z.string().min(1)),
+  alt: line(z.string().min(1, 'alt is required — never generate it from the filename')),
+  caption: line(z.string()).optional(),
   /**
    * Absent on everything uploaded before videos were allowed, so it is
    * inferred from the extension rather than required — see `mediaKind()`.
@@ -74,8 +107,14 @@ export function mediaKind(image: { src: string; kind?: MediaKind }): MediaKind {
 }
 
 export const outcomeSchema = z.object({
-  value: z.string().min(1),
-  label: z.string().min(1),
+  /*
+   * The bracketed placeholders pass through untouched. They are real content
+   * under rule 1 of CLAUDE.md — the site ships the placeholder rather than an
+   * invented figure, and docs/CONTENT-TODO.md section 2 tracks them. The
+   * cleaning here removes formatting damage, never a value.
+   */
+  value: line(z.string().min(1)),
+  label: line(z.string().min(1)),
 });
 
 export type ProjectImage = z.infer<typeof projectImageSchema>;
@@ -91,22 +130,39 @@ export const projectFrontmatterSchema = z
       .string()
       .min(1)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'slug must be kebab-case'),
-    title: z.string().min(1).max(60),
+    title: line(z.string().min(1).max(60)),
     type: z.enum(PROJECT_TYPES),
     confidential: z.boolean(),
-    client: z.string().min(1).nullable().default(null),
-    sector: z.string().min(1).nullable().default(null),
+    client: line(z.string().min(1)).nullable().default(null),
+    sector: line(z.string().min(1)).nullable().default(null),
     year: z.number().int().min(2000).max(2100),
-    role: z.string().min(1),
-    summary: z.string().min(1).max(200),
+    role: line(z.string().min(1)),
+    summary: line(z.string().min(1).max(200)),
     outcome: outcomeSchema,
-    stack: z.array(z.string().min(1)).min(1).max(12),
+    /*
+     * No lower bound any more. It was `.min(1)`, which turned an empty stack
+     * in the admin into a failed build for the whole site; the section now
+     * collapses instead, which is Chrys's brief of 2026-09-22 item 1 and the
+     * better failure by a distance.
+     */
+    stack: list(12),
     /**
      * What was actually built, verbatim from that project's "Approach
      * material" bullets in docs/07-SOURCE-CONTENT.md §5. Shown in the journey
      * under the role it was built in.
      */
-    contributions: z.array(z.string().min(1)).max(8).default([]),
+    contributions: list(8).default([]),
+    /**
+     * The engineering the case study is actually about — stored procedures for
+     * transaction safety, a Repository and Service split enforcing SOLID,
+     * Pusher plus S3 plus Passport. Asked for on 2026-09-22: a technical lead
+     * reads this paragraph and often nothing else.
+     *
+     * Optional, and absent on every project written before the field existed,
+     * so an older snapshot renders exactly as it did — the section is simply
+     * not drawn.
+     */
+    engineeringDepth: prose(z.string().max(1200)).nullable().default(null),
     images: z.array(projectImageSchema).default([]),
     featured: z.boolean(),
     order: z.number().int().min(0),
@@ -154,13 +210,13 @@ export interface Project extends ProjectFrontmatter {
  */
 export const journeyStopSchema = z.object({
   kind: z.enum(['work', 'education']),
-  title: z.string().min(1).max(140),
-  organisation: z.string().min(1).max(160),
-  location: z.string().min(1).max(120),
+  title: line(z.string().min(1).max(140)),
+  organisation: line(z.string().min(1).max(160)),
+  location: line(z.string().min(1).max(120)),
   /** Free text — "Nov 2022 – Feb 2025", or just "2020" for a degree. */
-  period: z.string().min(1).max(60),
+  period: line(z.string().min(1).max(60)),
   /** The editorial arc beside the real job title. A degree has none. */
-  phase: z.string().max(120).nullable().default(null),
+  phase: line(z.string().max(120)).nullable().default(null),
   /**
    * HTML, written in the admin's TipTap field and sanitised there against an
    * allowlist (`App\Services\RichText`). The ceiling is on the markup rather
@@ -183,7 +239,7 @@ export const journeyStopSchema = z.object({
    * Defaults empty, and the timeline falls back to the old matching when it
    * is, so a snapshot written before this field still renders.
    */
-  projects: z.array(z.string().min(1)).default([]),
+  projects: list(40).default([]),
   order: z.number().int().min(0),
 });
 
@@ -203,24 +259,41 @@ export type JourneyStopData = z.infer<typeof journeyStopSchema>;
  * docs/07-SOURCE-CONTENT.md §1. Those never travel in this payload.
  */
 export const profileSchema = z.object({
-  name: z.string().min(1).max(60).optional(),
-  fullName: z.string().min(1).max(160).optional(),
-  role: z.string().min(1).max(120).optional(),
-  location: z.string().min(1).max(120).optional(),
-  yearsExperience: z.string().min(1).max(20).optional(),
-  availability: z.string().max(60).nullable().optional(),
-  email: z.string().email().optional(),
-  languages: z.array(z.string().min(1).max(40)).optional(),
-  portrait: z.string().min(1).nullable().optional(),
+  name: line(z.string().min(1).max(60)).optional(),
+  fullName: line(z.string().min(1).max(160)).optional(),
+  role: line(z.string().min(1).max(120)).optional(),
+  location: line(z.string().min(1).max(120)).optional(),
+  yearsExperience: line(z.string().min(1).max(20)).optional(),
+  availability: line(z.string().max(60)).nullable().optional(),
+  email: line(z.string().email()).optional(),
+  languages: list(20).optional(),
+  portrait: line(z.string().min(1)).nullable().optional(),
   links: z
     .object({
       github: z.string().nullable().optional(),
       linkedin: z.string().nullable().optional(),
     })
     .optional(),
-  intro: z.array(z.string().min(1).max(120)).optional(),
-  notes: z.array(z.string().min(1).max(300)).optional(),
-  positioning: z.string().max(1200).optional(),
+  intro: list(6).optional(),
+  notes: list(12).optional(),
+  positioning: prose(z.string().max(1200)).optional(),
+  /**
+   * The CV, when one has been uploaded in the admin — absent or null until
+   * then, and the hero's second button is not drawn at all in that case.
+   *
+   * A URL and nothing else: the file lives in the backend's media storage,
+   * which is where it can be replaced without a deploy. Never `docs/resume.pdf`
+   * from this repo — that copy carries a date of birth and a civil status and
+   * is barred by rule 2 of CLAUDE.md.
+   */
+  cv: z
+    .object({
+      url: line(z.string().min(1)),
+      updatedAt: line(z.string()).nullable().optional(),
+      label: line(z.string().max(60)).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   meta: z
     .object({
       discipline: z.string().max(200),

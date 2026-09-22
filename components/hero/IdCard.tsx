@@ -45,6 +45,45 @@ const ANCHOR_Y = -46; // above the stage, so the webbing runs off the top
 const GRAVITY = 0.62;
 const DRAG = 0.976; // air resistance
 const ITERATIONS = 12;
+
+/*
+ * How far the webbing gives before it is taut, and how hard it pulls back
+ * while stretched.
+ *
+ * The cord was seventeen rigid segments: 17 x 14px plus the clip's drop, so
+ * the card could not travel more than about 254px from the anchor however far
+ * it was dragged. Chrys asked for it to reach the left side of the hero, and
+ * the honest way to get there is the way real webbing behaves — it stretches
+ * under load, holds at its limit, and recoils when released.
+ *
+ * 1.9 gives roughly 456px of reach. ELASTIC is deliberately weak: strong
+ * enough to snap back, soft enough that the stretch is visible while it is
+ * being pulled rather than fighting the pointer.
+ */
+const MAX_STRETCH = 1.9;
+const ELASTIC = 0.14;
+
+/*
+ * While it is being held there is no limit worth speaking of.
+ *
+ * MAX_STRETCH is what the cord does under its own dynamics — a throw, a
+ * scroll jog — and 1.9 keeps that looking like webbing rather than elastic.
+ * But a hand holding the card is stronger than the cord: Chrys asked for it
+ * to follow the cursor anywhere on the page, so while held the limit is
+ * raised past any screen's diagonal and the cord simply pays out. The spring
+ * is still there, which is what pulls it home the moment it is released.
+ */
+const HELD_STRETCH = 40;
+
+/*
+ * Where the cord hangs from, measured in from the mount's right edge.
+ *
+ * It used to be the mount's centre (`W / 2`), which tied the badge's resting
+ * position to the width of its box — so widening the box to give the card
+ * somewhere to be dragged *to* would have moved the badge itself. 190 is what
+ * `W / 2` came to at the old 380px width, so the pose is unchanged.
+ */
+const ANCHOR_INSET = 190;
 /* A real clip has friction, and a card hanging in one has a preferred way up.
    Without this the card is two points falling at the same rate — no torque
    restores it, so it settles at whatever angle it happened to stop at. */
@@ -107,7 +146,7 @@ export function IdCard({ profile }: { profile: Profile }) {
          than the card and would corrupt the constraint length. */
       cardW = card.offsetWidth || 250;
       cardH = card.offsetHeight || 300;
-      anchorX = W / 2;
+      anchorX = W - ANCHOR_INSET;
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.setAttribute('width', String(W));
@@ -142,13 +181,36 @@ export function IdCard({ profile }: { profile: Profile }) {
     let frame = 0;
     const born = performance.now();
 
-    const link = (a: P, b: P, len: number) => {
+    /**
+     * One constraint between two points.
+     *
+     * `stretchy` makes it webbing rather than a rod: rigid in compression, so
+     * the cord still hangs straight under its own weight; a weak spring from
+     * its rest length up to MAX_STRETCH, which is the give you feel while
+     * dragging; and rigid again at the limit, which is what taut feels like.
+     *
+     * Only the cord is stretchy. The clip's drop and the card's own body stay
+     * rigid — a stretchy card would deform, which is not a thing a laminated
+     * badge does.
+     */
+    const link = (a: P, b: P, len: number, stretchy = false) => {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const d = Math.hypot(dx, dy) || 0.0001;
       const total = a.w + b.w;
       if (total === 0) return;
-      const k = (d - len) / d / total;
+
+      const limit = stretchy ? len * (held ? HELD_STRETCH : MAX_STRETCH) : len;
+      let target = len;
+      let stiffness = 1;
+
+      if (d > limit) {
+        target = limit;
+      } else if (stretchy && d > len) {
+        stiffness = ELASTIC;
+      }
+
+      const k = ((d - target) / d / total) * stiffness;
       a.x += dx * k * a.w;
       a.y += dy * k * a.w;
       b.x -= dx * k * b.w;
@@ -187,8 +249,8 @@ export function IdCard({ profile }: { profile: Profile }) {
       }
 
       for (let n = 0; n < ITERATIONS; n++) {
-        for (let i = 0; i < POINTS - 1; i++) link(pts[i], pts[i + 1], SEG);
-        link(pts[POINTS - 1], slot(), CLIP);
+        for (let i = 0; i < POINTS - 1; i++) link(pts[i], pts[i + 1], SEG, true);
+        link(pts[POINTS - 1], slot(), CLIP, true);
         link(slot(), foot(), cardH);
         if (held) {
           const s = slot();
@@ -307,9 +369,21 @@ export function IdCard({ profile }: { profile: Profile }) {
     const onMove = (event: PointerEvent) => {
       if (!held) return;
       const box = stage.getBoundingClientRect();
-      // Kept inside the stage so it cannot be thrown behind the masthead.
-      grabX = Math.max(10, Math.min(W - 10, event.clientX - box.left));
-      grabY = Math.max(40, Math.min(H - 40, event.clientY - box.top));
+      /*
+       * The raw pointer, unclamped.
+       *
+       * It used to be held inside the badge's own box — `[10, W - 10]` — which
+       * is what stopped the card short of the cursor however wide the box was
+       * made. Chrys's instruction was "no blockings, and it's freeway": the
+       * card goes where the pointer goes, the cord pays out behind it, and the
+       * spring brings both back on release.
+       *
+       * Nothing needs to clamp it. Pointer capture keeps the events coming
+       * outside the box, the webbing is no longer clipped to it (see
+       * `.lanyard__cord`), and the hero's own stage bounds what can be seen.
+       */
+      grabX = event.clientX - box.left;
+      grabY = event.clientY - box.top;
     };
 
     const onUp = () => {

@@ -94,7 +94,15 @@ function heroSubIndex(): number | null {
   if (!document.querySelector('.hero')) return null;
   const stage = document.documentElement.dataset.heroStage;
   if (stage === 'done' || stage === undefined) return null;
-  return stage === 'details' ? 1 : 0;
+  /*
+   * One stop, not two. "Hero" and "Details" were separate because the ledger
+   * only existed part-way through a scroll-driven sequence; the gate plays
+   * that sequence before any scrolling, so both describe the same position —
+   * the top of the page. Keeping them split gave the pager a stop it could
+   * never make current and a jump that landed mid-sequence with the masthead
+   * clipped against the stage, which is what Chrys photographed.
+   */
+  return 0;
 }
 
 /*
@@ -233,18 +241,7 @@ export function SectionPager() {
         return;
       }
 
-      /*
-       * "Details" sits inside the hero's pinned stage as an absolutely
-       * positioned child (`top: 100%` of the masthead — globals.css), so its
-       * own bounding rect says nothing about where it becomes current while
-       * scrolling. MastheadHero computes and hands over the real value.
-       */
-      const top =
-        label === 'Details'
-          ? parseFloat(
-              getComputedStyle(document.documentElement).getPropertyValue('--hero-details-y'),
-            ) || el.getBoundingClientRect().top + window.scrollY
-          : el.getBoundingClientRect().top + window.scrollY;
+      const top = el.getBoundingClientRect().top + window.scrollY;
 
       found.push({ id: el.id || label, label, top });
     });

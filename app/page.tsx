@@ -4,10 +4,10 @@ import { ContactBand } from '@/components/ui/ContactBand';
 import { StaticIntro } from '@/components/hero/StaticIntro';
 import { HeroMount } from '@/components/hero/HeroMount';
 import { WorkIndexRow } from '@/components/work/WorkIndexRow';
-import { TechMarquee } from '@/components/ui/TechMarquee';
 import { ExperienceTimeline } from '@/components/work/ExperienceTimeline';
 import { SectionPager } from '@/components/ui/SectionPager';
 import { WorkShowcase } from '@/components/work/WorkShowcase';
+import { ArchitectureNote } from '@/components/ui/ArchitectureNote';
 import { attribution, getFeaturedProjects } from '@/lib/projects';
 import { getProfile, type Profile } from '@/lib/profile';
 
@@ -82,9 +82,13 @@ export default async function HomePage() {
         <div id="journey" data-section="Journey">
           <ExperienceTimeline />
         </div>
-        <div id="stack" data-section="Tech stack">
-          <TechMarquee />
+        {/* Near the foot of the page, after the work and the stack: by here a
+            technical reader has seen what was built and is owed the answer to
+            "and what is this site itself?". Asked for on 2026-09-22. */}
+        <div id="architecture" data-section="Architecture">
+          <ArchitectureNote />
         </div>
+
         <div id="contact" data-section="Contact">
           <ContactBand />
         </div>

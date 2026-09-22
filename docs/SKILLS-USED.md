@@ -173,6 +173,43 @@ is none for this repo, and the fallback pattern it points at
 (`examples/playwright.md`) was the right one — a Herd-served Laravel app needs
 no driver beyond `page.goto` and `ignoreHTTPSErrors`.
 
+### `frontend-design` — the architecture section, as a path
+
+Used on 2026-09-22 when the new "Engineering stack and architecture" section
+was given a full viewport height and Chrys's verdict on the result was "make
+this more look good": four labelled columns and a paragraph, floating in the
+middle of an otherwise empty screen.
+
+What the skill actually changed:
+
+- **It named three things in the first draft as generated-design tells** — the
+  tracked-out caps eyebrow over every heading, numbered markers on content
+  that is not a sequence, and identical labelled columns. Two of those were in
+  the section as built.
+- **The numbering test was the useful one.** "Check the content really is a
+  sequence" turned the section around: the content *is* a sequence — a
+  frontend that consumes an API that is backed by a database — so it is drawn
+  as the request path, three hops on a hairline, rather than as four peers in
+  a row. Cloudinary hangs off the frontend as a branch, because media never
+  travels through the API and putting it in the line would state something
+  untrue.
+- **"Spend your boldness in one place"** removed the accent colour from the
+  section entirely. The display names are the loud thing; a colour as well was
+  two.
+- **The connectives came from Chrys's own sentence.** "Dynamically consumes"
+  and "backed by" sit on the segments between the hops, so the diagram reads
+  as the sentence and the paragraph below it reads as the caption. No invented
+  copy, which `CLAUDE.md` rule 1 would have forbidden anyway.
+
+What it did not change: the caps section label stayed. The skill calls it a
+tell, but `04-UIUX-BRIEF.md` §4 sets it for every section on this site and the
+brief's own direction wins over a general rule — removing it here alone would
+have made one section inconsistent with six.
+
+Measured after: 1008 / 828 / 728px tall at 1080 / 900 / 800 viewport heights,
+content filling 60–90% of the section rather than a strip in the middle, no
+horizontal overflow, and the row becoming a left-rail column below 1023px.
+
 ### Not used for the splash, the ID badge or the cursor
 
 Those were built without a skill. `micro-interaction` and `accessible-animation`

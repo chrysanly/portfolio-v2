@@ -33,6 +33,12 @@ contributions:
   - 'Secure REST APIs with Laravel Sanctum powering mobile app authentication'
   - 'Core business logic refactored onto Repository and Service Layer patterns, improving reusability and Eloquent query performance'
   - 'Code review and mentoring to hold clean architecture standards'
+# Chrys, 2026-09-22 — the paragraph a technical lead reads.
+engineeringDepth: >
+  Refactored core business logic onto clean Repository and Service Layer
+  patterns to enforce strict SOLID principles, optimize Eloquent queries, and
+  implement granular role-based access control (RBAC).
+
 images:
   - src: https://placehold.co/1440x900/eceae4/83807a?text=1440+x+900
     alt: Placeholder — no laptop screenshot is published for this confidential project
@@ -55,24 +61,13 @@ order: 1
 
 ## Problem
 
-Operations spanning vehicle testing, registration, finance and field service had
-no single system. Access control and financial tracking were the weak points.
+Managing operations, accounting, appointments, and user access across multiple operational layers required a unified, bulletproof backend infrastructure.
 
 ## Approach
 
-Role-based middleware handles authentication and permission management across all
-four modules.
+Built a comprehensive four-module enterprise ERP (Dashboard, Finance, Mobile CIS, and API App) running on a single unified codebase.
 
-The Finance module carries role-permissioned accounting pages, financial aging
-logic for debit and credit balances, and asset depreciation tracking. The Mobile
-CIS module manages client service appointments driven by customer information.
-The Dashboard module configures mobile API data categories and service listings.
-
-Secure REST APIs built on Laravel Sanctum power mobile app authentication.
-
-Core business logic was refactored onto the Repository and Service Layer
-patterns, improving reusability and Eloquent query performance. Code review and
-mentoring held the clean architecture standard in place.
+Designed secure REST APIs powered by Laravel Sanctum to handle cross-platform mobile authentication cleanly.
 
 ## Stack notes
 

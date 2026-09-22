@@ -1,5 +1,4 @@
-import { site } from '@/content/site';
-import { getJourney, getRoles } from '@/lib/journey';
+import { getJourney } from '@/lib/journey';
 import { getAllProjects } from '@/lib/projects';
 import { JourneyTimeline, type JourneyStop } from './JourneyTimeline';
 
@@ -34,7 +33,6 @@ export async function ExperienceTimeline() {
   // Already oldest-first, whether it came from the admin or from the
   // hardcoded fallback — lib/journey.ts reconciles the two.
   const journey = await getJourney();
-  const roleCount = (await getRoles()).length;
 
   /*
    * Decided once, for the whole timeline, and not per stop.
@@ -86,10 +84,6 @@ export async function ExperienceTimeline() {
         </h2>
 
         <JourneyTimeline stops={stops} />
-
-        <p className="track__foot">
-          {site.yearsExperience} years, {roleCount} companies. Based in {site.location}.
-        </p>
       </div>
     </section>
   );

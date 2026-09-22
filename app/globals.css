@@ -547,6 +547,21 @@
   }
 
   .site-header__inner {
+    /*
+     * Full width, against `.wrap`'s own 1400px cap.
+     *
+     * The hero's furniture is pinned to the page gutter — the location line at
+     * `left: var(--page-x)`, the Begin control and the rail likewise — while
+     * the header was centred inside 1400px. At 1920 that put "Light" 260px
+     * short of the edge the location line sits on, which is what Chrys
+     * spotted: the two ends of the same bar were measured from different
+     * things. The gutter wins, because it is what the rest of the first
+     * screen is aligned to.
+     *
+     * The masthead's dock follows on its own: MastheadHero measures the
+     * logo's real position every time, so moving it moves the target.
+     */
+    max-width: none;
     height: 72px;
     display: flex;
     align-items: center;
@@ -754,6 +769,54 @@
   .button:hover .cta-dot {
     animation: none;
     opacity: 1;
+  }
+
+  /* ----- the hero's two buttons -------------------------------------------
+     `.button--solid` is the same control filled in, so the pair reads as
+     primary and secondary without inventing a second button language. Its
+     hover inverts the other way, back to the outline, which stops the two
+     from swapping appearances under the pointer.
+  --------------------------------------------------------------------------- */
+  .button--solid {
+    background: var(--color-ink);
+    color: var(--color-ground);
+  }
+
+  .button--solid:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-ink);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 34px;
+  }
+
+  .hero-actions .button svg {
+    width: 15px;
+    height: 15px;
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hero-actions .button:hover svg {
+      transform: translateY(2px);
+    }
+  }
+
+  /* When the CV was last replaced, for a reader deciding whether they are
+     looking at something current. Inside the button, so it cannot drift away
+     from what it describes. */
+  .hero-actions__stamp {
+    font-style: normal;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.62;
   }
 
   .button:disabled {
@@ -1011,6 +1074,24 @@
     will-change: transform;
   }
 
+  /*
+   * Revealed by paint() on the same two custom properties as everything else
+   * in the hero body: `--fade` here, `--wipe` on the child. Copying the
+   * mechanism rather than inventing one is what keeps the beat identical to
+   * the ledger rows it follows.
+   */
+  .hero__cta {
+    overflow: hidden;
+    margin-top: 30px;
+    opacity: var(--fade, 0);
+  }
+
+  .hero__cta .hero-actions {
+    margin-top: 0;
+    transform: translate3d(0, var(--wipe, 100%), 0);
+    will-change: transform;
+  }
+
   .facts {
     margin-top: 30px;
     max-width: 980px;
@@ -1116,9 +1197,19 @@
   .badge-mount {
     position: absolute;
     top: 0;
-    /* Wider than the card so it can be pulled well off-centre and thrown. */
+    /*
+     * The area the badge can be dragged across, not the size of the badge.
+     *
+     * It was 380px — barely wider than the card — so the drag was clamped to
+     * its own box long before the cord ran out. Chrys asked for the lanyard to
+     * reach the left side, so the box now spans most of the hero and the cord
+     * itself is the only limit (see MAX_STRETCH in IdCard.tsx).
+     *
+     * `pointer-events: none` here and `auto` on the card alone, so a box this
+     * wide cannot take a click away from the intro or the buttons under it.
+     */
     right: calc(var(--page-x) - 25px);
-    width: 380px;
+    width: min(820px, calc(100vw - var(--page-x) * 2));
     height: 100%;
     opacity: 0;
     pointer-events: none;
@@ -1135,7 +1226,14 @@
     position: absolute;
     top: 0;
     left: 0;
-    overflow: hidden;
+    /*
+     * `visible`, against both the UA default for an outermost `<svg>` and what
+     * this rule used to say. The webbing is drawn in the SVG's own coordinates
+     * and the card can now be dragged well outside them, so clipping here cut
+     * the cord off at the badge box's edge while the card kept going — a
+     * visible break between the two, which is the "block" Chrys reported.
+     */
+    overflow: visible;
     pointer-events: none;
   }
 
@@ -2245,69 +2343,6 @@
     color: var(--color-muted);
   }
 
-  /* ----- stack marquee ---------------------------------------------------- */
-  .stack-band {
-    padding: 8px 0 44px;
-    border-top: 1px solid var(--color-rule);
-    margin-top: 72px;
-  }
-
-  .marquee {
-    display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
-    /* The row is a horizontal surface of its own; snapping it to the page
-       margin would make the loop visibly restart at the edge. */
-    padding-inline: var(--page-x);
-    gap: 0;
-  }
-
-  .marquee::-webkit-scrollbar {
-    display: none;
-  }
-
-  .marquee:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -2px;
-  }
-
-  .marquee__row {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-  }
-
-  .marquee__item {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    padding: 0 30px;
-    border-right: 1px solid var(--color-rule);
-  }
-
-  /*
-   * currentColor, never the brand palette: twenty brand colours would pull the
-   * page away from the two-colour direction in docs/04-UIUX-BRIEF.md §2, and
-   * the accent is reserved. They read as one set of marks this way.
-   */
-  .marquee__item svg {
-    display: block;
-    width: 30px;
-    height: 30px;
-    fill: var(--color-muted);
-    opacity: 0.78;
-    transition:
-      fill 140ms ease,
-      opacity 140ms ease,
-      transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .marquee__item:hover svg {
-    fill: var(--color-ink);
-    opacity: 1;
-    transform: translateY(-3px);
-  }
-
   /* ----- stage A rule ----------------------------------------------------
      docs/04-UIUX-BRIEF.md §5 stage A: "Scroll to begin" and a short vertical
      rule. It retracts as the sequence starts, so it reads as a cue that has
@@ -2344,6 +2379,52 @@
     font-size: var(--text-small);
     color: var(--color-faint);
     will-change: opacity;
+  }
+
+  /*
+   * The gate's control, on top of `.button`: the same control as "View my
+   * work" and "Send a message", because it does the same kind of thing. It
+   * was a text cue, then a quiet pill, and neither read as the only way
+   * forward on a page where scrolling has been refused.
+   */
+  .cue--gate {
+    font-size: var(--text-small);
+    letter-spacing: 0.04em;
+    will-change: opacity;
+  }
+
+  .cue--gate svg {
+    width: 14px;
+    height: 14px;
+    animation: cue-nudge 1800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* A slow fall, twice the length of the pause: enough to say "this way"
+     without becoming the loudest thing on a page whose subject is a name. */
+  @keyframes cue-nudge {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+    }
+    80% {
+      transform: translateY(3px);
+    }
+  }
+
+  /* The nudge stops under the pointer — by then it has made its point — and
+     never starts at all for a visitor who asked for less motion. */
+  @media (hover: hover) and (pointer: fine) {
+    .cue--gate:hover svg {
+      animation: none;
+      transform: translateY(2px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cue--gate svg {
+      animation: none;
+    }
   }
 
   .progress {
@@ -2527,6 +2608,21 @@
     padding-top: 44px;
   }
 
+  /* The engineering paragraph, set apart from the body's prose by a rule and
+     a slightly firmer colour: it is the one section a technical reader is
+     looking for, and it should be findable without being shouted. */
+  .detail-depth {
+    margin-top: 8px;
+  }
+
+  .detail-depth p {
+    max-width: 36em;
+    padding-top: 2px;
+    font-size: var(--text-body-lg);
+    line-height: 1.6;
+    color: var(--color-ink);
+  }
+
   .stack-list {
     display: flex;
     flex-wrap: wrap;
@@ -2630,6 +2726,13 @@
       grid-row: 2;
     }
 
+    /* Under the body in the main column, not in the rail: it is prose and it
+       needs the measure. Auto-placed into the next free row of column 1,
+       which is the row after the body's span. */
+    .detail-depth {
+      grid-column: 1;
+    }
+
     /* Screenshots and the next/previous rule want the full measure — a
        gallery squeezed into two thirds is a worse trade than a little space
        under the stack. */
@@ -2650,6 +2753,230 @@
     .detail-body__stack .stack-list {
       display: grid;
       gap: 8px;
+    }
+  }
+
+  /* ----- engineering stack & architecture ---------------------------------
+     The one system a visitor is standing inside while they read about it, set
+     as the request path Chrys's own sentence describes. The section is a page
+     of its own, so the path is what fills it: three hops on a hairline, the
+     connectives from the sentence sitting on the segments between them, and
+     the CDN hanging off the frontend because media never goes through the API.
+
+     No accent anywhere in here. The display names are the loud thing; a
+     colour as well would be two.
+  --------------------------------------------------------------------------- */
+  .arch {
+    /*
+     * A page of its own, on the same terms as the /contact page's own band:
+     * fills what the header leaves and centres its content, so scrolling to it
+     * arrives at a whole screen rather than at a strip. Asked for on
+     * 2026-09-22. `svh`, not `vh`: on a phone the browser chrome is part of
+     * the viewport and `vh` ignores it.
+     */
+    min-height: calc(100svh - var(--header-h));
+    display: flex;
+    align-items: center;
+    /* Scales with the viewport rather than sitting at a fixed 64px — the same
+       rule has to read correctly under a 700px laptop and a 1440px display. */
+    padding: clamp(40px, 7vh, 96px) 0;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .arch__inner {
+    width: 100%;
+  }
+
+  /*
+   * The /about placement: an entry in a column of details, not a page.
+   *
+   * Everything the page variant adds is taken back off — the rule, the
+   * screenful of height, the centring — and the type comes down a step so the
+   * lead does not shout over "Education" and "Languages" either side of it.
+   */
+  .arch--detail {
+    display: block;
+    min-height: 0;
+    /* The same 64px the other entries on /about carry between each other. */
+    padding: 64px 0 0;
+    border-top: 0;
+  }
+
+  .arch--detail .arch__lead {
+    margin-top: 0;
+    max-width: 26em;
+    font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+  }
+
+  .arch--detail .arch__path {
+    margin-top: clamp(28px, 4vh, 44px);
+  }
+
+  .arch--detail .arch__prose {
+    margin-top: clamp(24px, 3vh, 36px);
+  }
+
+  /* His own first clause, at display size: the claim the diagram then shows. */
+  .arch__lead {
+    margin-top: 18px;
+    max-width: 22em;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3.4vw, 3rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  /* ----- the path --------------------------------------------------------- */
+  .arch__path {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: clamp(40px, 6vh, 72px);
+  }
+
+  /*
+   * Each hop carries its own length of the line, so the rule is continuous
+   * across the row without a separate element to draw it — and it breaks
+   * correctly when the row becomes a column on a narrow screen.
+   */
+  .arch__hop {
+    position: relative;
+    padding: 26px 24px 0 0;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  /* The node. Sits on the line, not under it. */
+  .arch__hop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    margin: -5px 0 0 -1px;
+    border-radius: 50%;
+    background: var(--color-ink);
+  }
+
+  .arch__name {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--color-ink);
+  }
+
+  .arch__role {
+    display: block;
+    margin-top: 8px;
+    max-width: 22em;
+    font-size: var(--text-small);
+    line-height: 1.5;
+    color: var(--color-faint);
+  }
+
+  /*
+   * The connective, on the segment it belongs to: "dynamically consumes"
+   * between the frontend and the API, "backed by" between the API and the
+   * database. Read along the line, the three hops and two connectives are the
+   * middle of Chrys's sentence.
+   *
+   * Sentence case and not tracked out: it is prose sitting on a rule, not
+   * another label.
+   */
+  .arch__edge {
+    position: absolute;
+    top: -0.75em;
+    left: clamp(40%, 42%, 46%);
+    padding: 0 10px;
+    background: var(--color-ground);
+    font-style: normal;
+    font-size: var(--text-meta);
+    line-height: 1.4;
+    color: var(--color-faint);
+    white-space: nowrap;
+  }
+
+  /*
+   * The CDN, hanging off the frontend. A branch rather than a fourth hop
+   * because media does not travel through the API — drawing it in the line
+   * would state something untrue about the architecture.
+   */
+  .arch__branch {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    margin-left: clamp(24px, 4vw, 56px);
+    padding: 22px 0 0 22px;
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .arch__branch::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    margin: -3px 0 0 -4px;
+    border-radius: 50%;
+    background: var(--color-muted);
+  }
+
+  .arch__name--branch {
+    font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+    color: var(--color-muted);
+  }
+
+  /* The caption for all of the above, in his words, whole. */
+  .arch__prose {
+    margin-top: clamp(32px, 5vh, 56px);
+    max-width: 68ch;
+    font-size: var(--text-body);
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+
+  @media (max-width: 1023px) {
+    /* One column, and the line moves to the left edge — the same rail the
+       journey uses when it stacks, so a narrow screen reads one language. */
+    .arch__path {
+      grid-template-columns: minmax(0, 1fr);
+      margin-top: 32px;
+    }
+
+    .arch__hop {
+      padding: 0 0 26px 22px;
+      border-top: 0;
+      border-left: 1px solid var(--color-rule);
+    }
+
+    .arch__hop:last-child {
+      padding-bottom: 0;
+    }
+
+    .arch__hop::before {
+      top: 6px;
+      left: 0;
+      margin: 0 0 0 -5px;
+    }
+
+    /* On the rail rather than over a horizontal rule, and below the hop it
+       leaves, which is the direction the column reads. */
+    .arch__edge {
+      position: static;
+      display: block;
+      margin-top: 12px;
+      padding: 0;
+      background: none;
+      white-space: normal;
+    }
+
+    .arch__branch {
+      margin-left: 22px;
+      margin-top: 4px;
     }
   }
 
@@ -2979,9 +3306,19 @@
     }
   }
 
+  /*
+   * Off below 767px, not merely nudged left.
+   *
+   * It was `left: 8px`, which put a 44px control on top of the page's own
+   * left gutter — on a 430px screen it covered the "Stack" label (reading as
+   * "…K"), the journey card's first words and the hero's notes. A jump-to-
+   * section control is a convenience on a page a phone scrolls through in a
+   * few flicks, and it is not worth obscuring the content it navigates to.
+   * Everything it reaches is reachable by scrolling.
+   */
   @media (max-width: 767px) {
     .pager {
-      left: 8px;
+      display: none;
     }
   }
 
@@ -3325,6 +3662,15 @@
   }
 
   /* ----- contact band ----------------------------------------------------- */
+  /*
+   * Its own height, deliberately.
+   *
+   * It was briefly put on the same full-screen system as `.arch` above it, on
+   * a reading of "the separators should follow the height setup" that turned
+   * out to be wrong: stretching it to 100svh left the copyright line floating
+   * in the middle of an empty screen. Chrys's verdict was that this band was
+   * already right — it closes the page, it is not a page of its own.
+   */
   .contact-band {
     border-top: 1px solid var(--color-ink);
     margin-top: 80px;
@@ -4198,6 +4544,16 @@
    vertical budget back, or the last of the contributions gets clipped off the
    bottom of the card — measured, not guessed: at 720 the current post overran
    by 31px before this block. */
+@media (max-height: 640px) {
+  /* Below this a full-height section is taller than its own content plus the
+     header, and "fills the page" turns into "is cut off by it". Again not the
+     /about placement, which was never full height. */
+  .arch:not(.arch--detail) {
+    min-height: 0;
+    padding: 36px 0 40px;
+  }
+}
+
 @media (max-height: 800px) {
   [data-motion='on'] .journey__stage {
     padding-bottom: 80px;
@@ -4381,6 +4737,16 @@
   .row__out {
     text-align: left;
     padding-top: 6px;
+  }
+
+  /* A phone does not need a screenful of chrome around four rows of text,
+     and forcing one only pushes the contact band off the fold.
+     `:not(.arch--detail)` so this cannot reach the /about placement, which
+     carries the same 64px as the entries either side of it at every width. */
+  .arch:not(.arch--detail) {
+    min-height: 0;
+    display: block;
+    padding: 40px 0 44px;
   }
 
   .contact {

@@ -87,14 +87,38 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
               <MDXRemote source={project.body} />
             </div>
 
-            <section className="detail-section detail-body__stack">
-              <h2>Stack</h2>
-              <ul className="stack-list">
-                {project.stack.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </section>
+            {/*
+              The engineering, given its own section rather than left inside
+              the body's prose. Asked for on 2026-09-22: the reader this is
+              for — a technical lead — reads this paragraph and often nothing
+              else, and it was previously buried in the middle of "Approach".
+              Absent on a project that has not been given one, in which case
+              nothing is drawn at all.
+            */}
+            {project.engineeringDepth ? (
+              <section className="detail-section detail-depth">
+                <h2>Engineering depth</h2>
+                <p>{project.engineeringDepth}</p>
+              </section>
+            ) : null}
+
+            {/*
+              Collapses entirely when the list is empty rather than leaving a
+              heading over nothing — Chrys's brief of 2026-09-22 item 1. The
+              entries themselves are already cleaned of blanks and stray
+              emphasis by the schema (lib/text.ts), so there is no such thing
+              here as a bullet with nothing after it.
+            */}
+            {project.stack.length > 0 ? (
+              <section className="detail-section detail-body__stack">
+                <h2>Stack</h2>
+                <ul className="stack-list">
+                  {project.stack.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             {/* Evidence is omitted entirely when images is empty — never a placeholder box. */}
             {project.images.length > 0 ? (

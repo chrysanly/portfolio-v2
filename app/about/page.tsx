@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/ui/SiteHeader';
 import { ContactBand } from '@/components/ui/ContactBand';
+import { ArchitectureNote } from '@/components/ui/ArchitectureNote';
 import { BackLink } from '@/components/ui/BackLink';
 import { site, skillGroups } from '@/content/site';
 import { getJourney, getRoles } from '@/lib/journey';
@@ -143,7 +144,15 @@ export default async function AboutPage() {
               Based in {profile.location}, available {profile.availability}.
             </p>
           </section>
+
+          {/* The site itself, as a system — one more entry in this column,
+              spaced like the ones above it. This is the page a technical lead
+              opens to find out who wrote the thing, so the infrastructure
+              answer belongs beside the biography rather than in a band of its
+              own. */}
+          <ArchitectureNote variant="detail" />
         </div>
+
         <ContactBand />
       </main>
     </>

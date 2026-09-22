@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T07:55:58Z",
+  "generated_at": "2026-09-22T10:34:17Z",
   "site": {
     "name": "Chrys",
     "fullName": "Chrysanly John Corpuz Roma",
@@ -13,6 +13,11 @@
       "Filipino"
     ],
     "portrait": "/portrait-d67c211e.jpg",
+    "cv": {
+      "url": "http://portfolio-api.test/storage/cv/8nECAbY1ZAZUIxF0eR1IW2tZQ1CH3olNaMmIbb1E.pdf",
+      "updatedAt": "2026-09-22T09:22:13+00:00",
+      "label": null
+    },
     "links": {
       "github": "https://github.com/chrysanly",
       "linkedin": "https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/"
@@ -99,9 +104,10 @@
       ],
       "featured": true,
       "order": 1,
-      "body": "## Problem\r\n\r\nOperations spanning vehicle testing, registration, finance and field service had\r\nno single system. Access control and financial tracking were the weak points.\r\n\r\n## Approach\r\n\r\nRole-based middleware handles authentication and permission management across all\r\nfour modules.\r\n\r\nThe Finance module carries role-permissioned accounting pages, financial aging\r\nlogic for debit and credit balances, and asset depreciation tracking. The Mobile\r\nCIS module manages client service appointments driven by customer information.\r\nThe Dashboard module configures mobile API data categories and service listings.\r\n\r\nSecure REST APIs built on Laravel Sanctum power mobile app authentication.\r\n\r\nCore business logic was refactored onto the Repository and Service Layer\r\npatterns, improving reusability and Eloquent query performance. Code review and\r\nmentoring held the clean architecture standard in place.\r\n\r\n## Stack notes\r\n\r\nLaravel with MySQL. Laravel Sanctum issues the tokens the mobile app\r\nauthenticates with. The Repository and Service Layer patterns separate business\r\nlogic from the framework, and RBAC middleware is applied at the module boundary\r\nrather than per controller.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
-      "problem": "",
-      "stackNotes": null
+      "body": "## Problem\n\nManaging operations, accounting, appointments, and user access across multiple operational layers required a unified, bulletproof backend infrastructure.\n\n## Approach\n\nBuilt a comprehensive four-module enterprise ERP (Dashboard, Finance, Mobile CIS, and API App) running on a single unified codebase.\n\nDesigned secure REST APIs powered by Laravel Sanctum to handle cross-platform mobile authentication cleanly.\n\n## Stack notes\n\nLaravel with MySQL. Laravel Sanctum issues the tokens the mobile app\nauthenticates with. The Repository and Service Layer patterns separate business\nlogic from the framework, and RBAC middleware is applied at the module boundary\nrather than per controller.\n\n## Outcome\n\n[METRIC] — [what it improved]",
+      "problem": "Managing operations, accounting, appointments, and user access across multiple operational layers required a unified, bulletproof backend infrastructure.",
+      "stackNotes": null,
+      "engineeringDepth": "Refactored core business logic onto clean Repository and Service Layer patterns to enforce strict SOLID principles, optimize Eloquent queries, and implement granular role-based access control (RBAC)."
     },
     {
       "slug": "crm-systems-integration",
@@ -161,9 +167,10 @@
       ],
       "featured": true,
       "order": 2,
-      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nOne project spanned four interconnected systems feeding a central CRM, and the\r\nwork was keeping data flow consistent across all of them.\r\n\r\nA dynamic CRM registration module was built to be reusable across multiple\r\nevents, cutting setup time for new campaigns.\r\n\r\nTechnical documentation established a local → beta → live deployment workflow,\r\nwhich improved release stability. Stored procedures and database functions were\r\nupdated as client requirements evolved.\r\n\r\n## Stack notes\r\n\r\nPHP and Laravel against SQL, with a meaningful share of the logic living in\r\nstored procedures and database functions rather than application code.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
-      "problem": "",
-      "stackNotes": null
+      "body": "## Problem\n\nThe client struggled with fragmented data across four independent platforms, creating operational silos and delayed event tracking.\n\n## Approach\n\nArchitected and deployed an interconnected data pipeline linking all four systems into a centralized enterprise CRM.\n\nDeveloped a highly modular, reusable event registration workflow built to handle rapid marketing campaign scaling securely.\n\n## Stack notes\n\nPHP and Laravel against SQL, with a meaningful share of the logic living in\nstored procedures and database functions rather than application code.\n\n## Outcome\n\n[METRIC] — [what it improved]",
+      "problem": "The client struggled with fragmented data across four independent platforms, creating operational silos and delayed event tracking.",
+      "stackNotes": null,
+      "engineeringDepth": "Implemented robust SQL stored procedures for complex database operations and transaction safety during high-concurrency event registrations."
     },
     {
       "slug": "realtime-platform-suite",
@@ -237,9 +244,10 @@
       ],
       "featured": true,
       "order": 3,
-      "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nFull-stack Laravel work across several high-performance applications, with\r\nreal-time backends on Pusher, Firebase and Twilio.\r\n\r\nIntegrations covered Google Maps, Monday.com and AWS S3. Legacy Laravel 5 systems\r\nwere refactored to current versions alongside API and database performance work.\r\n\r\nAuthentication used Twilio OTP and Laravel Passport OAuth. A proof-of-concept\r\nfacial recognition login with activity logging was also built.\r\n\r\nAgile ceremonies were run from this role, and junior developers were mentored\r\nthrough it.\r\n\r\n## Stack notes\r\n\r\nLaravel and MySQL at the centre. Pusher and Firebase carry the real-time\r\nchannels, Twilio handles OTP delivery, Laravel Passport issues OAuth tokens, and\r\nAWS S3 stores uploaded assets.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
-      "problem": "",
-      "stackNotes": null
+      "body": "## Problem\n\nModernizing a legacy infrastructure while adding secure, real-time messaging, file uploads, and notification systems without breaking production availability.\n\n## Approach\n\nDeveloped a highly scalable suite of Laravel applications featuring real-time data sync, encrypted third-party integrations, and automated cloud file handling.\n\nSuccessfully refactored and modernized a legacy Laravel 5 system to modern standards.\n\n## Stack notes\n\nLaravel and MySQL at the centre. Pusher and Firebase carry the real-time\nchannels, Twilio handles OTP delivery, Laravel Passport issues OAuth tokens, and\nAWS S3 stores uploaded assets.\n\n## Outcome\n\n[METRIC] — [what it improved]",
+      "problem": "Modernizing a legacy infrastructure while adding secure, real-time messaging, file uploads, and notification systems without breaking production availability.",
+      "stackNotes": null,
+      "engineeringDepth": "Orchestrated real-time event streaming with Pusher, managed distributed storage via AWS S3, and enforced secure user authentication protocols with Laravel Passport."
     },
     {
       "slug": "document-parsing-engine",
@@ -294,7 +302,8 @@
       "order": 4,
       "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nStructured data is extracted from supplier PDFs, and the generated output carries\r\ndynamic per-company branding.\r\n\r\n## Stack notes\r\n\r\nPython does the parsing; Laravel handles the surrounding application and the\r\nbranded output generation.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
       "problem": "",
-      "stackNotes": null
+      "stackNotes": null,
+      "engineeringDepth": null
     },
     {
       "slug": "booking-vendor-platform",
@@ -357,7 +366,8 @@
       "order": 5,
       "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nA booking system with real-time availability, REST APIs and a React front end.\r\n\r\nA vendor management system was migrated from a Laravel CMS to Node.js, gaining\r\nsubscription features and Angular dashboards documented with Swagger.\r\n\r\nA membership system for a government site handled bulk CSV upload and dynamic\r\nregion and category reporting.\r\n\r\n## Stack notes\r\n\r\nLaravel and Node.js on the server, React and Angular on the front ends, JWT for\r\nsession security, Swagger for the dashboard API documentation, MySQL throughout.\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
       "problem": "",
-      "stackNotes": null
+      "stackNotes": null,
+      "engineeringDepth": null
     },
     {
       "slug": "devio",
@@ -410,7 +420,8 @@
       "order": 6,
       "body": "## Problem\r\n\r\n[problem statement — what was broken before]\r\n\r\n## Approach\r\n\r\nOwn web development practice in Dubai, building product sites and internal\r\ntooling for small businesses.\r\n\r\n## Stack notes\r\n\r\n[stack notes]\r\n\r\n## Outcome\r\n\r\n[METRIC] — [what it improved]",
       "problem": "",
-      "stackNotes": null
+      "stackNotes": null,
+      "engineeringDepth": null
     }
   ],
   "journey": [

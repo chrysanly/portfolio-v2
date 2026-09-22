@@ -29,6 +29,15 @@ export interface Profile {
   email: string;
   languages: readonly string[];
   portrait: string | null;
+  /**
+   * The downloadable CV, or null when none has been uploaded.
+   *
+   * Only ever the backend's copy. `docs/resume.pdf` in this repo carries a
+   * date of birth and a civil status, so rule 2 of CLAUDE.md bars it from
+   * being served; the file behind this URL is whatever Chrys uploads in the
+   * admin, which is also how he replaces it without a deploy.
+   */
+  cv: { url: string; updatedAt: string | null; label: string | null } | null;
   links: { github: string; linkedin: string };
   intro: readonly string[];
   notes: readonly string[];
@@ -91,6 +100,18 @@ export async function getProfile(): Promise<Profile> {
     email: api?.email ?? site.email,
     languages: api?.languages ?? fallbackLanguages,
     portrait: api?.portrait !== undefined ? api.portrait : site.portrait,
+    /*
+     * The API is the only source. There is no fallback in content/site.ts on
+     * purpose: a CV is a file, and the one file in this repository is the one
+     * that must not be published. No upload means no button.
+     */
+    cv: api?.cv
+      ? {
+          url: api.cv.url,
+          updatedAt: api.cv.updatedAt ?? null,
+          label: api.cv.label ?? null,
+        }
+      : null,
     links: {
       github: api?.links?.github ?? site.links.github,
       linkedin: api?.links?.linkedin ?? site.links.linkedin,
