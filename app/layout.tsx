@@ -86,6 +86,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           system preference, so the first paint is already correct and there is
           no flash of the wrong palette.
 
+          `data-gate="shut"` on the home page: the held masthead sits on plain
+          ground, and the facet mesh arrives when Begin is pressed (Chrys,
+          2026-09-23). Set here so the mesh is never painted and then removed;
+          MastheadHero owns it from hydration on.
+
           Scroll restoration is switched off here rather than on load. The
           browser restores the old offset before anything of ours runs, and a
           reload half way down a pinned hero drops you into the middle of a
@@ -95,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if('scrollRestoration' in history)history.scrollRestoration='manual';var r=document.documentElement,d=r.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off'}var t=null,a=null,x=null;try{t=localStorage.getItem('theme');a=localStorage.getItem('accent');x=localStorage.getItem('texture')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t;if(a)r.style.setProperty('--color-accent',a);if(x==='off')d.texture='off'}catch(e){}`,
+            __html: `try{if('scrollRestoration' in history)history.scrollRestoration='manual';var r=document.documentElement,d=r.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off';if(location.pathname==='/'&&!location.hash)d.gate='shut'}var t=null,a=null,x=null;try{t=localStorage.getItem('theme');a=localStorage.getItem('accent');x=localStorage.getItem('texture')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t;if(a)r.style.setProperty('--color-accent',a);if(x==='off')d.texture='off'}catch(e){}`,
           }}
         />
       </head>

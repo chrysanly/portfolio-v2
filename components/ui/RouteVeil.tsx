@@ -33,6 +33,16 @@ export function hideVeil() {
 export function RouteVeil() {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
+  /*
+   * A ref as well as state, so the listeners below can be attached once.
+   * They used to be re-attached on every change of `visible`, and that
+   * effect's cleanup cleared the timers — including the MAX_MS backstop, the
+   * one thing that was never supposed to be cancelled. After a browser Back
+   * the route has already changed by the time `popstate` shows the veil, so
+   * the arrival effect never fired again and, with the backstop gone, the veil
+   * stayed up for good over the held masthead (Chrys, 2026-09-23).
+   */
+  const visibleRef = useRef(false);
   const shownAt = useRef(0);
   const timers = useRef<number[]>([]);
 
@@ -42,12 +52,17 @@ export function RouteVeil() {
       timers.current = [];
     };
 
+    const setShown = (on: boolean) => {
+      visibleRef.current = on;
+      setVisible(on);
+    };
+
     const show = () => {
-      if (visible) return;
+      if (visibleRef.current) return;
       shownAt.current = performance.now();
-      setVisible(true);
+      setShown(true);
       // The backstop. Nothing below is allowed to be the only way out.
-      timers.current.push(window.setTimeout(() => setVisible(false), MAX_MS));
+      timers.current.push(window.setTimeout(() => setShown(false), MAX_MS));
     };
 
     const hide = () => {
@@ -55,8 +70,18 @@ export function RouteVeil() {
       clearTimers();
       // Held to a minimum so a fast navigation flashes rather than strobes.
       timers.current.push(
-        window.setTimeout(() => setVisible(false), Math.max(0, MIN_MS - shown)),
+        window.setTimeout(() => setShown(false), Math.max(0, MIN_MS - shown)),
       );
+    };
+
+    /*
+     * Coming back through history repaints without a click we ever saw, and
+     * the route may already have changed by now — so the arrival effect
+     * below cannot be relied on to end it. Two frames is a painted page.
+     */
+    const onPopState = () => {
+      show();
+      requestAnimationFrame(() => requestAnimationFrame(hide));
     };
 
     /*
@@ -94,26 +119,30 @@ export function RouteVeil() {
     document.addEventListener('click', onClick, true);
     window.addEventListener('route:veil', show);
     window.addEventListener('route:veil-done', hide);
-    // Coming back through history repaints without a click we ever saw.
-    window.addEventListener('popstate', show);
+    window.addEventListener('popstate', onPopState);
 
     return () => {
       document.removeEventListener('click', onClick, true);
       window.removeEventListener('route:veil', show);
       window.removeEventListener('route:veil-done', hide);
-      window.removeEventListener('popstate', show);
+      window.removeEventListener('popstate', onPopState);
       clearTimers();
     };
-  }, [visible]);
+  }, []);
 
   // The new route has painted; the veil has done its job.
   useEffect(() => {
-    if (!visible) return;
+    if (!visibleRef.current) return;
     const shown = performance.now() - shownAt.current;
-    const t = window.setTimeout(() => setVisible(false), Math.max(0, MIN_MS - shown));
+    const t = window.setTimeout(
+      () => {
+        visibleRef.current = false;
+        setVisible(false);
+      },
+      Math.max(0, MIN_MS - shown),
+    );
     return () => window.clearTimeout(t);
-    // Deliberately keyed on pathname alone: this is what "arrived" means.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Keyed on pathname alone: this is what "arrived" means.
   }, [pathname]);
 
   return (

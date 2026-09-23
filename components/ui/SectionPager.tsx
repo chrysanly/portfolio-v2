@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { animateScrollTo } from '@/lib/scrollJump';
 
 /**
  * Step through the page one section at a time.
@@ -37,24 +38,6 @@ function maxScroll(): number {
  * the first place, skipping the scroll rather than a slow version of it.
  */
 const JUMP_MS = 420;
-const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-function animateScrollTo(target: number): Promise<void> {
-  const start = window.scrollY;
-  const delta = target - start;
-  if (Math.abs(delta) < 1) return Promise.resolve();
-
-  return new Promise((resolve) => {
-    const startTime = performance.now();
-    const step = (now: number) => {
-      const t = Math.min(1, (now - startTime) / JUMP_MS);
-      window.scrollTo(0, start + delta * easeOutCubic(t));
-      if (t < 1) requestAnimationFrame(step);
-      else resolve();
-    };
-    requestAnimationFrame(step);
-  });
-}
 
 /**
  * Which section is being read.
@@ -327,7 +310,7 @@ export function SectionPager() {
     const unreachable = stop.top > maxScroll();
     stickyIndex.current = unreachable ? to : null;
 
-    void animateScrollTo(Math.min(stop.top, maxScroll()));
+    void animateScrollTo(Math.min(stop.top, maxScroll()), JUMP_MS);
 
     if (unreachable) {
       /*

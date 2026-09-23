@@ -22,7 +22,11 @@ export function HeroMount({ profile }: { profile: Profile }) {
   // Resolved during render, not in an effect: a child's layout effect runs
   // before its parent's, so an effect here would leave the hero's first
   // measure() with a null destination. Reading the DOM is idempotent.
-  if (typeof document !== 'undefined' && !logoRef.current) {
+  //
+  // On a client-side Back this render runs while the page being left is
+  // still in the DOM, so `#logo` can be *that* page's logo, detached a moment
+  // later. MastheadHero's measure() re-reads it if so — see there.
+  if (typeof document !== 'undefined' && !logoRef.current?.isConnected) {
     logoRef.current = document.getElementById('logo');
   }
 

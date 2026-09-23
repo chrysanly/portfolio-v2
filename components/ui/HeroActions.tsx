@@ -1,6 +1,14 @@
 'use client';
 
 import type { Profile } from '@/lib/profile';
+import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
+
+/*
+ * Long enough that the hand-over — ledger out, header in, first panel in —
+ * reads as one move rather than a cut. The native smooth scroll this replaces
+ * took ~400ms for the same distance, and the hero could not keep up with it.
+ */
+const TO_WORK_MS = 1000;
 
 /**
  * The hero's two ways forward: the work, and the CV.
@@ -70,11 +78,12 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
           if (top === null) return;
           event.preventDefault();
           /*
-           * Smooth, and with the hash left alone. Setting `#showcase` would
-           * make the browser jump to the element on the next reload — back to
-           * the blank offset this function exists to avoid.
+           * Animated here, and with the hash left alone. Setting `#showcase`
+           * would make the browser jump to the element on the next reload —
+           * back to the blank offset this function exists to avoid. See
+           * lib/scrollJump.ts for why this is not `behavior: 'smooth'`.
            */
-          window.scrollTo({ top, behavior: 'smooth' });
+          void animateScrollTo(top, TO_WORK_MS, easeInOutCubic);
         }}
       >
         View my work

@@ -270,6 +270,17 @@
   }
 
   /*
+   * And while the home page's gate is shut: the held masthead stands on
+   * plain ground, and the mesh fades in with the reveal when Begin is
+   * pressed — or stays off, if the switch above says so. Set by the head
+   * script and kept by MastheadHero, which re-shuts it back at the top.
+   */
+  :root[data-gate='shut'] body::after,
+  :root[data-gate='shut'] .bg-spot {
+    opacity: 0;
+  }
+
+  /*
    * The cursor's own light on the grid — not a glow laid over it, the grid's
    * own sharp edges catching light, the way raking a light across an etched
    * line lights the line itself rather than painting a soft circle on top
@@ -826,10 +837,20 @@
   /* Placed after `.button:hover`, which it ties with on specificity — the
      generic hover fills with ink, and without this the loudest control on
      the page would turn into the same grey as everything else. */
+  /*
+   * Stays filled. The hover used to empty it to an accent outline, which
+   * on the dark ground left a dim clay label and a dimmer stamp inside a
+   * hollow ring — the primary action looking disabled at the moment it is
+   * pointed at, which Chrys reported as a bug on 2026-09-23. Now it lifts
+   * (the generic hover's -1px) and deepens its shadow; the fill shifts a
+   * step toward the ink, which darkens it on the light theme and lightens it
+   * on the dark one, so it reads as a response in both without a new colour.
+   */
   .button--cv:hover:not(:disabled) {
-    background: transparent;
-    color: var(--color-accent);
-    box-shadow: none;
+    border-color: color-mix(in srgb, var(--color-accent) 86%, var(--color-ink));
+    background: color-mix(in srgb, var(--color-accent) 86%, var(--color-ink));
+    color: var(--color-ground);
+    box-shadow: 0 14px 26px -12px color-mix(in srgb, var(--color-accent) 75%, transparent);
   }
 
   /* On a coloured field the 0.62 the stamp carries elsewhere drops under
@@ -837,10 +858,6 @@
      holding back enough to stay secondary to the label. */
   .button--cv .hero-actions__stamp {
     opacity: 0.82;
-  }
-
-  .button--cv:hover .hero-actions__stamp {
-    opacity: 0.7;
   }
 
   .hero-actions {
@@ -2598,32 +2615,56 @@
   }
 
   /*
-   * The gate's control, on top of `.button`: the same control as "View my
-   * work" and "Send a message", because it does the same kind of thing. It
-   * was a text cue, then a quiet pill, and neither read as the only way
-   * forward on a page where scrolling has been refused.
+   * Directly under the name, centred on the page. `.hero .wrap` is the
+   * masthead's unscaled box, so `top: 100%` is the foot of the letters at
+   * every viewport and under the short-window masthead size too.
    */
-  .cue--gate {
-    font-size: var(--text-small);
-    letter-spacing: 0.04em;
+  .hero__gate {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-top: clamp(28px, 5vh, 56px);
+    transform: translateX(-50%);
     will-change: opacity;
   }
 
-  .cue--gate svg {
-    width: 14px;
-    height: 14px;
-    animation: cue-nudge 1800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  /*
+   * The gate's control, on top of `.button`: the same control as "View my
+   * work" and "Send a message", because it does the same kind of thing. It
+   * was a text cue, then a quiet pill in the corner, and neither read as
+   * the only way forward on a page where scrolling has been refused — so it
+   * is the one control on the page drawn a size up.
+   */
+  .cue--gate {
+    min-height: 60px;
+    padding: 16px 38px;
+    gap: 14px;
+    font-size: var(--text-body-lg);
+    letter-spacing: 0.04em;
   }
 
-  /* A slow fall, twice the length of the pause: enough to say "this way"
-     without becoming the loudest thing on a page whose subject is a name. */
-  @keyframes cue-nudge {
+  .cue--gate svg {
+    width: 18px;
+    height: 18px;
+    animation: cue-bounce 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  /* A drop and a smaller rebound, then a rest: it says "down" by moving
+     down, which a static arrow on a locked page was not saying loudly
+     enough. Transform only, so it never costs a layout. */
+  @keyframes cue-bounce {
     0%,
-    60%,
+    55%,
     100% {
       transform: translateY(0);
     }
-    80% {
+    20% {
+      transform: translateY(6px);
+    }
+    35% {
+      transform: translateY(1px);
+    }
+    45% {
       transform: translateY(3px);
     }
   }
@@ -3450,10 +3491,23 @@
    * `JourneyTimeline` already maintains this flag for its own scroll
    * bookkeeping, so nothing new has to be tracked to know when.
    */
-  :root[data-journey-active='on'] .pager {
+  :root[data-journey-active='on'] .pager,
+  :root[data-gate='shut'] .pager {
     opacity: 0;
     transform: translateY(-50%) translateX(-14px);
     pointer-events: none;
+  }
+
+  /*
+   * And while the home page's gate is shut (Chrys, 2026-09-23). The held
+   * masthead has one way forward, Begin, and a pager beside it offered a
+   * second that skipped the reveal. `visibility` as well, so Tab goes
+   * straight to Begin rather than to a control nobody can see. The base
+   * rule does not transition `visibility`, so it returns at once when the
+   * gate opens and the opacity fades it in.
+   */
+  :root[data-gate='shut'] .pager {
+    visibility: hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -4701,6 +4755,191 @@
   }
 }
 
+@layer components {
+  /*
+   * Hovered content lifts onto a frosted card (Chrys, 2026-09-23): the mesh
+   * behind it blurs, the text takes the accent, and the block rises a few
+   * pixels — so it is plain which thing is being read, and it stays readable.
+   * Accent text straight over the lit mesh was not: the mesh lights in the
+   * same accent, right behind the words. Only with the texture on; a visitor
+   * who chose plain paper gets a plain page.
+   *
+   * What gets a card: the smallest block of text under the pointer — a
+   * paragraph, a list item, a heading, an intro line — and each ledger row
+   * as one unit. `:has()` keeps a card off anything holding another text
+   * block, so a list item and the paragraph inside it never both light.
+   * Links and buttons, and anything holding one, are left out: they have
+   * their own hover, and it says "press this", which a paragraph must not.
+   * The ID card is already a card.
+   *
+   * How, so nothing on the page moves:
+   *  - the card is `::before`, positioned outside the block, not padding;
+   *  - the lift is `translate`, a property of its own, because these blocks
+   *    already carry `transform` for their mask wipes;
+   *  - `overflow` opens on hover, since the wipe's clip would cut the card
+   *    off, and by the time anything can be hovered the wipe has finished;
+   *  - `will-change` is cleared on hover: an element promoted for opacity is
+   *    a backdrop root, and its card would blur nothing but itself.
+   *
+   * In `components`, not `base`: a later layer wins whatever the
+   * specificity, and the colour rules this overrides live here.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    :root:not([data-texture='off'])
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
+        a,
+        button,
+        a *,
+        button *,
+        .facts__row *,
+        .badge-mount *,
+        :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
+      ),
+    :root:not([data-texture='off']) .hero .facts__row {
+      position: relative;
+      z-index: 0;
+      /*
+       * The card is the theme turned over: the ink as its ground — white on
+       * the dark theme, near-black on the light — so it stands clear of the
+       * mesh either way (Chrys, 2026-09-23).
+       *
+       * The accent cannot go on it as it is: the dark theme's pale clay on
+       * white is ~3:1, the light theme's deep red on near-black ~2:1. So it
+       * is mixed toward the card's own text colour, which keeps the hue and
+       * brings it past 4.5:1 on both; an accent picked in the switcher goes
+       * through the same mix.
+       */
+      --card-bg: color-mix(in srgb, var(--color-ink) 95%, transparent);
+      --card-text: color-mix(in srgb, var(--color-accent) 55%, var(--color-ground));
+      --card-label: color-mix(in srgb, var(--color-ground) 70%, var(--color-ink));
+      transition:
+        translate 260ms cubic-bezier(0.23, 1, 0.32, 1),
+        color 180ms ease;
+    }
+
+    /* A row's own padding is its vertical inset, and an intro line's own
+       leading is its: reaching past either covered the neighbouring text —
+       the next ledger row in the tight short-window layout, and the lines
+       above and below in the statement, which are set close. */
+    :root:not([data-texture='off']) .hero .facts__row {
+      --card-inset: 0 -14px;
+    }
+
+    /* The statement is set close — at 1.2 in a short window the lines all
+       but touch — so the card starts 3px inside the line: after the 3px
+       lift its top edge sits exactly where the line began. */
+    :root:not([data-texture='off']) .hero .intro__line {
+      --card-inset: 3px -14px 0;
+    }
+
+    :root:not([data-texture='off'])
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
+        a,
+        button,
+        a *,
+        button *,
+        .facts__row *,
+        .badge-mount *,
+        :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
+      )::before,
+    :root:not([data-texture='off']) .hero .facts__row::before {
+      content: '';
+      position: absolute;
+      /* The fallback lives here, not as a default on the element: set there,
+         the long shared selector outranked every per-block override. */
+      inset: var(--card-inset, -6px -14px);
+      z-index: -1;
+      pointer-events: none;
+      background: var(--card-bg);
+      box-shadow: 0 18px 34px -18px rgb(0 0 0 / 0.5);
+      opacity: 0;
+      transition: opacity 200ms ease;
+    }
+
+    :root:not([data-texture='off'])
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
+        a,
+        button,
+        a *,
+        button *,
+        .facts__row *,
+        .badge-mount *,
+        :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
+      ):hover,
+    :root:not([data-texture='off']) .hero .facts__row:hover {
+      z-index: 3;
+      overflow: visible;
+      will-change: auto;
+      translate: 0 -3px;
+      color: var(--card-text);
+    }
+
+    :root:not([data-texture='off'])
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
+        a,
+        button,
+        a *,
+        button *,
+        .facts__row *,
+        .badge-mount *,
+        :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
+      ):hover::before,
+    :root:not([data-texture='off']) .hero .facts__row:hover::before {
+      opacity: 1;
+      /* On hover only: a backdrop filter on every text block, even an
+         invisible one, is a cost paid for nothing. */
+      backdrop-filter: blur(12px) saturate(1.2);
+      -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    }
+
+    /* Everything inside inherits the card's colour. Blocks colour inner
+       spans (the intro lines and notes wrap their text for the wipe), and
+       anything carrying the page's own ink would vanish on an inverted card. */
+    :root:not([data-texture='off'])
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
+        a,
+        button,
+        a *,
+        button *,
+        .facts__row *,
+        .badge-mount *,
+        :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
+      ):hover
+      *,
+    :root:not([data-texture='off']) .hero .facts__row:hover > dd,
+    :root:not([data-texture='off']) .hero .facts__row:hover > dd * {
+      color: var(--card-text);
+    }
+
+    :root:not([data-texture='off']) .hero .facts__row:hover > dt {
+      color: var(--card-label);
+    }
+
+    :root:not([data-texture='off']) .hero .facts__row:hover {
+      border-bottom-color: transparent;
+    }
+  }
+}
+
+@layer components {
+  /* The card and the colour stay for a visitor who asked for less motion;
+     the lift is the one part of it that moves. */
+  @media (prefers-reduced-motion: reduce) {
+    :root
+      :is(main, .hero)
+      :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line, .facts__row):hover {
+      /* Important, like the other reduced-motion overrides in this file:
+         the hover rule it cancels is far more specific. */
+      translate: none !important;
+    }
+  }
+}
+
 @layer utilities {
   .visually-hidden {
     position: absolute;
@@ -4869,12 +5108,25 @@
    * fact stays reachable, just not always simultaneously visible, instead
    * of the bottom rows vanishing behind `.hero__stage`'s own
    * `overflow: hidden` with no way to reach them at all.
+   *
+   * No `overscroll-behavior: contain`. It stopped the wheel from ever
+   * reaching the page while the pointer was over the ledger — and Chrome
+   * applies it even when the box has nothing to scroll, so at 1111x578
+   * (ledger 180 of 180px, no overflow) the page simply would not move under
+   * the pointer. Chrys reported it on 2026-09-23. Without it the box scrolls
+   * its own rows when it truly overflows and then hands the wheel on.
+   */
+  /*
+   * The 14px inline gutter, cancelled by the margin so nothing moves, is room
+   * for the hovered row's card: this box is a scroller here, and a scroller
+   * clips its children's shadows at its own edge.
    */
   .facts {
     margin-top: 6px;
+    margin-inline: -14px;
+    padding-inline: 14px;
     max-height: calc(100svh - var(--header-h) - 300px);
     overflow-y: auto;
-    overscroll-behavior: contain;
   }
 
   .facts__row {

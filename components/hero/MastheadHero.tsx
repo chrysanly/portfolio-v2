@@ -22,6 +22,7 @@ import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'fra
 import type { Profile } from '@/lib/profile';
 import { IdCard } from './IdCard';
 import { HeroActions } from '@/components/ui/HeroActions';
+import { isJumping } from '@/lib/scrollJump';
 
 /*
  * Timeline. Stage A holds the masthead alone, stage B reveals the statement
@@ -219,6 +220,18 @@ const hittable = (el: HTMLElement | null, opacity: number) => {
   el.style.pointerEvents = opacity < 0.05 ? 'none' : '';
 };
 
+/**
+ * The held masthead stands on plain ground; the facet mesh arrives with the
+ * reveal. `data-gate` is first set by the head script in app/layout.tsx so
+ * the mesh is never painted on arrival, and from hydration on it follows the
+ * gate exactly — including shutting again back at the top.
+ */
+const shutGate = (shut: boolean) => {
+  const data = document.documentElement.dataset;
+  if (shut) data.gate = 'shut';
+  else delete data.gate;
+};
+
 const ZERO: Geometry = { spread: 0, tx: 0, ty: 0, scale: 0.133, width: 0, mastH: 0 };
 
 export function MastheadHero({
@@ -242,6 +255,7 @@ export function MastheadHero({
   const ctaRef = useRef<HTMLDivElement | null>(null);
   const eyebrowRef = useRef<HTMLParagraphElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
+  const gateRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -280,9 +294,28 @@ export function MastheadHero({
     restDelta: 0.001,
   });
 
+  /*
+   * Except when the page is jumping on purpose. The spring trails a wheel
+   * nicely and a jump badly — the page crossed the whole hand-over before the
+   * spring was a third of the way through it, and the stage scrolled away
+   * with the ledger still painted on it. See lib/scrollJump.ts.
+   */
+  useMotionValueEvent(scrollYProgress, 'change', (raw) => {
+    if (isJumping()) progress.jump(raw);
+  });
+
   /** Measure natural vs. destination positions. Re-run on resize and font load. */
   const measure = useCallback(() => {
     const masthead = mastheadRef.current;
+    /*
+     * Re-read if the one we hold has left the page. After Back from a
+     * project, HeroMount resolved `#logo` while the project page was still
+     * mounted and got its logo, detached by now. A detached element's
+     * computed font-size is '', the dock scale came out NaN, the browser
+     * rejected every masthead and body transform, and Begin then played the
+     * reveal on an unmeasured layout (Chrys, 2026-09-23).
+     */
+    if (!logoRef.current?.isConnected) logoRef.current = document.getElementById('logo');
     const logo = logoRef.current;
     const track = trackRef.current;
     if (!masthead || !logo || !track) return;
@@ -436,8 +469,17 @@ export function MastheadHero({
     if (footRef.current) {
       const footOpacity = 1 - span(p, 0.26, 0.44);
       footRef.current.style.opacity = String(footOpacity);
-      // The gate's button lives in here, over the CTA's corner of the stage.
       hittable(footRef.current, footOpacity);
+    }
+    /*
+     * The gate's button sits under the name, which is exactly where the first
+     * statement line wipes in at LINE_STARTS[0] — so it is gone before then,
+     * within the stage A hold, rather than on the foot's slower schedule.
+     */
+    if (gateRef.current) {
+      const gateOpacity = 1 - span(p, 0.01, HOLD_END);
+      gateRef.current.style.opacity = String(gateOpacity);
+      hittable(gateRef.current, gateOpacity);
     }
     if (railRef.current)
       railRef.current.style.transform = `scaleY(${1 - ease(span(p, 0.02, 0.22))})`;
@@ -497,6 +539,7 @@ export function MastheadHero({
 
     state.running = true;
     setOpened(true);
+    shutGate(false);
     const started = performance.now();
 
     /** Cubic ease-out: fast at the start, so the content arrives early. */
@@ -530,6 +573,27 @@ export function MastheadHero({
     const state = entranceRef.current;
 
     /*
+     * Arrive at the scroll position without playing the way there.
+     *
+     * The spring was left wherever this page last had it — SETTLE, for a
+     * fresh mount — so painting from it after a restored Back animated the
+     * ledger and the masthead out over the showcase for half a second. Read
+     * the real progress off the track, which is current even when the
+     * spring's source has not caught up yet, and jump the spring to it.
+     */
+    const settleNow = () => {
+      const track = trackRef.current;
+      let raw = progress.get();
+      if (track) {
+        const top = track.getBoundingClientRect().top + window.scrollY;
+        const scrollable = track.offsetHeight - window.innerHeight;
+        raw = scrollable > 0 ? clamp((window.scrollY - top) / scrollable) : 0;
+      }
+      progress.jump(raw);
+      paint(fromScroll(raw));
+    };
+
+    /*
      * A refresh half way down the page, or a Back that restored a position:
      * there is no gate to shut, and shutting it would trap a visitor who is
      * already reading. ScrollMemory's restore lands here.
@@ -537,13 +601,15 @@ export function MastheadHero({
     if (state.done || window.scrollY > 4) {
       state.done = true;
       state.running = false;
-      paint(fromScroll(progress.get()));
+      shutGate(false);
+      settleNow();
       return;
     }
 
     // The held state. Painted explicitly rather than left to the CSS
     // defaults, so the letters are spread and the body is out of the way.
     paint(0);
+    shutGate(true);
 
     /*
      * Scroll input is refused while the gate is shut, and refusing is all it
@@ -599,6 +665,7 @@ export function MastheadHero({
 
         state.done = false;
         setOpened(false);
+        shutGate(true);
         paint(0);
         return;
       }
@@ -616,7 +683,8 @@ export function MastheadHero({
         state.running = false;
         state.done = true;
         setOpened(true);
-        paint(fromScroll(progress.get()));
+        shutGate(false);
+        settleNow();
       }
     };
 
@@ -628,6 +696,7 @@ export function MastheadHero({
     return () => {
       cancelAnimationFrame(state.frame);
       state.running = false;
+      shutGate(false);
       window.removeEventListener('wheel', swallow);
       window.removeEventListener('touchmove', swallow);
       window.removeEventListener('keydown', onKey);
@@ -721,23 +790,22 @@ export function MastheadHero({
                 <HeroActions cv={profile.cv} />
               </div>
             </div>
-          </div>
 
-          {/* Hanging identity badge. Nothing beyond docs/07-SOURCE-CONTENT.md §1,
-              and deliberately no phone number: that belongs on /contact only. */}
-          <div ref={cardRef} className="badge-mount">
-            <IdCard profile={profile} />
-          </div>
+            {/*
+              A button, because scrolling is refused until it is pressed.
+              "Scroll to begin" was an instruction the page then ignored.
 
-          <div ref={footRef} className="hero__foot">
-            <div className="cue-group">
-              <span ref={railRef} className="hero__rail" aria-hidden="true" />
-              {/*
-                A button, because scrolling is refused until it is pressed.
-                "Scroll to begin" was an instruction the page then ignored.
-                It keeps the cue's typography: it is the same affordance in
-                the same place, now honest about how it works.
-              */}
+              Under the name, centred, and larger than the page's other
+              buttons: it was a small pill in the bottom-left corner, and
+              with the scroll locked a visitor who missed it had nowhere to
+              go. The eye lands on the name first, so the way forward sits
+              directly beneath it. Asked for on 2026-09-23.
+
+              Inside the wrap because the wrap is the masthead's unscaled
+              box, so `top: 100%` is the bottom of the letters at every
+              viewport without restating the masthead's font size.
+            */}
+            <div ref={gateRef} className="hero__gate">
               <button
                 type="button"
                 className="button button--solid cue--gate"
@@ -755,6 +823,18 @@ export function MastheadHero({
                   />
                 </svg>
               </button>
+            </div>
+          </div>
+
+          {/* Hanging identity badge. Nothing beyond docs/07-SOURCE-CONTENT.md §1,
+              and deliberately no phone number: that belongs on /contact only. */}
+          <div ref={cardRef} className="badge-mount">
+            <IdCard profile={profile} />
+          </div>
+
+          <div ref={footRef} className="hero__foot">
+            <div className="cue-group">
+              <span ref={railRef} className="hero__rail" aria-hidden="true" />
             </div>
             <div className="progress">
               <div ref={barRef} className="progress__bar" />
