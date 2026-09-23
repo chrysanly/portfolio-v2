@@ -2050,31 +2050,161 @@
     background: var(--color-surface);
   }
 
-  /* A short laptop screen cannot hold the longest stop whatever the budget,
-     and silently cutting the last contributions off the bottom is worse than a
-     scrollbar. Contained, so the wheel cannot escape and skip the whole run.
-     The height comes from the card now (`--card-h`), so every stop scrolls
-     inside the same box rather than each choosing its own. */
+  /*
+   * The body never scrolls. It did, contained, so a long stop could be read
+   * inside its card — but the wheel was caught there, and the run stopped
+   * moving until that card had been scrolled to its end (Chrys, 2026-09-23).
+   * Now the page always gets the wheel. A stop too long for its card is cut
+   * with a fade and a "View more" that opens it whole in a dialog; one that
+   * fits is shown as it is, with nothing faded.
+   */
   [data-motion='on'] .journey__body {
     height: 100%;
-    overflow: hidden auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    /*
-     * The bottom edge fades rather than cutting, so a line the scroller has
-     * clipped reads as "there is more" instead of as text spilling out of the
-     * card. A mask, not a gradient overlay in the card's colour: the first
-     * attempt was an overlay, and over the nested "what I took from it" panel
-     * — which has a ground of its own — it did not blend and still looked
-     * like a hard cut. A mask fades the content itself and lets whatever is
-     * behind show through, whatever that happens to be.
-     *
-     * Attached to the visible box, not the scrolled content, so it stays at
-     * the edge as the card scrolls. With every card now the same height, a
-     * short stop's text ends well above it and nothing is faded at all.
-     */
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent);
+    overflow: hidden;
     padding: 26px 28px 28px;
+  }
+
+  /*
+   * A mask, not a gradient overlay in the card's colour: over the nested
+   * "what I took from it" panel, which has a ground of its own, an overlay
+   * did not blend and read as a hard cut. The fade ends above the button, so
+   * the last visible line never sits under it.
+   */
+  [data-motion='on'] .journey__body[data-clamped='true'] {
+    mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - 120px),
+      transparent calc(100% - 58px)
+    );
+  }
+
+  [data-motion='on'] .journey__more {
+    position: absolute;
+    left: 28px;
+    bottom: 18px;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 18px;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill, 999px);
+    background: var(--color-surface);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .journey__more svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .journey__more:hover {
+      background: var(--color-accent);
+      color: var(--color-ground);
+      transform: translateY(-1px);
+    }
+
+    .journey__more:hover svg {
+      transform: translateX(2px);
+    }
+  }
+
+  /* ----- the whole stop, in a dialog ------------------------------------- */
+  /* The reset zeroes every margin, and a dialog is centred by the
+     browser with margin: auto — without this it opened in the top-left. */
+  .journey__dialog {
+    margin: auto;
+    width: min(760px, calc(100vw - 32px));
+    max-height: min(86svh, 900px);
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-top: 3px solid var(--color-accent);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    overflow: hidden;
+  }
+
+  .journey__dialog[open] {
+    display: flex;
+    flex-direction: column;
+    animation: journey-dialog-in 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .journey__dialog::backdrop {
+    background: color-mix(in srgb, var(--color-ground) 60%, transparent);
+    backdrop-filter: blur(6px);
+  }
+
+  /*
+   * The one place that scrolls, and the right place: it is on top of the
+   * page and nothing else is being read. Contained, so reaching its end does
+   * not start scrolling the page underneath.
+   */
+  .journey__dialog-body {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 30px 34px 36px;
+  }
+
+  .journey__dialog-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin: -8px -10px 0 12px;
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill, 999px);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .journey__dialog-close svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .journey__dialog-close:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* The page behind holds still while the dialog is open. The gutter stays
+     reserved so the scrollbar leaving does not shift the layout sideways. */
+  :root:has(.journey__dialog[open]) {
+    overflow: hidden;
+    scrollbar-gutter: stable;
+  }
+
+  @keyframes journey-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journey__dialog[open] {
+      animation: none;
+    }
   }
 
   /* A chapter numeral behind the card — depth without a shadow. */
@@ -2102,6 +2232,8 @@
     left: var(--page-x);
     right: var(--page-x);
     bottom: 26px;
+    /* Above the strip: its ticks are buttons now. */
+    z-index: 2;
   }
 
   /* ---------------------------------------------------------------------
@@ -2115,29 +2247,46 @@
     display: none;
   }
 
+  /*
+   * At the start of the run, in the gutter left of the first card and
+   * level with it, pointing into the run — so the first thing on arrival
+   * says how the section works (Chrys, 2026-09-23). It used to be a faint
+   * caption in the top-right corner, where nobody looked.
+   */
   [data-motion='on'] .journey__nav {
     display: flex;
     position: absolute;
-    top: 22px;
-    right: var(--page-x);
+    top: 50%;
+    left: var(--page-x);
     z-index: 2;
-    align-items: center;
-    gap: 14px;
+    /* The gutter beside a centred card, less a gap, so it never reaches it. */
+    max-width: max(180px, calc(50vw - var(--card-w) / 2 - var(--page-x) - 28px));
+    transform: translateY(-50%);
+    pointer-events: none;
   }
 
+  /*
+   * The theme turned over, like the hover cards: the ink as its ground and
+   * the accent mixed toward the ground for its text, so it reads at better
+   * than 4.5:1 in both themes.
+   */
   .journey__hint {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 14px;
     margin: 0;
+    padding: 14px 20px;
+    background: var(--color-ink);
+    color: color-mix(in srgb, var(--color-accent) 55%, var(--color-ground));
     font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-faint);
-    /* Its job is done the moment the run has been moved once. It goes
-       quietly rather than disappearing, so the eye is not pulled back to
-       the corner it just left. */
+    box-shadow: 0 18px 34px -18px rgb(0 0 0 / 0.5);
+    /* Its job is done the moment the run has been moved once. It slides on
+       in the direction it pointed rather than vanishing in place. */
     transition:
       opacity 420ms ease,
       transform 420ms ease;
@@ -2145,121 +2294,50 @@
 
   .journey__nav[data-nudged='true'] .journey__hint {
     opacity: 0;
-    transform: translateX(6px);
-    pointer-events: none;
+    transform: translateX(16px);
   }
 
-  /* A short rule that slides, which is the gesture the sentence describes. */
-  .journey__hint-glyph {
-    position: relative;
-    display: block;
-    width: 22px;
-    height: 1px;
-    background: var(--color-rule);
-    overflow: visible;
+  .journey__hint-arrow {
+    flex: none;
+    width: 24px;
+    height: 16px;
+    animation: journey-nudge 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
   }
 
-  .journey__hint-glyph::after {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 0;
-    width: 8px;
-    height: 3px;
-    background: var(--color-accent);
-    animation: journey-nudge 2.4s ease-in-out infinite;
-  }
-
+  /* A push toward the run and back: the gesture the sentence describes. */
   @keyframes journey-nudge {
     0%,
     100% {
       transform: translateX(0);
     }
     50% {
-      transform: translateX(14px);
+      transform: translateX(6px);
     }
   }
 
-  .journey__steps {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .journey__step {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid var(--color-rule);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--color-ground) 70%, transparent);
-    backdrop-filter: blur(6px);
-    color: var(--color-ink);
-    cursor: pointer;
-    transition:
-      border-color 160ms ease,
-      color 160ms ease,
-      transform 160ms ease;
-  }
-
-  .journey__step svg {
-    width: 15px;
-    height: 15px;
-  }
-
-  .journey__step:hover:not(:disabled) {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-
-  /* The arrow leans the way it is about to take you. */
-  .journey__step:first-child:hover:not(:disabled) {
-    transform: translateX(-2px);
-  }
-
-  .journey__step:last-child:hover:not(:disabled) {
-    transform: translateX(2px);
-  }
-
-  .journey__step:disabled {
-    opacity: 0.32;
-    cursor: default;
-  }
-
-  .journey__count {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    /* The count changes under the reader's eye as they scroll; without this
-       the arrows shuffle sideways every time a 1 becomes a 0. */
-    font-variant-numeric: tabular-nums;
-  }
-
-  .journey__count b {
-    color: var(--color-accent);
-    font-weight: 500;
-  }
-
-  .journey__count span {
-    color: var(--color-faint);
-  }
-
-  /* On a narrow screen the sentence is the first thing to go — the arrows
-     and the counter still say everything the reader has to act on. */
+  /* No gutter beside the card on a phone. The first stop is short and the
+     lower half of the stage is empty there, so it sits in that space, above
+     the rail, centred and on one line — above the card it crowded the
+     date line. */
   @media (max-width: 767px) {
+    [data-motion='on'] .journey__nav {
+      top: auto;
+      bottom: 104px;
+      left: 50%;
+      max-width: calc(100vw - 32px);
+      transform: translateX(-50%);
+    }
+
     .journey__hint {
-      display: none;
+      padding: 11px 16px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .journey__hint-glyph::after {
+    .journey__hint-arrow {
       animation: none;
     }
   }
@@ -2289,9 +2367,40 @@
      caption to 40% put it at 1.7:1 — unreadable, and a contrast failure on a
      label that is meant to tell you where you are. */
   .journey__ticks li {
+    min-width: 0;
+  }
+
+  /*
+   * A tick takes you to its stop. The whole number-and-label block is the
+   * button, so the target is the full column rather than a 13px numeral.
+   */
+  .journey__tick {
     display: grid;
     gap: 3px;
-    padding-right: 14px;
+    width: 100%;
+    min-height: 40px;
+    padding: 6px 14px 4px 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .journey__tick:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .journey__tick:hover b {
+      color: var(--color-accent);
+    }
+
+    .journey__tick:hover em {
+      color: var(--color-ink);
+    }
   }
 
   .journey__ticks b {
@@ -3479,19 +3588,10 @@
   }
 
   /*
-   * Stood down while the journey is pinned.
-   *
-   * Inside the journey the pager steps stop by stop, which is exactly what
-   * the journey's own arrows do — two controls for one action, at opposite
-   * corners, neither obviously the right one. The journey's are the clearer
-   * pair: they sit beside the thing they move and they say which stop of how
-   * many. Everywhere else the pager is the only way to skip a pinned
-   * section, so it comes straight back.
-   *
-   * `JourneyTimeline` already maintains this flag for its own scroll
-   * bookkeeping, so nothing new has to be tracked to know when.
+   * Stood down while the home page's gate is shut. It used to stand down
+   * over the journey too, because the journey had arrows of its own; those
+   * were removed on 2026-09-23, so the pager is the way to step through it.
    */
-  :root[data-journey-active='on'] .pager,
   :root[data-gate='shut'] .pager {
     opacity: 0;
     transform: translateY(-50%) translateX(-14px);
@@ -4772,6 +4872,15 @@
    * their own hover, and it says "press this", which a paragraph must not.
    * The ID card is already a card.
    *
+   * Nothing while the home page's gate is shut: the statement waits there
+   * at a quarter opacity, still under the pointer, and hovering it lit a
+   * card over the held masthead (Chrys, 2026-09-23).
+   *
+   * Nor anything positioned on its own: the rule sets `position: relative`
+   * to anchor the card, which pulled the fixed "Dubai, UAE" eyebrow into
+   * the flow of the held masthead and pushed the name and Begin 36px down
+   * (Chrys, 2026-09-23), and would have unhidden screen-reader-only text.
+   *
    * How, so nothing on the page moves:
    *  - the card is `::before`, positioned outside the block, not padding;
    *  - the lift is `translate`, a property of its own, because these blocks
@@ -4785,7 +4894,7 @@
    * specificity, and the colour rules this overrides live here.
    */
   @media (hover: hover) and (pointer: fine) {
-    :root:not([data-texture='off'])
+    :root:not([data-texture='off']):not([data-gate='shut'])
       :is(main, .hero)
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
@@ -4794,9 +4903,13 @@
         button *,
         .facts__row *,
         .badge-mount *,
+        .hero__eyebrow,
+        .visually-hidden,
+        .journey__hint,
+        .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ),
-    :root:not([data-texture='off']) .hero .facts__row {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row {
       position: relative;
       z-index: 0;
       /*
@@ -4822,18 +4935,20 @@
        leading is its: reaching past either covered the neighbouring text —
        the next ledger row in the tight short-window layout, and the lines
        above and below in the statement, which are set close. */
-    :root:not([data-texture='off']) .hero .facts__row {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row {
       --card-inset: 0 -14px;
+      --card-radius: var(--radius);
     }
 
     /* The statement is set close — at 1.2 in a short window the lines all
        but touch — so the card starts 3px inside the line: after the 3px
        lift its top edge sits exactly where the line began. */
-    :root:not([data-texture='off']) .hero .intro__line {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .intro__line {
       --card-inset: 3px -14px 0;
+      --card-radius: var(--radius);
     }
 
-    :root:not([data-texture='off'])
+    :root:not([data-texture='off']):not([data-gate='shut'])
       :is(main, .hero)
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
@@ -4842,14 +4957,22 @@
         button *,
         .facts__row *,
         .badge-mount *,
+        .hero__eyebrow,
+        .visually-hidden,
+        .journey__hint,
+        .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       )::before,
-    :root:not([data-texture='off']) .hero .facts__row::before {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row::before {
       content: '';
       position: absolute;
       /* The fallback lives here, not as a default on the element: set there,
          the long shared selector outranked every per-block override. */
       inset: var(--card-inset, -6px -14px);
+      /* Rounded, from the site's own radius scale: square, the card read as a
+         flat slab laid over the page (Chrys, 2026-09-23). Single-line blocks
+         take the smaller step — 14px on a 30px line starts to look like a pill. */
+      border-radius: var(--card-radius, var(--radius-lg));
       z-index: -1;
       pointer-events: none;
       background: var(--card-bg);
@@ -4858,7 +4981,7 @@
       transition: opacity 200ms ease;
     }
 
-    :root:not([data-texture='off'])
+    :root:not([data-texture='off']):not([data-gate='shut'])
       :is(main, .hero)
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
@@ -4867,9 +4990,13 @@
         button *,
         .facts__row *,
         .badge-mount *,
+        .hero__eyebrow,
+        .visually-hidden,
+        .journey__hint,
+        .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover,
-    :root:not([data-texture='off']) .hero .facts__row:hover {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover {
       z-index: 3;
       overflow: visible;
       will-change: auto;
@@ -4877,7 +5004,7 @@
       color: var(--card-text);
     }
 
-    :root:not([data-texture='off'])
+    :root:not([data-texture='off']):not([data-gate='shut'])
       :is(main, .hero)
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
@@ -4886,9 +5013,13 @@
         button *,
         .facts__row *,
         .badge-mount *,
+        .hero__eyebrow,
+        .visually-hidden,
+        .journey__hint,
+        .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover::before,
-    :root:not([data-texture='off']) .hero .facts__row:hover::before {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover::before {
       opacity: 1;
       /* On hover only: a backdrop filter on every text block, even an
          invisible one, is a cost paid for nothing. */
@@ -4899,7 +5030,7 @@
     /* Everything inside inherits the card's colour. Blocks colour inner
        spans (the intro lines and notes wrap their text for the wipe), and
        anything carrying the page's own ink would vanish on an inverted card. */
-    :root:not([data-texture='off'])
+    :root:not([data-texture='off']):not([data-gate='shut'])
       :is(main, .hero)
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
@@ -4908,19 +5039,23 @@
         button *,
         .facts__row *,
         .badge-mount *,
+        .hero__eyebrow,
+        .visually-hidden,
+        .journey__hint,
+        .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover
       *,
-    :root:not([data-texture='off']) .hero .facts__row:hover > dd,
-    :root:not([data-texture='off']) .hero .facts__row:hover > dd * {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dd,
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dd * {
       color: var(--card-text);
     }
 
-    :root:not([data-texture='off']) .hero .facts__row:hover > dt {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dt {
       color: var(--card-label);
     }
 
-    :root:not([data-texture='off']) .hero .facts__row:hover {
+    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover {
       border-bottom-color: transparent;
     }
   }

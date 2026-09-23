@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
+import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
 
 /**
  * The run from college to the current post, walked sideways.
@@ -56,6 +57,64 @@ export interface JourneyStop {
   }[];
 }
 
+/** Everything a stop says. Rendered in the card and, when the card cannot
+ *  hold it, again in full in the dialog — one source, so the two agree. */
+function StopBody({ stop, index }: { stop: JourneyStop; index: number }) {
+  return (
+    <>
+      <p className="journey__mark">
+        <b>{String(index + 1).padStart(2, '0')}</b>
+        <span>{stop.period}</span>
+      </p>
+
+      {stop.phase ? <p className="journey__phase">{stop.phase}</p> : null}
+
+      <h3 className="journey__title">{stop.title}</h3>
+      <p className="journey__place">{stop.place}</p>
+
+      {stop.tech.length > 0 ? (
+        <ul className="journey__tech">
+          {stop.tech.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {stop.work.map((item) => (
+        <div key={item.slug} className="journey__work">
+          <p className="journey__work-head">
+            <b>{item.title}</b>
+            <em data-nda={item.confidential ? 'true' : 'false'}>
+              {item.confidential ? 'Detail under NDA' : 'Public'}
+            </em>
+          </p>
+
+          {item.contributions.length > 0 ? (
+            <ul className="journey__did">
+              {item.contributions.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ))}
+
+      {stop.learned ? (
+        <div className="journey__learned">
+          <span>What I took from it</span>
+          {/* The admin is the only author, and the markup was allowlisted on
+              the way into the database rather than trusted on the way out —
+              see asProse above. */}
+          <div
+            className="journey__prose"
+            dangerouslySetInnerHTML={{ __html: asProse(stop.learned) }}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
   const reduced = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -64,12 +123,23 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLLIElement | null)[]>([]);
   const tickRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const bodyRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   /*
-   * Which stop is at the centre, for the counter and for disabling the
-   * arrows at the ends. Mirrored in a ref so the scroll listener can tell a
-   * real change from a repeat without re-subscribing every time it moves —
-   * this updates a few times per journey, not once per frame.
+   * Which cards cannot hold their stop. The body used to scroll inside the
+   * card, and a wheel over it was caught there — the run stopped moving
+   * until the card had been scrolled to its end (Chrys, 2026-09-23). Now the
+   * body never scrolls: a card that overflows is cut with a fade and offers
+   * "View more", which opens the whole stop in a dialog.
+   */
+  const [clamped, setClamped] = useState<boolean[]>([]);
+  const [reading, setReading] = useState<number | null>(null);
+
+  /*
+   * Which stop is at the centre — only to retire the hint once the run has
+   * been moved. Mirrored in a ref so the scroll listener can tell a real
+   * change from a repeat without re-subscribing every time it moves.
    */
   const [stop, setStop] = useState(0);
   const stopRef = useRef(0);
@@ -124,6 +194,13 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
     );
     journeyGeometry.current = { trackTop, scrollable, travel, centers };
 
+    const next = bodyRefs.current.map(
+      (body) => !!body && body.scrollHeight > body.clientHeight + 2,
+    );
+    setClamped((prev) =>
+      prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next,
+    );
+
     const mid = window.innerWidth / 2;
     cardRefs.current.forEach((card, i) => {
       if (!card || travel === 0) return;
@@ -137,6 +214,9 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
 
     measureJourneyGeometry();
     window.addEventListener('resize', measureJourneyGeometry);
+    // Overflow depends on the text's real metrics, which change once the
+    // web fonts land.
+    void document.fonts?.ready.then(measureJourneyGeometry);
 
     const onScroll = () => {
       const { trackTop, scrollable, travel, centers } = journeyGeometry.current;
@@ -174,25 +254,19 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
   }, [reduced, measureJourneyGeometry]);
 
   /**
-   * Scrolls the page to wherever `i` sits at the centre of the stage.
+   * Bring stop `i` to the centre — the rail's ticks.
    *
-   * The arrows move the page, not the strip. The strip's position is a pure
-   * function of scroll — moving it directly would put the two out of step
-   * until the next scroll event yanked it back.
+   * The page moves, not the strip: the strip's position is a pure function
+   * of scroll, so moving it directly would put the two out of step until the
+   * next scroll event yanked it back. The offset is the one measure already
+   * writes for the section pager, so the two controls land in the same place.
    */
-  const goTo = useCallback(
-    (i: number) => {
-      const { trackTop, scrollable, travel, centers } = journeyGeometry.current;
-      if (scrollable <= 0 || travel <= 0) return;
-
-      const index = Math.max(0, Math.min(centers.length - 1, i));
-      const p = clamp((centers[index] - window.innerWidth / 2) / travel);
-
-      setNudged(true);
-      window.scrollTo({ top: Math.round(trackTop + p * scrollable), behavior: 'smooth' });
-    },
-    [],
-  );
+  const goToStop = useCallback((i: number) => {
+    const y = Number(cardRefs.current[i]?.dataset.substepY);
+    if (!Number.isFinite(y)) return;
+    setNudged(true);
+    void animateScrollTo(y, 700, easeInOutCubic);
+  }, []);
 
   /*
    * A trackpad swiped sideways over the strip should move the strip.
@@ -319,117 +393,76 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
                 {String(i + 1).padStart(2, '0')}
               </span>
 
-              {/* The body scrolls, the card does not. Keeping the chapter
-                  numeral outside it stops a decorative glyph from adding
-                  scrollable overflow to stops that already fit. */}
-              <div className="journey__body">
-                <p className="journey__mark">
-                  <b>{String(i + 1).padStart(2, '0')}</b>
-                  <span>{stop.period}</span>
-                </p>
-
-                {stop.phase ? <p className="journey__phase">{stop.phase}</p> : null}
-
-                <h3 className="journey__title">{stop.title}</h3>
-                <p className="journey__place">{stop.place}</p>
-
-                {stop.tech.length > 0 ? (
-                  <ul className="journey__tech">
-                    {stop.tech.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {stop.work.map((item) => (
-                  <div key={item.slug} className="journey__work">
-                    <p className="journey__work-head">
-                      <b>{item.title}</b>
-                      <em data-nda={item.confidential ? 'true' : 'false'}>
-                        {item.confidential ? 'Detail under NDA' : 'Public'}
-                      </em>
-                    </p>
-
-                    {item.contributions.length > 0 ? (
-                      <ul className="journey__did">
-                        {item.contributions.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-
-                {stop.learned ? (
-                  <div className="journey__learned">
-                    <span>What I took from it</span>
-                    {/* The admin is the only author, and the markup was
-                        allowlisted on the way into the database rather than
-                        trusted on the way out — see asProse above. */}
-                    <div
-                      className="journey__prose"
-                      dangerouslySetInnerHTML={{ __html: asProse(stop.learned) }}
-                    />
-                  </div>
-                ) : null}
+              {/* The numeral stays outside the body so a decorative glyph never
+                  counts toward whether the stop fits. */}
+              <div
+                className="journey__body"
+                data-clamped={clamped[i] ? 'true' : undefined}
+                ref={(el) => {
+                  bodyRefs.current[i] = el;
+                }}
+              >
+                <StopBody stop={stop} index={i} />
               </div>
+
+              {clamped[i] ? (
+                <button
+                  type="button"
+                  className="journey__more"
+                  onClick={() => {
+                    setReading(i);
+                    dialogRef.current?.showModal();
+                  }}
+                >
+                  View more
+                  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <path
+                      d="M3 8h10M9 4l4 4-4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="square"
+                    />
+                  </svg>
+                </button>
+              ) : null}
             </li>
           ))}
         </ol>
 
         {/*
-          The way through, stated rather than left to be discovered.
-
-          A pinned horizontal run reads as a stuck page if you do not already
-          know that scrolling drives it sideways — so the hint says so until
-          the reader moves it once, and the arrows give a way through that
-          needs no gesture at all. Both sit inside the sticky stage, so they
-          are on screen for exactly as long as the run is.
+          The way through, stated rather than left to be discovered: a pinned
+          horizontal run reads as a stuck page if you do not already know that
+          scrolling drives it sideways, so the hint says so until the reader
+          moves it once. The arrows and the counter that sat beside it were
+          removed on 2026-09-23 — the section pager steps through the stops.
         */}
         <div className="journey__nav" data-nudged={nudged ? 'true' : 'false'}>
+          {/* At the start of the run, beside the first card, pointing into
+              it — the first thing seen on arrival, not a caption in a
+              corner (Chrys, 2026-09-23). */}
           <p className="journey__hint" aria-hidden="true">
-            <span className="journey__hint-glyph" />
-            Scroll to walk the run, or step through it
+            <span>Scroll to walk the run</span>
+            <svg className="journey__hint-arrow" viewBox="0 0 24 16" focusable="false">
+              <path
+                d="M1 8h20M15 2l6 6-6 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="square"
+              />
+            </svg>
           </p>
-
-          <div className="journey__steps">
-            <button
-              type="button"
-              className="journey__step"
-              onClick={() => goTo(stop - 1)}
-              disabled={stop === 0}
-              aria-label="Previous stop"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {/* aria-live so a screen reader is told where it landed; the
-                arrows move the page, which is otherwise a silent change. */}
-            <p className="journey__count" aria-live="polite">
-              <b>{String(stop + 1).padStart(2, '0')}</b>
-              <span>/ {String(stops.length).padStart(2, '0')}</span>
-            </p>
-
-            <button
-              type="button"
-              className="journey__step"
-              onClick={() => goTo(stop + 1)}
-              disabled={stop === stops.length - 1}
-              aria-label="Next stop"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
         </div>
 
         {/* Pinned to the stage, not the track, so it stays put while the strip
-            travels underneath it rather than drifting across the cards. */}
-        <div className="journey__rail" aria-hidden="true">
-          <span className="journey__line">
+            travels underneath it rather than drifting across the cards.
+
+            Each tick is a button that brings its stop to the centre (Chrys,
+            2026-09-23): the rail already named every stop, it just could not
+            take you to one. */}
+        <nav className="journey__rail" aria-label="Career stops">
+          <span className="journey__line" aria-hidden="true">
             <span ref={barRef} className="journey__bar" />
           </span>
           <ol className="journey__ticks">
@@ -440,13 +473,58 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
                   tickRefs.current[i] = el;
                 }}
               >
-                <b>{String(i + 1).padStart(2, '0')}</b>
-                <em>{stop.phase ?? 'Education'}</em>
+                <button
+                  type="button"
+                  className="journey__tick"
+                  onClick={() => goToStop(i)}
+                  aria-label={`${stop.phase ?? 'Education'}: ${stop.title}, ${stop.period}`}
+                >
+                  <b>{String(i + 1).padStart(2, '0')}</b>
+                  <em>{stop.phase ?? 'Education'}</em>
+                </button>
               </li>
             ))}
           </ol>
-        </div>
+        </nav>
       </div>
+
+      {/*
+        The whole stop, for a card that could not hold it. A native dialog:
+        it sits in the top layer, above the pinned stage's transforms and
+        clipping, and brings Escape, focus trapping and focus return with it.
+        A click on the backdrop closes it too.
+      */}
+      <dialog
+        ref={dialogRef}
+        className="journey__dialog"
+        aria-label={reading !== null ? stops[reading]?.title : undefined}
+        onClose={() => setReading(null)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+      >
+        <div className="journey__dialog-body">
+          <button
+            type="button"
+            className="journey__dialog-close"
+            aria-label="Close"
+            onClick={() => dialogRef.current?.close()}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="square"
+              />
+            </svg>
+          </button>
+          {reading !== null && stops[reading] ? (
+            <StopBody stop={stops[reading]} index={reading} />
+          ) : null}
+        </div>
+      </dialog>
     </div>
   );
 }
