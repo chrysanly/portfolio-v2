@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 
 /**
@@ -64,6 +64,18 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
   const barRef = useRef<HTMLSpanElement>(null);
   const cardRefs = useRef<(HTMLLIElement | null)[]>([]);
   const tickRefs = useRef<(HTMLLIElement | null)[]>([]);
+
+  /*
+   * Which stop is at the centre, for the counter and for disabling the
+   * arrows at the ends. Mirrored in a ref so the scroll listener can tell a
+   * real change from a repeat without re-subscribing every time it moves —
+   * this updates a few times per journey, not once per frame.
+   */
+  const [stop, setStop] = useState(0);
+  const stopRef = useRef(0);
+
+  /** Cleared the first time the reader moves it themselves, by any means. */
+  const [nudged, setNudged] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
@@ -145,6 +157,11 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
         }
       });
       document.documentElement.dataset.journeyStop = String(closest);
+
+      if (closest !== stopRef.current) {
+        stopRef.current = closest;
+        setStop(closest);
+      }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -155,6 +172,72 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
       delete document.documentElement.dataset.journeyActive;
     };
   }, [reduced, measureJourneyGeometry]);
+
+  /**
+   * Scrolls the page to wherever `i` sits at the centre of the stage.
+   *
+   * The arrows move the page, not the strip. The strip's position is a pure
+   * function of scroll — moving it directly would put the two out of step
+   * until the next scroll event yanked it back.
+   */
+  const goTo = useCallback(
+    (i: number) => {
+      const { trackTop, scrollable, travel, centers } = journeyGeometry.current;
+      if (scrollable <= 0 || travel <= 0) return;
+
+      const index = Math.max(0, Math.min(centers.length - 1, i));
+      const p = clamp((centers[index] - window.innerWidth / 2) / travel);
+
+      setNudged(true);
+      window.scrollTo({ top: Math.round(trackTop + p * scrollable), behavior: 'smooth' });
+    },
+    [],
+  );
+
+  /*
+   * A trackpad swiped sideways over the strip should move the strip.
+   *
+   * The stage is `overflow: hidden` and the travel is a transform, so a
+   * horizontal gesture had nothing to act on and the browser did nothing at
+   * all — on a laptop, the most natural way to push a horizontal run along
+   * was the one way that didn't work.
+   *
+   * Only horizontal intent is taken. A trackpad emits a little deltaX on
+   * almost every vertical flick, so claiming anything with any deltaX would
+   * make ordinary downward scrolling feel like it was being fought.
+   * `passive: false` because this has to be able to preventDefault — some
+   * browsers map deltaX to history navigation, which would leave the page
+   * mid-swipe.
+   */
+  useEffect(() => {
+    if (reduced) return;
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const onWheel = (event: WheelEvent) => {
+      const { scrollable, travel } = journeyGeometry.current;
+      if (scrollable <= 0 || travel <= 0) return;
+      if (document.documentElement.dataset.journeyActive !== 'on') return;
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+
+      event.preventDefault();
+      setNudged(true);
+
+      // Scaled so a pixel of sideways gesture is a pixel of sideways travel,
+      // whatever the ratio of track height to strip width happens to be.
+      window.scrollBy({ top: event.deltaX * (scrollable / travel), behavior: 'instant' });
+    };
+
+    stage.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => stage.removeEventListener('wheel', onWheel);
+  }, [reduced]);
+
+  // Any ordinary vertical scroll through the run counts as having found it.
+  useEffect(() => {
+    if (stop > 0) setNudged(true);
+  }, [stop]);
 
   const paint = useCallback((p: number) => {
     const strip = stripRef.current;
@@ -293,6 +376,55 @@ export function JourneyTimeline({ stops }: { stops: JourneyStop[] }) {
             </li>
           ))}
         </ol>
+
+        {/*
+          The way through, stated rather than left to be discovered.
+
+          A pinned horizontal run reads as a stuck page if you do not already
+          know that scrolling drives it sideways — so the hint says so until
+          the reader moves it once, and the arrows give a way through that
+          needs no gesture at all. Both sit inside the sticky stage, so they
+          are on screen for exactly as long as the run is.
+        */}
+        <div className="journey__nav" data-nudged={nudged ? 'true' : 'false'}>
+          <p className="journey__hint" aria-hidden="true">
+            <span className="journey__hint-glyph" />
+            Scroll to walk the run, or step through it
+          </p>
+
+          <div className="journey__steps">
+            <button
+              type="button"
+              className="journey__step"
+              onClick={() => goTo(stop - 1)}
+              disabled={stop === 0}
+              aria-label="Previous stop"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* aria-live so a screen reader is told where it landed; the
+                arrows move the page, which is otherwise a silent change. */}
+            <p className="journey__count" aria-live="polite">
+              <b>{String(stop + 1).padStart(2, '0')}</b>
+              <span>/ {String(stops.length).padStart(2, '0')}</span>
+            </p>
+
+            <button
+              type="button"
+              className="journey__step"
+              onClick={() => goTo(stop + 1)}
+              disabled={stop === stops.length - 1}
+              aria-label="Next stop"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
         {/* Pinned to the stage, not the track, so it stays put while the strip
             travels underneath it rather than drifting across the cards. */}

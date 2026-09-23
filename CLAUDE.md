@@ -8,13 +8,15 @@ Vercel. This is one of two repositories:
 | `chrysanly/portfolio-v2` (this one) | the public site                    | Vercel, static |
 | `chrysanly/portfolio-api`           | Laravel 12 + Inertia + React admin | a PHP host     |
 
-Usually checked out side by side, as `portfolio/` and `portfolio-api/`.
+Always checked out side by side: this repo is `portfolio/` on the work PC and
+`portfolio-v2/` on the home PC, with `portfolio-api/` beside it on both.
 
 **"The backend", "the API" and "the admin" always mean the `portfolio-api`
 repo** — a separate checkout with its own `CLAUDE.md`, whose rules take
 precedence inside that directory. On the **work PC** it lives at
-`C:\Users\admin\Desktop\Chrys\Personal\portfolio-api`; other machines are
-listed in `docs/BACKEND-LOCATION.md`, which also covers the crossing points.
+`C:\Users\admin\Desktop\Chrys\Personal\portfolio-api`; on the **home PC** at
+`D:\Projects\portfolio-api`. `docs/BACKEND-LOCATION.md` has the machine table,
+the per-machine PHP binary, and the crossing points.
 
 ## Read the specification first
 
