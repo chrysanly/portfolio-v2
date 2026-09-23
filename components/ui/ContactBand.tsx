@@ -17,12 +17,13 @@ export function ContactBand() {
         <div className="contact-band__main">
           <p className="label">Contact</p>
           <h2 style={{ marginTop: '14px' }}>
-            Stop fighting your software. Let's make it work for you.
+            Stop fighting your software. Let&rsquo;s make it work for you.
           </h2>
           <p className="prose-body" style={{ marginTop: '18px' }}>
-            Based in {site.location}, providing seamless <b>ERP, automation, and integration
-            solutions</b> that help mid-sized <b>UK & US businesses</b> scale smoothly, eliminate manual
-            data entry, and cut operational costs.
+            Based in {site.location}, providing seamless{' '}
+            <b>ERP, automation, and integration solutions</b> that help mid-sized{' '}
+            <b>UK & US businesses</b> scale smoothly, eliminate manual data entry, and cut
+            operational costs.
           </p>
           <p style={{ marginTop: '26px', display: 'flex', gap: '26px', flexWrap: 'wrap' }}>
             <Link className="button" href="/contact">
