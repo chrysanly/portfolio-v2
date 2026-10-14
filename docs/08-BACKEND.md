@@ -15,41 +15,49 @@ Two purposes, in order of importance:
    into the visual evidence the site is otherwise missing.
 2. It removes the need to edit MDX by hand to publish a project.
 
-It is explicitly **not** here to serve page requests. See §2.
+It does not render pages: the site reads it and caches the result. See §2.
 
 ## 2. The critical architectural rule
 
-**The public site consumes this API at build time, never at runtime.**
+**The database is the only content source. The site reads it through
+`GET /api/v1/content`, caches every page, and refreshes on save.**
 
 ```
-Admin edits a project
+Admin saves a published project
         │
         ▼
-  Laravel API  ──── webhook ────►  Vercel Deploy Hook
-        │                                 │
-        │   GET /api/v1/content           ▼
-        └──────────────────────►  Next.js build
-                                          │
-                                          ▼
-                                  Static site, no server
+  Laravel API ── POST /api/revalidate ──►  Next.js on Vercel
+        ▲                                        │
+        │      GET /api/v1/content               │ regenerates the cached
+        └────────────────────────────────────────┘ pages from fresh content
 ```
 
-Consequences, all of which are the point:
+How it behaves, all of which is deliberate:
 
-- The public site keeps free static hosting and sub-second loads.
-- **If Laravel is down, the site is unaffected** — the last build is still
-  served. The failure mode is "content is stale", never "portfolio is broken".
-- No API latency in front of LCP, so the `02-TRD.md` budgets still hold.
+- **Pages are cached, not rendered per request.** `lib/content-source.ts`
+  fetches with the `content` cache tag and `revalidate: false`, so a visitor
+  is served the cached page and never waits on the API. In development the
+  cache is off and every request reads the API.
+- **A save refreshes the site.** Saving a published project (or "Sync site" on
+  the dashboard) POSTs to the site's `/api/revalidate` with the shared secret;
+  the tag is invalidated and the next request regenerates from fresh content.
+- **A failed read throws.** No snapshot, no MDX, no fallback. At build time the
+  build fails with a `[content] …` message naming the reason. At runtime a
+  failed regeneration leaves Next serving the last good page — an empty or
+  partial page is never cached in its place.
+- **If Laravel is down,** a running production site keeps serving its cached
+  pages; only a new build, or a regeneration after a save, needs the API up.
 
-Do not add runtime `fetch` calls to this API from any public page. If a future
-feature seems to need one, it doesn't — it needs a rebuild trigger.
+There is no committed snapshot, no MDX and no build-time pull script in the
+site any more. Do not reintroduce a local copy of the content: two sources is
+how the site and the admin came to disagree.
 
-### Build resilience
+### Seed data
 
-`lib/content.ts` in the Next.js app fetches from the API at build, then writes
-`content/snapshot.json`, which **is committed**. If the API is unreachable
-during a build, fall back to the committed snapshot and log a warning. A build
-must never fail because the backend is asleep on a free tier.
+`migrate:fresh --seed` reproduces the published content: six projects, the
+journey and the profile, from `database/seeders/data/*.json`. Those files were
+generated once from the content the site served on 2026-10-13; the admin is
+where content is edited from then on.
 
 ## 3. Stack
 
@@ -197,7 +205,7 @@ Standard Laravel. One account. No public registration route — remove it.
 
 ## 5. Endpoints
 
-### Build-time content (Sanctum token)
+### Content (Sanctum token)
 
 ```
 GET /api/v1/content
@@ -247,9 +255,9 @@ If you keep the Phase 6 email-only handler instead, that is a valid choice —
 say so explicitly rather than leaving both wired up.
 
 > **Decided 19 Sep 2026: both, in a defined order.** The Next.js handler still
-> owns delivery — moving the form to Laravel would make a static site depend on
-> a PHP host at runtime for the one thing a visitor can actually do, which
-> contradicts §2. But an inbox that is always empty is not worth building.
+> owns delivery — moving the form to Laravel would make the one thing a
+> visitor can actually do depend on a PHP host being awake, while every page
+> is served from cache (§2). But an inbox that is always empty is not worth building.
 >
 > So `app/api/contact/route.ts` sends the email first, then posts a copy to
 > `/api/v1/messages` through `lib/archive.ts`. The copy is awaited — a
@@ -261,9 +269,11 @@ say so explicitly rather than leaving both wired up.
 
 ### Publish trigger
 
-On project create, update, delete or publish, a service dispatches a queued job
-that POSTs to the Vercel Deploy Hook. Debounce: one rebuild per 60 seconds, so
-editing five fields doesn't fire five builds.
+On project create, update, delete or publish, the service POSTs to the site's
+`/api/revalidate` (`SITE_REVALIDATE_URL`, with `SITE_REVALIDATE_SECRET`), which
+refreshes the cached pages. When `VERCEL_DEPLOY_HOOK_URL` is also set, a queued
+job requests a rebuild too, debounced to one per 60 seconds — needed only when
+the site's code has changed, not for content.
 
 ## 6. Admin
 
@@ -291,24 +301,31 @@ Keep it plain and legible. This screen gets screenshotted.
 APP_KEY=
 DB_*=
 SANCTUM_STATEFUL_DOMAINS=
+SITE_REVALIDATE_URL=
+SITE_REVALIDATE_SECRET=
 VERCEL_DEPLOY_HOOK_URL=
 MAIL_* / RESEND_API_KEY=
 CONTACT_TO_EMAIL=
 ```
 
-On the Next.js side: `CONTENT_API_URL`, `CONTENT_API_TOKEN`.
+On the Next.js side: `PORTFOLIO_API_URL`, `PORTFOLIO_API_TOKEN` and
+`REVALIDATE_SECRET` (equal to `SITE_REVALIDATE_SECRET`), plus
+`NODE_EXTRA_CA_CERTS` locally for Herd. All of them live in `.env.local` /
+the host's environment only, with placeholders in `.env.example`.
 
 ## 8. Acceptance criteria
 
 1. `GET /api/v1/content` returns a payload that type-checks against the
    TypeScript interfaces with no adapters in the Next.js app.
-2. A build with the API switched off completes successfully from
-   `content/snapshot.json`.
+2. A build with the API switched off fails with a clear `[content]` message,
+   and a running production server keeps serving its cached pages.
 3. Attempting to save a project with `confidential = true` and a client name
    fails at the database level, not only in the form. Prove it with a Pest test
    and a raw SQL insert.
-4. Uploading an image to a confidential project is rejected.
-5. A save in the admin produces a live site update within two minutes.
+4. An image uploaded to a confidential, uncleared project is stored marked
+   `nda`, and the site never shows it without the ribbon and the blur.
+5. Saving a published project in the admin updates the matching page after
+   revalidation.
 6. Five rapid saves produce one rebuild, not five.
 7. Pest covers: the confidential constraint, the rate limiter, the honeypot,
    the debounce.
@@ -327,7 +344,7 @@ client: Personal project
 featured: true
 ```
 
-Write-up should cover: why build-time over runtime, the three-layer NDA
-constraint, the repository and service split, the debounced rebuild, and the
-snapshot fallback. That reasoning is the actual demonstration of seniority —
+Write-up should cover: why cached pages refreshed on save rather than live
+requests, why a failed read throws instead of falling back, the three-layer
+NDA constraint, and the repository and service split. That reasoning is the actual demonstration of seniority —
 more than the code itself.

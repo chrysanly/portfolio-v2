@@ -1,11 +1,11 @@
 # Chrys — Portfolio (public site)
 
-Next.js 15 App Router, React 19, TypeScript, Tailwind v4. Deployed static to
-Vercel. This is one of two repositories:
+Next.js 15 App Router, React 19, TypeScript, Tailwind v4. Deployed to Vercel
+with every page cached. This is one of two repositories:
 
 | Repo                                | What it is                         | Where it runs  |
 | ----------------------------------- | ---------------------------------- | -------------- |
-| `chrysanly/portfolio-v2` (this one) | the public site                    | Vercel, static |
+| `chrysanly/portfolio-v2` (this one) | the public site                    | Vercel, cached |
 | `chrysanly/portfolio-api`           | Laravel 12 + Inertia + React admin | a PHP host     |
 
 Always checked out side by side: this repo is `portfolio/` on the work PC and
@@ -14,7 +14,7 @@ Always checked out side by side: this repo is `portfolio/` on the work PC and
 **"The backend", "the API" and "the admin" always mean the `portfolio-api`
 repo** — a separate checkout with its own `CLAUDE.md`, whose rules take
 precedence inside that directory. On the **work PC** it lives at
-`C:\Users\admin\Desktop\Chrys\Personal\portfolio-api`; on the **home PC** at
+`D:\Chrys\Personal\portfolio repo\portfolio-api`; on the **home PC** at
 `D:\Projects\portfolio-api`. `docs/BACKEND-LOCATION.md` has the machine table,
 the per-machine PHP binary, and the crossing points.
 
@@ -54,42 +54,58 @@ every fact on the site.
 
 ## Where the content comes from
 
-Three sources, in order of preference, all resolved in `lib/projects.ts`:
+**The database is the only content source. The site reads it through
+`GET /api/v1/content`, caches every page, and refreshes on save.**
 
-1. `content/snapshot.json` — written by `scripts/pull-content.mjs` from the
-   Laravel API, and **committed**.
-2. `content/projects/*.mdx` — the original source, still fully supported.
+```
+Admin saves a published project
+        │
+        ▼
+  Laravel API ── POST /api/revalidate ──►  Next.js on Vercel
+        ▲                                        │
+        │      GET /api/v1/content               │ regenerates the cached
+        └────────────────────────────────────────┘ pages from fresh content
+```
 
-`npm run build` runs the pull first (via `prebuild`). Behaviour:
+How it behaves, all of which is deliberate:
 
-| `PORTFOLIO_API_URL`  | What happens                                 |
-| -------------------- | -------------------------------------------- |
-| empty                | builds from the MDX. No backend needed.      |
-| set, API reachable   | pulls, rewrites the snapshot, builds from it |
-| set, API unreachable | warns, builds from the committed snapshot    |
+- **Pages are cached, not rendered per request.** `lib/content-source.ts`
+  fetches with the `content` cache tag and `revalidate: false`, so a visitor
+  is served the cached page and never waits on the API. In development the
+  cache is off and every request reads the API.
+- **A save refreshes the site.** Saving a published project (or "Sync site" on
+  the dashboard) POSTs to the site's `/api/revalidate` with the shared secret;
+  the tag is invalidated and the next request regenerates from fresh content.
+- **A failed read throws.** No snapshot, no MDX, no fallback. At build time the
+  build fails with a `[content] …` message naming the reason. At runtime a
+  failed regeneration leaves Next serving the last good page — an empty or
+  partial page is never cached in its place.
+- **If Laravel is down,** a running production site keeps serving its cached
+  pages; only a new build, or a regeneration after a save, needs the API up.
 
-The build never fails because the backend is asleep — `docs/08-BACKEND.md` §2,
-"Build resilience". To go back to MDX, delete `content/snapshot.json`.
+There is no committed snapshot, no MDX and no build-time pull script any
+more. Do not reintroduce a local copy of the content: two sources is how the
+site and the admin came to disagree.
 
-**Never add a runtime `fetch` to the API from a page.** The site is static and
-must stay that way; if a feature seems to need runtime data, it needs a rebuild
-trigger instead.
+Every row is validated by the Zod schemas in `lib/schema.ts`, so a backend
+that drifts from the contract fails the build. The phone number is the one
+fact that never comes from the API: it lives in `content/site.ts` and renders
+on `/contact` only.
 
 ## Local HTTPS: NODE_EXTRA_CA_CERTS
 
 Herd serves `portfolio-api.test` with its own certificate authority, which Node
-does not trust. Without `NODE_EXTRA_CA_CERTS` pointing at it, every content
-fetch fails with a bare `fetch failed` and the build quietly uses the snapshot —
-which looks like a working build until you notice the content is stale.
+does not trust. Point `NODE_EXTRA_CA_CERTS` at it in `.env.local`:
 
 ```
 NODE_EXTRA_CA_CERTS=C:/Users/<you>/.config/herd/config/valet/CA/LaravelValetCASelfSigned.crt
 ```
 
-Note that `scripts/pull-content.mjs` runs as a bare node process from
-`prebuild`, so `next.config.ts` never loads for it — anything set there does not
-apply to the pull. The script re-spawns itself once with the CA in place,
-because Node reads that variable only at startup.
+Node reads that variable only at startup, so `dev`, `build` and `start` run
+through `scripts/with-ca.mjs`, which loads it before Next starts. Without it
+every content read fails with `fetch failed` — and with no fallback, the build
+says so. Certificate verification is never switched off
+(`NODE_TLS_REJECT_UNAUTHORIZED=0` is gone from `next.config.ts`).
 
 `curl --cacert` still fails on Windows with `CERT_TRUST_REVOCATION_STATUS_UNKNOWN`.
 That is schannel, not the certificate; Node uses OpenSSL and is fine.
@@ -109,13 +125,13 @@ false alarms repeatedly:
 
 ## Commands
 
-| Task              | Command                               |
-| ----------------- | ------------------------------------- |
-| Dev               | `npm run dev`                         |
-| Build             | `npm run build` (pulls content first) |
-| Types + lint      | `npm run check`                       |
-| Format            | `npm run format`                      |
-| Pull content only | `npm run content:pull`                |
+| Task         | Command                                         |
+| ------------ | ----------------------------------------------- |
+| Dev          | `npm run dev` (reads the API on every request) |
+| Build        | `npm run build` (needs the API reachable)       |
+| Types + lint | `npm run check`                                 |
+| Tests        | `npm test` (Node's own `node:test`, no deps)    |
+| Format       | `npm run format`                                |
 
 ## Connecting to the backend
 
@@ -124,7 +140,11 @@ In `.env.local`:
 ```
 PORTFOLIO_API_URL=https://portfolio-api.test     # or the live URL
 PORTFOLIO_API_TOKEN=<from the backend>
+REVALIDATE_SECRET=<same as SITE_REVALIDATE_SECRET in the API>
 ```
+
+These are required — there is no other content source. Placeholders are in
+`.env.example`; real values go only in `.env.local` or the host's environment.
 
 Issue the token in the API repo with
 `php artisan portfolio:build-token --email=...`. It is shown once, and its only

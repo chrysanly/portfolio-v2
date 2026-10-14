@@ -101,6 +101,17 @@
   :root {
     --page-x: 64px;
     --header-h: 72px;
+    /* How far the work index is pulled up under the hero — see
+       `.hero + main` near the end of this file. */
+    --hero-pull: -103.8svh;
+    /* One material for all three devices in the showcase rig. */
+    --device: #232220;
+    --device-edge: rgb(255 255 255 / 0.07);
+    --device-key: #3a3935;
+    --device-shadow: 0 1.6cqw 3cqw -1.4cqw rgb(0 0 0 / 0.42);
+    --glass: linear-gradient(118deg, rgb(255 255 255 / 0.1) 0 28%, rgb(255 255 255 / 0) 28.2%);
+    /* A screen with nothing on it is off, not white. */
+    --screen-off: radial-gradient(120% 90% at 30% 10%, #26272b 0, #0d0e10 70%);
     --grid-cell: 56px;
     /*
      * Corner radius. docs/04-UIUX-BRIEF.md §4 specified zero radius
@@ -186,7 +197,14 @@
     :root {
       --page-x: 20px;
       --header-h: 60px;
+      --hero-pull: -102.3svh;
     }
+  }
+
+  :root[data-theme='dark'] {
+    --device: #2c2b28;
+    --device-edge: rgb(255 255 255 / 0.16);
+    --device-key: #45443f;
   }
 
   *,
@@ -580,7 +598,7 @@
      * logo's real position every time, so moving it moves the target.
      */
     max-width: none;
-    height: 72px;
+    height: var(--header-h);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1209,12 +1227,85 @@
     align-items: baseline;
     gap: 22px;
     opacity: var(--fade, 0);
-    border-bottom: 1px solid var(--color-rule);
     will-change: opacity;
   }
 
-  .facts__row:first-child {
+  .tally {
     border-top: 1px solid var(--color-rule);
+  }
+
+  /*
+   * The rules are drawn, not printed: MastheadHero paints `--draw` on each row
+   * just ahead of its text. Both lines live on ::after — ::before belongs to
+   * the hover card — as two gradient strokes that scale together from the
+   * left. Rows that open a column also carry the top rule.
+   */
+  .facts__row {
+    position: relative;
+  }
+
+  .facts__row::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(var(--color-rule), var(--color-rule)) bottom / 100% 1px
+      no-repeat;
+    transform: scaleX(var(--draw, 0));
+    transform-origin: 0 50%;
+  }
+
+  .facts__row:first-child::after {
+    background:
+      linear-gradient(var(--color-rule), var(--color-rule)) top / 100% 1px no-repeat,
+      linear-gradient(var(--color-rule), var(--color-rule)) bottom / 100% 1px no-repeat;
+  }
+
+  @media (min-width: 1024px) {
+    .facts__row:nth-child(2)::after {
+      background:
+        linear-gradient(var(--color-rule), var(--color-rule)) top / 100% 1px no-repeat,
+        linear-gradient(var(--color-rule), var(--color-rule)) bottom / 100% 1px no-repeat;
+    }
+  }
+
+  /* The statement's object, underlined as it lands. */
+  .mark {
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .mark::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0.04em;
+    left: 0;
+    height: 2px;
+    background: var(--color-accent);
+    transform: scaleX(var(--mark, 0));
+    transform-origin: 0 50%;
+  }
+
+  .intro__note strong {
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+
+  @media (max-width: 767px) {
+    .mark {
+      white-space: normal;
+    }
+  }
+
+  /* Nothing is painted under reduced motion: draw the rules and the
+     underline in their finished state. */
+  @media (prefers-reduced-motion: reduce) {
+    .facts__row,
+    .mark {
+      --draw: 1;
+      --mark: 1;
+    }
   }
 
   .facts__row > dt,
@@ -1515,109 +1606,210 @@
   .showcase__stage {
     position: sticky;
     top: var(--header-h);
+    height: calc(100vh - var(--header-h));
     height: calc(100svh - var(--header-h));
     overflow: hidden;
-  }
-
-  .panel {
-    position: absolute;
-    inset: 0;
     display: grid;
-    align-content: center;
-    opacity: 0;
-    will-change: transform, opacity;
+    grid-template-rows: auto 1fr;
   }
 
-  .panel__count {
+  /* --- chapter index: one bar per project, filled by scroll --- */
+  .chapters {
+    padding-top: 22px;
+  }
+
+  .chapters ol {
+    display: grid;
+    gap: 12px;
+    list-style: none;
+  }
+
+  .chapter {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-faint);
+    text-align: left;
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+
+  .chapter__label {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--color-rule);
+    gap: 8px;
+    overflow: hidden;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
-  .panel__count span {
-    font-family: var(--font-display);
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    font-weight: 600;
-    line-height: 0.9;
+  .chapter__label b {
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-meta);
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .chapter__bar {
+    display: block;
+    height: 2px;
+    overflow: hidden;
+    background: var(--color-rule);
+  }
+
+  /* The current tab's underline: static, never filled by scroll. */
+  .chapter__bar i {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  .chapter[data-current='true'] .chapter__bar i {
+    opacity: 1;
+  }
+
+  .chapter[data-current='true'] {
     color: var(--color-ink);
   }
 
-  .panel__count em {
-    font-style: normal;
-    font-size: var(--text-small);
-    color: var(--color-faint);
+  @media (hover: hover) and (pointer: fine) {
+    .chapter:hover {
+      color: var(--color-ink);
+    }
   }
 
-  .panel__count b {
-    margin-left: auto;
-    font-size: var(--text-meta);
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
+  .chapters__now {
+    display: none;
   }
 
-  .panel__body {
+  /* --- body: the story beside one shared device rig --- */
+  .showcase__body {
     display: grid;
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    gap: 48px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 56px;
     align-items: center;
-    padding-top: 28px;
+    min-height: 0;
   }
 
-  /* No screenshots yet: the text takes the full measure rather than sitting
-     beside an empty box. docs/04-UIUX-BRIEF.md forbids placeholder graphics. */
-  .panel[data-shots='false'] .panel__body {
+  /* No real screenshots anywhere: the story takes the full measure rather
+     than sitting beside an empty rig. docs/04-UIUX-BRIEF.md forbids
+     placeholder graphics. */
+  .showcase__body[data-shots='false'] {
     grid-template-columns: minmax(0, 1fr);
     max-width: 62rem;
   }
 
-  .panel[data-shots='false'] .panel__figure {
-    display: none;
+  /* Every story occupies the same cell; the paint loop shows one at a time. */
+  .texts {
+    display: grid;
   }
 
-  .panel__title {
+  .ptext {
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
+
+  .ptext [data-k] {
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .story__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .story__n {
+    flex: none;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--color-faint);
+  }
+
+  .story__title {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 4.6vw, 3.5rem);
+    font-size: clamp(1.875rem, 3.4vw, 2.75rem);
     font-weight: 600;
     line-height: 1.06;
     letter-spacing: -0.01em;
     color: var(--color-ink);
   }
 
-  .panel__attr {
-    margin-top: 12px;
-    font-size: var(--text-body);
+  /* What kind of system, for whom, and what it does — the one tinted box. */
+  .system {
+    position: relative;
+    margin-top: 18px;
+    padding: 14px 18px 15px 20px;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--color-accent) 7%, var(--color-ground));
+  }
+
+  .system::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 0;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-accent);
+    transform: scaleY(var(--grow, 1));
+    transform-origin: 50% 0;
+  }
+
+  .system__kind {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    font-size: var(--text-meta);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .system__kind span + span {
+    font-weight: 500;
     color: var(--color-faint);
   }
 
-  .panel__summary {
-    margin-top: 20px;
-    max-width: 34em;
-    font-size: clamp(1.0625rem, 1.5vw, 1.375rem);
+  .system__kind span + span::before {
+    content: '·';
+    margin-right: 10px;
+    color: var(--color-rule);
+  }
+
+  .system__desc {
+    margin-top: 6px;
+    font-size: clamp(1rem, 1.25vw, 1.125rem);
     line-height: 1.5;
-    color: var(--color-muted);
+    color: var(--color-ink);
   }
 
-  .panel__meta {
+  .story__cols {
     display: grid;
-    gap: 10px;
-    margin-top: 26px;
-    padding-top: 18px;
-    border-top: 1px solid var(--color-rule);
-    max-width: 40em;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 28px;
+    margin-top: 20px;
   }
 
-  .panel__meta > div {
-    display: grid;
-    grid-template-columns: 96px 1fr;
-    gap: 14px;
-    align-items: baseline;
+  .story__cols[data-cols='1'] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .panel__meta dt {
+  .story__label {
+    margin-bottom: 8px;
     font-size: var(--text-meta);
     font-weight: 500;
     letter-spacing: 0.12em;
@@ -1625,39 +1817,100 @@
     color: var(--color-faint);
   }
 
-  .panel__meta dd {
-    font-size: var(--text-body);
+  .problem p:not(.story__label) {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+
+  .did ul {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+  }
+
+  .did li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 0.875rem;
     line-height: 1.5;
     color: var(--color-ink);
   }
 
-  .panel__out {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin-top: 24px;
+  /*
+   * The dash is ::after, never ::before. With Texture on, every hovered text
+   * block draws its card as ::before (see the hover-card rules near the end of
+   * this file), and a dash there handed the card its own `width: 9px;
+   * height: 1.5px` — the item turned card-coloured with no card behind it.
+   */
+  .did li::after {
+    content: '';
+    position: absolute;
+    top: 0.72em;
+    left: 0;
+    width: 9px;
+    height: 1.5px;
+    background: var(--color-accent);
+    pointer-events: none;
   }
 
-  .panel__out b {
-    font-family: var(--font-display);
-    font-size: clamp(1.875rem, 3.4vw, 2.75rem);
-    font-weight: 600;
-    line-height: 1;
-    color: var(--color-accent);
-  }
-
-  .panel__out em {
-    font-style: normal;
+  .did li[data-more] {
     font-size: var(--text-small);
     color: var(--color-faint);
   }
 
-  /* The panel's one control. Reuses `.button` rather than inventing a second
-     button language — the only difference is the chevron, which leans forward
-     on hover the way the Back chevron leans back. */
-  .panel__cta {
+  .did li[data-more]::after {
+    background: var(--color-rule);
+  }
+
+  .story__foot {
     display: flex;
-    margin-top: 30px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .facts-inline {
+    display: flex;
+    gap: 18px;
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .facts-inline b {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+  }
+
+  .chips li {
+    padding: 3px 9px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  /* The story's one control. Reuses `.button` rather than inventing a second
+     button language — the chevron leans forward on hover the way the Back
+     chevron leans back. */
+  .story__cta {
+    display: flex;
+    margin-top: 22px;
   }
 
   .panel__button svg {
@@ -1672,1024 +1925,491 @@
     }
   }
 
+  /* Fades out over the first project: once someone has scrolled, they know. */
+  .hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+    transform: translateX(-50%);
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  .hint svg {
+    width: 18px;
+    height: 18px;
+    animation: cue-bounce 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  /* Problem and what-I-did side by side only where the text column is
+     genuinely wide; at 1280–1439 it is about 550px, too narrow for two. */
+  @media (max-width: 1439px) {
+    .story__cols {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .ptext .problem p:not(.story__label) {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
   /* ----- device rig -------------------------------------------------------
      Laptop behind, phone overlapping at the left, tablet at the right — the
      arrangement in the reference. Drawn in CSS so it recolours with the theme;
      a mockup PNG would be stuck in one palette and would not survive dark mode.
   --------------------------------------------------------------------------- */
-  .panel__figure {
+  .showcase__figure {
     display: grid;
     place-items: center;
-    height: min(62svh, 620px);
-    will-change: transform;
+    height: min(60svh, 600px);
   }
 
+  /*
+   * The rig is its own size container: every measurement below is in `cqw`,
+   * so bezels, radii and buttons keep their proportions at 640px on a desktop
+   * and 240px on a phone. Three devices in one material and one finish —
+   * `--device`, an inset `--device-edge`, one `--device-shadow`, and the same
+   * `--glass` sheen over every screen.
+   */
   .rig {
     position: relative;
     width: 100%;
     max-width: 640px;
     aspect-ratio: 3 / 2;
+    container-type: inline-size;
   }
 
   .rig__laptop,
   .rig__tablet,
   .rig__phone {
     position: absolute;
-    will-change: transform, opacity;
+  }
+
+  .rig__body {
+    position: relative;
+    background: var(--device);
+    box-shadow:
+      inset 0 0 0 0.18cqw var(--device-edge),
+      var(--device-shadow);
   }
 
   .rig__screen {
-    /* Positioned so the NDA mark has something to be absolute against, and
-       clipped so the oversized mark stops at the bezel. */
+    /* Positioned so the shots and the NDA mark have something to be absolute
+       against, and clipped so the mark stops at the bezel. */
     position: relative;
     overflow: hidden;
-    background: var(--color-surface);
-    width: 100%;
-    height: 100%;
+    isolation: isolate;
+    background: var(--screen-off);
   }
 
-  .rig__screen img {
+  .rig__screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: var(--glass);
+  }
+
+  /* One shot per project, stacked; the paint loop cross-fades them. */
+  .shot {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    opacity: 0;
+    visibility: hidden;
+    will-change: opacity;
+  }
+
+  .rig__screen img,
+  .rig__screen video {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  /* --- laptop: lid, bezel, camera, base with a trackpad notch --- */
-  .rig__laptop {
-    left: 14%;
-    top: 4%;
-    width: 72%;
-  }
-
-  .rig__lid {
-    position: relative;
-    padding: 9px 9px 11px;
-    border: 1px solid var(--color-ink);
-    border-radius: 10px 10px 3px 3px;
-    background: var(--color-ink);
-  }
-
-  .rig__lid .rig__screen {
-    aspect-ratio: 1440 / 900;
-    border-radius: 2px;
-  }
-
   .rig__cam {
     position: absolute;
-    top: 4px;
+    top: 0.45cqw;
     left: 50%;
-    width: 4px;
-    height: 4px;
-    margin-left: -2px;
+    width: 0.5cqw;
+    height: 0.5cqw;
+    margin-left: -0.25cqw;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--color-ground) 45%, transparent);
+    background: #0c0c0d;
   }
 
-  /*
-   * The deck. Tall enough to carry a keyboard and a trackpad, because a lid
-   * on a bare 11px bar reads as a picture frame rather than as a laptop —
-   * the keys are what make it a computer. Drawn head-on and foreshortened,
-   * which is why the keyboard is a shallow band rather than a square block.
-   */
+  .rig__btn {
+    position: absolute;
+    width: 0.4cqw;
+    border-radius: 0.2cqw;
+    background: var(--device-key);
+  }
+
+  /* --- laptop: behind, centred --- */
+  .rig__laptop {
+    top: 3%;
+    left: 15%;
+    width: 70%;
+    z-index: 1;
+  }
+
+  .rig__laptop .rig__body {
+    padding: 1.3cqw 1.3cqw 1.5cqw;
+    border-radius: 1.9cqw 1.9cqw 0.5cqw 0.5cqw;
+  }
+
+  .rig__laptop .rig__screen {
+    aspect-ratio: 1440 / 900;
+    border-radius: 0.6cqw 0.6cqw 0.2cqw 0.2cqw;
+  }
+
+  /* A thin base, seen edge-on, with the notch you open the lid by. */
   .rig__base {
     position: relative;
-    height: 44px;
-    /* Wider than the lid, and flared: the deck is the one part of a laptop
-       seen from above rather than head-on, so it is drawn in perspective.
-       The clip is what sells it — a rectangle here reads as a shelf. */
-    margin: 0 -9%;
-    clip-path: polygon(2.5% 0, 97.5% 0, 100% 100%, 0 100%);
-    background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-ink) 90%, var(--color-ground)) 0 6%,
-      color-mix(in srgb, var(--color-ink) 78%, var(--color-ground)) 6% 88%,
-      color-mix(in srgb, var(--color-ink) 58%, var(--color-ground)) 88% 100%
-    );
+    height: 1.7cqw;
+    margin: 0 -6.5%;
+    border-radius: 0 0 1.2cqw 1.2cqw;
+    background: linear-gradient(var(--device-key), var(--device) 40%);
+    box-shadow:
+      inset 0 0.18cqw 0 var(--device-edge),
+      var(--device-shadow);
   }
 
-  /*
-   * Keys as two crossing repeating gradients: columns of light on a band of
-   * dark, then rows cut through them. At this size (about 5px to a key) that
-   * is more convincing than any attempt to draw individual caps, and it
-   * costs no elements.
-   */
-  /*
-   * The keyboard, as actual keys rather than as a texture.
-   *
-   * Caps are the background colour and the grid lines are the gaps between
-   * them — the reverse of the obvious way round, and the only way two
-   * crossing repeating-gradients produce discrete rectangles instead of a
-   * plaid. Roughly 18px to a key across and 4px down, which is what a
-   * keyboard looks like at this angle: wide, shallow, foreshortened.
-   */
-  .rig__keys {
-    position: absolute;
-    top: 7px;
-    left: 11%;
-    right: 11%;
-    height: 21px;
-    border-radius: 2px;
-    /* Flared a touch less than the deck, so it sits on it rather than
-       floating above it. */
-    clip-path: polygon(1.5% 0, 98.5% 0, 100% 100%, 0 100%);
-    background-color: color-mix(in srgb, var(--color-ink) 62%, var(--color-ground));
-    background-image:
-      repeating-linear-gradient(
-        90deg,
-        transparent 0 17px,
-        color-mix(in srgb, var(--color-ink) 92%, var(--color-ground)) 17px 20px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        transparent 0 3.6px,
-        color-mix(in srgb, var(--color-ink) 92%, var(--color-ground)) 3.6px 5.2px
-      );
-  }
-
-  .rig__trackpad {
-    position: absolute;
-    bottom: 4px;
-    left: 50%;
-    width: 24%;
-    height: 10px;
-    margin-left: -12%;
-    border-radius: 0 0 3px 3px;
-    background: color-mix(in srgb, var(--color-ink) 68%, var(--color-ground));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 88%, var(--color-ground));
-  }
-
-  /* The lip you put a finger under to open it. */
-  .rig__notch {
+  .rig__base::before {
+    content: '';
     position: absolute;
     top: 0;
     left: 50%;
-    width: 16%;
-    height: 3px;
-    margin-left: -8%;
-    border-radius: 0 0 4px 4px;
-    background: color-mix(in srgb, var(--color-ground) 55%, transparent);
+    width: 15%;
+    height: 0.5cqw;
+    margin-left: -7.5%;
+    border-radius: 0 0 0.5cqw 0.5cqw;
+    background: var(--device);
   }
 
-  /*
-   * Side buttons. Two pixels of shadow proud of the case is all it takes for
-   * a rounded rectangle to read as a phone rather than as a card — it is the
-   * only detail on these two shells that says "held in a hand".
-   */
-  .rig__btn {
-    position: absolute;
-    width: 2px;
-    border-radius: 0 2px 2px 0;
-    background: color-mix(in srgb, var(--color-ink) 62%, var(--color-ground));
-  }
-
-  .rig__btn--vol-up,
-  .rig__tablet .rig__btn--vol {
-    border-radius: 2px 0 0 2px;
-  }
-
-  .rig__tablet .rig__btn--power {
-    top: 14%;
-    right: -2px;
-    height: 9%;
-  }
-
-  .rig__tablet .rig__btn--vol {
-    top: 10%;
-    left: -2px;
-    height: 16%;
-  }
-
-  /* A front camera, on the long edge, the way a tablet held in landscape has
-     it — the same dot the laptop lid uses. */
-  .rig__cam--edge {
-    top: 50%;
-    left: 3px;
-    margin-top: -2px;
-    margin-left: 0;
-  }
-
-  .rig__phone .rig__btn--power {
-    top: 26%;
-    right: -2px;
-    height: 14%;
-  }
-
-  .rig__phone .rig__btn--vol-up {
-    top: 20%;
-    left: -2px;
-    height: 8%;
-    border-radius: 2px 0 0 2px;
-  }
-
-  .rig__phone .rig__btn--vol-down {
-    top: 31%;
-    left: -2px;
-    height: 8%;
-    border-radius: 2px 0 0 2px;
-  }
-
-  /* --- tablet: right, portrait, sitting in front of the laptop --- */
+  /* --- tablet: portrait, right, in front of the laptop --- */
   .rig__tablet {
     right: 0;
-    bottom: 2%;
+    bottom: 3%;
     width: 30%;
-    padding: 7px;
-    border: 1px solid var(--color-ink);
-    border-radius: 12px;
-    background: var(--color-ink);
+    z-index: 2;
+  }
+
+  .rig__tablet .rig__body {
+    padding: 1.3cqw;
+    border-radius: 2.9cqw;
   }
 
   .rig__tablet .rig__screen {
     aspect-ratio: 768 / 1024;
-    border-radius: 6px;
+    border-radius: 1.6cqw;
+  }
+
+  .rig__tablet .rig__cam {
+    top: 0.4cqw;
+  }
+
+  .rig__tablet .rig__btn--top {
+    top: -0.3cqw;
+    right: 12%;
+    width: 4cqw;
+    height: 0.4cqw;
+  }
+
+  .rig__tablet .rig__btn--side {
+    top: 9%;
+    right: -0.3cqw;
+    height: 5cqw;
   }
 
   /* --- phone: front left, the nearest object --- */
   .rig__phone {
-    left: 0;
     bottom: 0;
-    width: 17%;
-    padding: 5px;
-    border: 1px solid var(--color-ink);
-    border-radius: 14px;
-    background: var(--color-ink);
+    left: 1.5%;
+    width: 16%;
+    z-index: 3;
+  }
+
+  .rig__phone .rig__body {
+    padding: 0.7cqw;
+    border-radius: 3.3cqw;
   }
 
   .rig__phone .rig__screen {
     aspect-ratio: 390 / 844;
-    border-radius: 10px;
+    border-radius: 2.6cqw;
   }
 
   .rig__island {
     position: absolute;
-    top: 11px;
+    top: 1.1cqw;
     left: 50%;
-    width: 30%;
-    height: 5px;
-    margin-left: -15%;
-    border-radius: 3px;
-    background: var(--color-ink);
-    z-index: 1;
+    z-index: 4;
+    width: 4.4cqw;
+    height: 1.25cqw;
+    margin-left: -2.2cqw;
+    border-radius: 1cqw;
+    background: #050506;
+  }
+
+  .rig__phone .rig__btn--power {
+    top: 26%;
+    right: -0.3cqw;
+    height: 5.5cqw;
+  }
+
+  .rig__phone .rig__btn--up {
+    top: 20%;
+    left: -0.3cqw;
+    height: 3.2cqw;
+  }
+
+  .rig__phone .rig__btn--down {
+    top: 29%;
+    left: -0.3cqw;
+    height: 3.2cqw;
   }
 
   @media (max-width: 1023px) {
-    .panel__body {
+    .showcase__body {
       grid-template-columns: minmax(0, 1fr);
-      gap: 24px;
+      gap: 18px;
     }
 
-    /* The panel is one viewport tall and the body stacks here, so the control
-       gives back what the stack costs. */
-    .panel__cta {
-      margin-top: 22px;
-    }
-
-    .panel__figure {
-      height: min(36svh, 320px);
+    .showcase__figure {
+      height: min(30svh, 260px);
     }
 
     .rig {
-      max-width: 460px;
+      max-width: 380px;
     }
   }
 
   @media (max-width: 767px) {
-    .panel__meta > div {
-      grid-template-columns: 1fr;
-      gap: 2px;
+    .chapters {
+      padding-top: 14px;
     }
 
-    .panel__figure {
+    .chapters ol {
+      gap: 4px;
+    }
+
+    .chapter {
+      min-height: 32px;
+      gap: 0;
+    }
+
+    .chapter__label {
+      display: none;
+    }
+
+    /* Six labels do not fit across a phone; the current one is named
+       underneath instead. */
+    .chapters__now {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-height: 1.3em;
+      margin-top: 10px;
+      font-size: var(--text-small);
+      color: var(--color-ink);
+    }
+
+    .chapters__now::before {
+      content: attr(data-n);
+      font-family: var(--font-mono, monospace);
+      font-size: var(--text-meta);
+      font-weight: 500;
+      color: var(--color-faint);
+    }
+
+    .showcase__body {
+      align-content: start;
+      gap: 12px;
+      padding-top: 14px;
+    }
+
+    .showcase__figure {
+      order: -1;
+      height: auto;
+    }
+
+    .rig {
+      max-width: 240px;
+      margin-inline: auto;
+    }
+
+    .story__n {
+      display: none;
+    }
+
+    .story__title {
+      font-size: 1.5rem;
+    }
+
+    .system {
+      margin-top: 10px;
+      padding: 10px 12px 11px 16px;
+    }
+
+    .system__desc {
+      font-size: 0.875rem;
+    }
+
+    .ptext .problem,
+    .ptext .chips,
+    .hint {
+      display: none;
+    }
+
+    .ptext .did li:nth-child(n + 3):not([data-more]) {
+      display: none;
+    }
+
+    .did li {
+      font-size: var(--text-small);
+    }
+
+    .story__cols {
+      margin-top: 12px;
+    }
+
+    .story__foot {
+      margin-top: 12px;
+      padding-top: 10px;
+    }
+
+    .story__cta {
+      margin-top: 12px;
+    }
+  }
+
+  /* A short phone has no room for the rig above the story. */
+  @media (max-width: 767px) and (max-height: 760px) {
+    .showcase__figure {
       display: none;
     }
   }
 
-  /* ----- the journey, walked sideways --------------------------------------
-     Vertical scroll drives horizontal travel. The strip is translated, never
-     scrolled, so nothing reflows. With JS off or reduced motion the same cards
-     stack — the pin, the travel and the rail are all gated on [data-motion],
-     so there is one component and one set of markup.
+  /* ----- "My journey" --------------------------------------------------------
+     The page around the ladder. The ladder itself is drawn in a shadow root
+     by components/work/journey-engine.mjs and carries its own styles; these
+     are only the intro, the closing line and the list shown before it mounts.
+
+     The one rule that reaches the page: a gentle proximity snap, so a stop
+     settles where its card is held. Always on while the journey is on the
+     page and never toggled mid-scroll (toggling it is what made the page
+     jump); its only snap points are the ones the engine places in the
+     journey's track. Off under reduced motion.
   --------------------------------------------------------------------------- */
-  .track-band {
-    padding-top: 8px;
+  @media (prefers-reduced-motion: no-preference) {
+    html:has(.jw-host) {
+      scroll-snap-type: y proximity;
+    }
   }
 
-  .journey__strip {
-    display: grid;
-    gap: 22px;
+  .jw-intro {
+    max-width: 46rem;
+    padding-top: 72px;
+    padding-bottom: 40px;
   }
 
-  .journey__stop {
-    position: relative;
-    padding: 26px 0;
-    border-top: 1px solid var(--color-rule);
-  }
-
-  .journey__ghost,
-  .journey__rail {
-    display: none;
-  }
-
-  [data-motion='on'] .journey {
-    position: relative;
-    height: calc(var(--stops) * 64vh);
-  }
-
-  [data-motion='on'] .journey__stage {
-    position: sticky;
-    top: var(--header-h);
-    height: calc(100svh - var(--header-h));
+  .jw-kicker {
     display: flex;
-    /* Cards sit above the rail, not centred in the whole stage. */
     align-items: center;
-    padding-bottom: 92px;
-    overflow: hidden;
-  }
-
-  [data-motion='on'] .journey__strip {
-    display: flex;
-    grid-template-columns: none;
-    /* Each card is its own height. Stretching them to match the tallest left
-       the short stops — the first job, the degree — as mostly empty panels. */
-    align-items: center;
-    gap: 26px;
-    width: max-content;
-    /* Half a card of lead-in and run-out, so the first stop opens at the centre
-       and the last one closes there. With a flat page gutter the degree and the
-       current post sat at the edges and never became the card being read. */
-    --card-w: min(560px, 82vw);
-    /*
-     * One height for every card, from the viewport rather than from the
-     * content. Asked for on 2026-09-22: cards that each sized themselves left
-     * the run jumping between a 700px panel and a 300px one as it travelled,
-     * and the tallest of them ended a line flush against its own bottom
-     * border, which reads as text spilling out of the card.
-     *
-     * The subtrahend is the stage's bottom padding plus the rail and a little
-     * air — the same budget the body's max-height used to carry. The clamp is
-     * what makes it work from a phone to a 4K display: no card is ever shorter
-     * than 320px or taller than 760px, whatever the window does.
-     */
-    --card-h: clamp(320px, calc(100svh - var(--header-h) - 132px), 760px);
-    padding-inline: max(var(--page-x), calc(50vw - var(--card-w) / 2));
-    will-change: transform;
-  }
-
-  [data-motion='on'] .journey__stop {
-    position: relative;
-    flex: 0 0 auto;
-    width: var(--card-w);
-    height: var(--card-h);
-    overflow: hidden;
-    border: 1px solid var(--color-rule);
-    border-top: 3px solid var(--color-rule);
-    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
-    will-change: transform, opacity;
-    transition:
-      border-top-color 320ms ease,
-      background-color 320ms ease;
-  }
-
-  /* The card at the centre is the one being read. */
-  [data-motion='on'] .journey__stop[data-current='true'] {
-    border-top-color: var(--color-accent);
-    background: var(--color-surface);
-  }
-
-  /*
-   * The body never scrolls. It did, contained, so a long stop could be read
-   * inside its card — but the wheel was caught there, and the run stopped
-   * moving until that card had been scrolled to its end (Chrys, 2026-09-23).
-   * Now the page always gets the wheel. A stop too long for its card is cut
-   * with a fade and a "View more" that opens it whole in a dialog; one that
-   * fits is shown as it is, with nothing faded.
-   */
-  [data-motion='on'] .journey__body {
-    height: 100%;
-    overflow: hidden;
-    padding: 26px 28px 28px;
-  }
-
-  /*
-   * A mask, not a gradient overlay in the card's colour: over the nested
-   * "what I took from it" panel, which has a ground of its own, an overlay
-   * did not blend and read as a hard cut. The fade ends above the button, so
-   * the last visible line never sits under it.
-   */
-  [data-motion='on'] .journey__body[data-clamped='true'] {
-    mask-image: linear-gradient(
-      to bottom,
-      #000 calc(100% - 120px),
-      transparent calc(100% - 58px)
-    );
-  }
-
-  [data-motion='on'] .journey__more {
-    position: absolute;
-    left: 28px;
-    bottom: 18px;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 38px;
-    padding: 0 18px;
-    border: 1px solid var(--color-accent);
-    border-radius: var(--radius-pill, 999px);
-    background: var(--color-surface);
-    color: var(--color-accent);
-    font-family: var(--font-body);
-    font-size: var(--text-small);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    transition:
-      background-color 160ms ease,
-      color 160ms ease,
-      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .journey__more svg {
-    width: 14px;
-    height: 14px;
-    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .journey__more:hover {
-      background: var(--color-accent);
-      color: var(--color-ground);
-      transform: translateY(-1px);
-    }
-
-    .journey__more:hover svg {
-      transform: translateX(2px);
-    }
-  }
-
-  /* ----- the whole stop, in a dialog ------------------------------------- */
-  /* The reset zeroes every margin, and a dialog is centred by the
-     browser with margin: auto — without this it opened in the top-left. */
-  .journey__dialog {
-    margin: auto;
-    width: min(760px, calc(100vw - 32px));
-    max-height: min(86svh, 900px);
-    padding: 0;
-    border: 1px solid var(--color-rule);
-    border-top: 3px solid var(--color-accent);
-    background: var(--color-surface);
-    color: var(--color-ink);
-    overflow: hidden;
-  }
-
-  .journey__dialog[open] {
-    display: flex;
-    flex-direction: column;
-    animation: journey-dialog-in 260ms cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  .journey__dialog::backdrop {
-    background: color-mix(in srgb, var(--color-ground) 60%, transparent);
-    backdrop-filter: blur(6px);
-  }
-
-  /*
-   * The one place that scrolls, and the right place: it is on top of the
-   * page and nothing else is being read. Contained, so reaching its end does
-   * not start scrolling the page underneath.
-   */
-  .journey__dialog-body {
-    position: relative;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 30px 34px 36px;
-  }
-
-  .journey__dialog-close {
-    position: sticky;
-    top: 0;
-    float: right;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    margin: -8px -10px 0 12px;
-    padding: 0;
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-pill, 999px);
-    background: var(--color-surface);
-    color: var(--color-ink);
-    cursor: pointer;
-  }
-
-  .journey__dialog-close svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .journey__dialog-close:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-
-  /* The page behind holds still while the dialog is open. The gutter stays
-     reserved so the scrollbar leaving does not shift the layout sideways. */
-  :root:has(.journey__dialog[open]) {
-    overflow: hidden;
-    scrollbar-gutter: stable;
-  }
-
-  @keyframes journey-dialog-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .journey__dialog[open] {
-      animation: none;
-    }
-  }
-
-  /* A chapter numeral behind the card — depth without a shadow. */
-  [data-motion='on'] .journey__ghost {
-    display: block;
-    position: absolute;
-    right: 14px;
-    /* Bleeds past the bottom edge and is clipped by the card. Safe now that
-       the scroller is the body: a decorative glyph no longer puts a scrollbar
-       on stops that fit. */
-    bottom: -18px;
-    font-family: var(--font-display);
-    font-size: 8rem;
-    font-weight: 600;
-    line-height: 0.8;
-    color: var(--color-ink);
-    opacity: 0.05;
-    pointer-events: none;
-  }
-
-  /* ----- the rail: pinned to the stage, with a tick per stop --------------- */
-  [data-motion='on'] .journey__rail {
-    display: block;
-    position: absolute;
-    left: var(--page-x);
-    right: var(--page-x);
-    bottom: 26px;
-    /* Above the strip: its ticks are buttons now. */
-    z-index: 2;
-  }
-
-  /* ---------------------------------------------------------------------
-   * Stepping through the run
-   *
-   * Hidden without motion, like the rail: that path renders the stops as an
-   * ordinary vertical list, where "next" is the next thing down the page and
-   * an arrow claiming to advance it would be a lie.
-   * ------------------------------------------------------------------- */
-  .journey__nav {
-    display: none;
-  }
-
-  /*
-   * At the start of the run, in the gutter left of the first card and
-   * level with it, pointing into the run — so the first thing on arrival
-   * says how the section works (Chrys, 2026-09-23). It used to be a faint
-   * caption in the top-right corner, where nobody looked.
-   */
-  [data-motion='on'] .journey__nav {
-    display: flex;
-    position: absolute;
-    top: 50%;
-    left: var(--page-x);
-    z-index: 2;
-    /* The gutter beside a centred card, less a gap, so it never reaches it. */
-    max-width: max(180px, calc(50vw - var(--card-w) / 2 - var(--page-x) - 28px));
-    transform: translateY(-50%);
-    pointer-events: none;
-  }
-
-  /*
-   * The theme turned over, like the hover cards: the ink as its ground and
-   * the accent mixed toward the ground for its text, so it reads at better
-   * than 4.5:1 in both themes.
-   */
-  .journey__hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    margin: 0;
-    padding: 14px 20px;
-    background: var(--color-ink);
-    color: color-mix(in srgb, var(--color-accent) 55%, var(--color-ground));
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.4;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    box-shadow: 0 18px 34px -18px rgb(0 0 0 / 0.5);
-    /* Its job is done the moment the run has been moved once. It slides on
-       in the direction it pointed rather than vanishing in place. */
-    transition:
-      opacity 420ms ease,
-      transform 420ms ease;
-  }
-
-  .journey__nav[data-nudged='true'] .journey__hint {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-
-  .journey__hint-arrow {
-    flex: none;
-    width: 24px;
-    height: 16px;
-    animation: journey-nudge 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  }
-
-  /* A push toward the run and back: the gesture the sentence describes. */
-  @keyframes journey-nudge {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    50% {
-      transform: translateX(6px);
-    }
-  }
-
-  /* No gutter beside the card on a phone. The first stop is short and the
-     lower half of the stage is empty there, so it sits in that space, above
-     the rail, centred and on one line — above the card it crowded the
-     date line. */
-  @media (max-width: 767px) {
-    [data-motion='on'] .journey__nav {
-      top: auto;
-      bottom: 104px;
-      left: 50%;
-      max-width: calc(100vw - 32px);
-      transform: translateX(-50%);
-    }
-
-    .journey__hint {
-      padding: 11px 16px;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      white-space: nowrap;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .journey__hint-arrow {
-      animation: none;
-    }
-  }
-
-  .journey__line {
-    display: block;
-    height: 2px;
-    background: var(--color-rule);
-  }
-
-  .journey__bar {
-    display: block;
-    height: 2px;
-    background: var(--color-accent);
-    transform-origin: 0 50%;
-    transform: scaleX(0);
-  }
-
-  .journey__ticks {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    margin-top: 12px;
-  }
-
-  /* The inactive ticks are quietened with colour, not opacity. Dimming a 9px
-     caption to 40% put it at 1.7:1 — unreadable, and a contrast failure on a
-     label that is meant to tell you where you are. */
-  .journey__ticks li {
-    min-width: 0;
-  }
-
-  /*
-   * A tick takes you to its stop. The whole number-and-label block is the
-   * button, so the target is the full column rather than a 13px numeral.
-   */
-  .journey__tick {
-    display: grid;
-    gap: 3px;
-    width: 100%;
-    min-height: 40px;
-    padding: 6px 14px 4px 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .journey__tick:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .journey__tick:hover b {
-      color: var(--color-accent);
-    }
-
-    .journey__tick:hover em {
-      color: var(--color-ink);
-    }
-  }
-
-  .journey__ticks b {
-    font-family: var(--font-display);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--color-muted);
-    font-variant-numeric: tabular-nums;
-    transition: color 320ms ease;
-  }
-
-  .journey__ticks li[data-current='true'] b {
-    color: var(--color-accent);
-  }
-
-  .journey__ticks em {
-    font-style: normal;
-    font-size: 0.5625rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-faint);
-    transition: color 320ms ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .journey__ticks li[data-current='true'] em {
-    color: var(--color-ink);
-  }
-
-  /* ----- card contents ---------------------------------------------------- */
-  .journey__mark {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--color-rule);
-  }
-
-  .journey__mark b {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 600;
-    line-height: 1;
-    color: var(--color-ink);
-  }
-
-  .journey__mark span {
-    font-size: var(--text-small);
-    color: var(--color-faint);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* The arc Chrys asked for, beside the real title rather than instead of it. */
-  .journey__phase {
-    margin-top: 14px;
+    gap: 10px;
     font-size: var(--text-meta);
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-accent);
   }
 
-  .journey__title {
-    margin-top: 5px;
-    font-size: var(--text-lead);
-    font-weight: 500;
-    line-height: 1.22;
-    color: var(--color-ink);
-  }
-
-  .journey__place {
-    margin-top: 4px;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--color-muted);
-  }
-
-  /*
-   * The degree opens the run and is deliberately plain: no card, no rule, no
-   * chapter numeral. It is where the story starts, not a post held — giving it
-   * the same panel treatment as a job overstated it and left a mostly empty
-   * box, which is what the first pass looked like.
-   */
-  [data-motion='on'] .journey__stop[data-kind='education'] {
-    width: min(360px, 74vw);
-    /* The lead-in reserves a full card's width; this recentres the narrower
-       education stop inside it so it opens on the middle of the screen. */
-    margin-left: calc((var(--card-w) - min(360px, 74vw)) / 2);
-    border: 0;
-    background: none;
-  }
-
-  [data-motion='on'] .journey__stop[data-kind='education'] .journey__body {
-    padding: 0 28px 0 0;
-  }
-
-  [data-motion='on'] .journey__stop[data-kind='education'] .journey__ghost {
-    display: none;
-  }
-
-  .journey__stop[data-kind='education'] .journey__mark {
-    border-bottom: 0;
-    padding-bottom: 4px;
-  }
-
-  .journey__stop[data-kind='education'] .journey__title {
-    margin-top: 10px;
-    font-family: var(--font-display);
-    font-size: clamp(1.625rem, 3vw, 2.25rem);
-    font-weight: 600;
-    line-height: 1.1;
-  }
-
-  .journey__stop[data-kind='education'] .journey__place {
-    margin-top: 8px;
-    font-size: var(--text-body);
-  }
-
-  .journey__tech {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 14px;
-  }
-
-  .journey__tech li {
-    padding: 3px 8px;
-    border: 1px solid var(--color-rule);
-    font-size: 0.6875rem;
-    letter-spacing: 0.03em;
-    color: var(--color-muted);
-  }
-
-  .journey__work {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid var(--color-rule);
-  }
-
-  .journey__work-head {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 9px;
-  }
-
-  .journey__work-head b {
-    font-family: var(--font-display);
-    font-size: 1.0625rem;
-    font-weight: 600;
-    color: var(--color-ink);
-  }
-
-  /* The marker is on the work, not the employer: docs/07-SOURCE-CONTENT.md
-     §5.8 is explicit that employment is public and detail is what is closed. */
-  .journey__work-head em {
-    font-style: normal;
-    font-size: 0.5625rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 2px 6px;
-    border: 1px solid var(--color-rule);
-    color: var(--color-faint);
-  }
-
-  .journey__work-head em[data-nda='true'] {
-    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
-    color: var(--color-accent);
-  }
-
-  .journey__did {
-    display: grid;
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  /* The contributions are what make the late stops tall enough to clip on a
-     short screen. Two columns halves that without dropping a single line. */
-  [data-motion='on'] .journey__did {
-    display: block;
-    columns: 2;
-    column-gap: 22px;
-  }
-
-  [data-motion='on'] .journey__did li {
-    break-inside: avoid;
-    margin-bottom: 7px;
-  }
-
-  .journey__did li {
-    position: relative;
-    padding-left: 15px;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--color-ink);
-  }
-
-  /* A rule, not a bullet glyph — the index already uses rules to mean "entry". */
-  .journey__did li::before {
+  .jw-kicker::before {
     content: '';
-    position: absolute;
-    left: 0;
-    top: 0.6em;
-    width: 8px;
-    height: 1px;
-    background: var(--color-rule);
+    width: 22px;
+    height: 2px;
+    background: currentColor;
   }
 
-  .journey__learned {
-    margin-top: 16px;
-    padding: 11px 13px;
-    border-left: 2px solid var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
-    font-size: 0.8125rem;
-    line-height: 1.5;
+  .jw-title {
+    margin-top: 12px;
+    font-family: var(--font-display);
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.015em;
     color: var(--color-ink);
   }
 
-  .journey__learned span {
-    display: block;
-    margin-bottom: 3px;
-    font-size: var(--text-meta);
+  .jw-lede {
+    max-width: 38em;
+    margin-top: 16px;
+    font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .jw-end {
+    padding-top: 56px;
+    padding-bottom: 96px;
+  }
+
+  .jw-next {
+    margin-top: 8px;
+    font-family: var(--font-display);
+    font-size: clamp(1.125rem, 1.8vw, 1.375rem);
     font-weight: 500;
+    line-height: 1.35;
+    color: var(--color-ink);
+  }
+
+  .jw-next b {
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+
+  /* Before the ladder mounts, or with scripts off: the journey as a list. */
+  .jw-fallback {
+    display: grid;
+    gap: 28px;
+    max-width: 46rem;
+    margin-inline: auto;
+    padding-inline: var(--page-x);
+    list-style: none;
+  }
+
+  .jw-fallback li {
+    padding-top: 18px;
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+  }
+
+  .jw-fallback__chapter {
+    font-size: var(--text-meta);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-faint);
+    color: var(--color-accent);
   }
 
-  /* "What I took from it" is written in the admin's TipTap field and arrives
-     as HTML, allowlisted server-side. Tailwind's preflight strips list
-     markers and paragraph margins, which is right for a page shell and wrong
-     inside a paragraph someone wrote — without this, a bulleted list here
-     reads as three loose lines. */
-  .journey__prose > * + * {
-    margin-top: 0.6em;
-  }
-
-  .journey__prose ul,
-  .journey__prose ol {
-    padding-inline-start: 1.1em;
-  }
-
-  .journey__prose ul {
-    list-style: disc;
-  }
-
-  .journey__prose ol {
-    list-style: decimal;
-  }
-
-  .journey__prose strong {
+  .jw-fallback h3 {
+    margin-top: 6px;
+    font-family: var(--font-display);
+    font-size: 1.375rem;
     font-weight: 600;
     color: var(--color-ink);
-  }
-
-  .journey__prose a {
-    color: var(--color-accent);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .journey__prose blockquote {
-    border-inline-start: 2px solid var(--color-rule);
-    padding-inline-start: 0.6em;
-    color: var(--color-muted);
-  }
-
-  .journey__prose code {
-    font-size: 0.95em;
-    background: color-mix(in srgb, var(--color-ink) 7%, transparent);
-    border-radius: var(--radius-sm);
-    padding: 0.05em 0.3em;
-  }
-
-  .track__foot {
-    padding-top: 22px;
-    font-size: var(--text-body);
-    color: var(--color-muted);
   }
 
   /* ----- stage A rule ----------------------------------------------------
@@ -2800,20 +2520,6 @@
     }
   }
 
-  .progress {
-    width: 180px;
-    height: 2px;
-    background: var(--color-rule);
-  }
-
-  .progress__bar {
-    height: 2px;
-    background: var(--color-accent);
-    transform-origin: 0 50%;
-    transform: scaleX(0);
-    will-change: transform;
-  }
-
   /* ----- work index row — docs/04-UIUX-BRIEF.md §4 ------------------------ */
   /*
    * A grid, not a flex row: with flex, a title that wraps to two lines drops
@@ -2822,7 +2528,7 @@
    */
   .row {
     display: grid;
-    grid-template-columns: 44px minmax(220px, 300px) minmax(160px, 240px) 1fr 132px;
+    grid-template-columns: 44px minmax(220px, 300px) minmax(160px, 240px) 1fr;
     gap: 22px;
     align-items: start;
     padding: 26px 0;
@@ -2899,36 +2605,6 @@
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--color-muted);
-  }
-
-  .row__out {
-    text-align: right;
-  }
-
-  /*
-   * docs/03-APPFLOW.md §4: the outcome figure takes the accent colour on
-   * hover and focus. At rest it is ink — four accent figures stacked down the
-   * index is the loudest thing on the page, and §2 caps oxblood at roughly 5%
-   * of a screen.
-   */
-  .row__out b {
-    display: block;
-    font-family: var(--font-display);
-    font-size: var(--text-figure);
-    font-weight: 600;
-    color: var(--color-ink);
-    transition: color 120ms ease;
-  }
-
-  .row:hover .row__out b,
-  .row:focus-visible .row__out b {
-    color: var(--color-accent);
-  }
-
-  .row__out em {
-    font-style: normal;
-    font-size: var(--text-meta);
-    color: var(--color-faint);
   }
 
   /* ----- filter bar ------------------------------------------------------- */
@@ -3012,6 +2688,134 @@
     padding-top: 26px;
     border-top: 1px solid var(--color-rule);
     font-size: var(--text-body);
+  }
+
+  /* ----- case study header -------------------------------------------------
+     The showcase panel, opened: the same story column and rig, at rest. Uses
+     the showcase's own classes (story__*, system, did, chips) so the two can
+     never drift apart; only the grid around them is new.
+  --------------------------------------------------------------------------- */
+  .cs {
+    max-width: 1360px;
+    padding-top: clamp(40px, 7vw, 104px);
+  }
+
+  /* The hero: story and rig. Stacked, the rig sits under the summary at up
+     to 480px; from 1000px they share the row 6fr / 5fr and the rig is capped
+     at 540px, so it sits beside the title instead of filling the page. */
+  /* Story on the left, the full stack on the right, both settling on one
+     baseline with a rule under them. One column on a phone, the stack under
+     the facts. */
+  .cs__hero {
+    display: grid;
+    gap: 36px;
+    padding-top: 12px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .cs .story__title {
+    margin-top: 8px;
+    font-size: clamp(2rem, 4.2vw, 3.75rem);
+  }
+
+  .cs .story__title:focus {
+    outline: none;
+  }
+
+  .cs .story__title:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  .story__n a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .story__n a:hover {
+    color: var(--color-ink);
+  }
+
+  @media (min-width: 1000px) {
+    .cs__hero {
+      grid-template-columns: minmax(0, 548px) minmax(0, 1fr);
+      gap: 56px;
+      align-items: end;
+    }
+  }
+
+  .cs__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 22px;
+  }
+
+  .cs__meta > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .cs__meta dt {
+    font-size: var(--text-meta);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  .cs__meta dd {
+    position: relative;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+  }
+
+  /* The problem beside what was done, behind a rule: the hero above reads as
+     one block, and nothing here is clamped. */
+  .cs__cols {
+    display: grid;
+    gap: 32px;
+    padding-top: 48px;
+  }
+
+  @media (min-width: 1000px) {
+    .cs__cols[data-cols='2'] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 64px;
+    }
+  }
+
+  .cs__stack .chips {
+    margin-top: 2px;
+  }
+
+  .detail-body--cs {
+    padding-top: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .detail-body--cs {
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 52rem;
+    }
+  }
+
+  /* "Screens from the build": 1, 2 or 3 across — this is where the screens
+     are seen large, so the hero rig no longer has to be. */
+  .detail-body--cs .evidence {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 600px) {
+    .detail-body--cs .evidence {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .detail-body--cs .evidence {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   .figure-outcome b {
@@ -3220,7 +3024,7 @@
   }
 
   /* The node. Sits on the line, not under it. */
-  .arch__hop::before {
+  .arch__hop::after {
     content: '';
     position: absolute;
     top: 0;
@@ -3330,7 +3134,7 @@
       padding-bottom: 0;
     }
 
-    .arch__hop::before {
+    .arch__hop::after {
       top: 6px;
       left: 0;
       margin: 0 0 0 -5px;
@@ -3746,8 +3550,8 @@
     pointer-events: none;
     visibility: hidden;
     transition:
-      opacity 180ms ease,
-      visibility 0s linear 180ms;
+      opacity 220ms ease,
+      visibility 0s linear 220ms;
   }
 
   .veil[data-on='true'] {
@@ -3759,42 +3563,184 @@
       visibility 0s;
   }
 
+  /* The opening splash's mark: CHRYS, the letters rising once in sequence. */
   .veil__mark {
     display: flex;
-    gap: 0.16em;
+    gap: 0.09em;
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-size: clamp(38px, 7vw, 76px);
     font-weight: 400;
-    letter-spacing: 0.2em;
+    line-height: 1;
     color: var(--color-ink);
   }
 
   .veil__mark span {
-    opacity: 0.18;
+    display: block;
+    opacity: 0;
+    transform: translateY(0.25em);
   }
 
-  /* The letters lift in sequence — the same gesture as the opening splash,
-     at about a third of the duration. */
-  .veil[data-on='true'] .veil__mark span {
-    animation: veil-letter 900ms cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  .veil[data-on='true'] .veil__mark span,
+  .route-hold .veil__mark span {
+    animation: veil-letter 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
   @keyframes veil-letter {
-    0%,
-    100% {
-      opacity: 0.18;
-      transform: translateY(0);
-    }
-    40% {
+    to {
       opacity: 1;
-      transform: translateY(-4px);
+      transform: none;
+    }
+  }
+
+  .veil__inner {
+    display: grid;
+    justify-items: center;
+    gap: 28px;
+    padding-inline: var(--page-x);
+    text-align: center;
+  }
+
+  /* Progress that never claims to be done: it eases toward 88% and only fills
+     when the page has actually arrived. */
+  .veil__bar {
+    display: block;
+    width: clamp(120px, 18vw, 200px);
+    height: 1px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--color-rule);
+  }
+
+  .veil__bar i {
+    display: block;
+    height: 1px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+  }
+
+  .veil[data-on='true'] .veil__bar i,
+  .route-hold .veil__bar i {
+    animation: veil-bar 2400ms cubic-bezier(0.12, 0.8, 0.25, 1) forwards;
+  }
+
+  .veil[data-done='true'] .veil__bar i {
+    animation: none;
+    transform: scaleX(1);
+    transition: transform 160ms ease;
+  }
+
+  @keyframes veil-bar {
+    to {
+      transform: scaleX(0.88);
+    }
+  }
+
+  /* Said only once the wait is noticeable, so a fast load is never captioned. */
+  .veil__caption {
+    min-height: 1.4em;
+    margin-top: -12px;
+    font-size: var(--text-small);
+    color: var(--color-faint);
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 200ms ease,
+      transform 200ms ease;
+  }
+
+  .veil[data-slow='true'] .veil__caption {
+    opacity: 1;
+    transform: none;
+  }
+
+  .veil__error {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    margin-top: -6px;
+    color: var(--color-ink);
+  }
+
+  .veil__error div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .veil__error .button {
+    min-height: 44px;
+  }
+
+  .veil__stay {
+    border-color: var(--color-rule);
+  }
+
+  .veil[data-state='error'] .veil__mark {
+    opacity: 0.35;
+  }
+
+  .veil[data-state='error'] .veil__bar,
+  .veil[data-state='error'] .veil__caption {
+    display: none;
+  }
+
+  /* Under reduced motion the letters are simply there and the line is a
+     full, dimmed rule — it says "loading" without claiming progress. */
+  @media (prefers-reduced-motion: reduce) {
+    .veil .veil__mark span,
+    .route-hold .veil__mark span {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .veil[data-on='true'] .veil__bar i,
+    .route-hold .veil__bar i {
+      animation: none;
+      transform: scaleX(1);
+      opacity: 0.5;
+    }
+
+    .veil__caption {
+      transform: none;
+    }
+  }
+
+  /* What a case study shows while it loads: the splash's mark and line, so a
+     direct load is not blank and, under the veil, the picture is the same. */
+  .route-hold {
+    display: grid;
+    place-items: center;
+    min-height: calc(100svh - var(--header-h));
+    background: var(--color-ground);
+  }
+
+  /* A case study arriving: its parts settle in, in reading order. */
+  .arrive {
+    animation: arrive-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  @keyframes arrive-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+  }
+
+  @keyframes arrive-fade {
+    from {
+      opacity: 0;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .veil[data-on='true'] .veil__mark span {
-      animation: none;
-      opacity: 0.6;
+    .arrive {
+      animation-name: arrive-fade;
+      animation-delay: 0ms;
     }
   }
 
@@ -4527,17 +4473,15 @@
     }
   }
 
-  /* The blur is the actual restriction, so it is attached to the presence of
-     the mark rather than set per caller: an image that carries `nda: true`
-     cannot be rendered sharp by forgetting a prop. Scaled up a little because
-     a blur samples past the edges of its own box and would otherwise fade the
+  /* The blur is the actual restriction. It sits on the media element itself
+     — every component that renders an `nda` image or video gives it
+     `.nda-media` alongside the ribbon — rather than being inferred from the
+     ribbon with `:has()`, which an older browser would skip and leave the
+     picture sharp under its NDA ribbon. Scaled up a little because a blur
+     samples past the edges of its own box and would otherwise fade the
      picture out against its border. */
-  .evidence__thumb:has(.nda) img,
-  .evidence__thumb:has(.nda) video,
-  .rig__screen:has(.nda) img,
-  .lightbox__shot:has(.nda) img,
-  .lightbox__shot:has(.nda) video {
-    filter: blur(var(--nda-blur));
+  .nda-media {
+    filter: blur(var(--nda-blur, 12px));
     transform: scale(1.06);
   }
 
@@ -4549,8 +4493,13 @@
     font-size: 0.6rem;
   }
 
-  .rig__screen .nda {
-    font-size: 0.3rem;
+  .rig__phone .nda,
+  .rig__tablet .nda {
+    font-size: 1.15cqw;
+  }
+
+  .rig__laptop .nda {
+    font-size: 1.5cqw;
   }
 
   .lightbox__shot .nda {
@@ -4563,16 +4512,161 @@
      — which is exactly how the first attempt shipped a scaled-up but perfectly
      sharp screenshot. Measured, not assumed: `filter` came back `none` while
      the transform from the same rule had applied. */
+  /* Strong enough that a dashboard's figures and labels cannot be read at
+     each context's own scale — the rig shows a 1440px screenshot at about a
+     third of its size, so 6px there is roughly 18px on the original. */
   .evidence__thumb {
-    --nda-blur: 7px;
+    --nda-blur: 10px;
   }
 
-  .rig__screen {
-    --nda-blur: 2.5px;
+  .rig__laptop {
+    --nda-blur: 6px;
+  }
+
+  .rig__tablet {
+    --nda-blur: 5px;
+  }
+
+  .rig__phone {
+    --nda-blur: 4px;
   }
 
   .lightbox__media {
-    --nda-blur: 22px;
+    --nda-blur: 28px;
+  }
+
+  /*
+   * The NDA video's controls: a row under the picture, outside the blur.
+   * The blur is on the <video>, which would blur native controls with it.
+   */
+  .lightbox__media--video {
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .vctl {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(100%, 640px);
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .vctl__btn {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-ground) 86%, transparent);
+    color: var(--color-ink);
+    line-height: 0;
+    cursor: pointer;
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease,
+      opacity 150ms ease;
+  }
+
+  .vctl__btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .vctl__btn:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background: var(--color-surface);
+  }
+
+  .vctl__btn:focus-visible,
+  .vctl__seek:focus-visible,
+  .vctl__retry:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .vctl__seek {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 44px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+
+  .vctl__time {
+    flex: none;
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-meta);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-faint);
+  }
+
+  .vctl :disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* While the clip loads, the status line stands alone in the row. The
+     controls keep their space (visibility, not display) so nothing shifts
+     when they come back. */
+  .vctl[data-disabled] > :not(.vctl__status) {
+    visibility: hidden;
+  }
+
+  /* Loading: the controls stay in place, dimmed, under a status line. */
+  .vctl__status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--color-ink);
+    pointer-events: none;
+  }
+
+  .vctl__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--color-rule);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 800ms linear infinite;
+  }
+
+  .vctl--error {
+    justify-content: center;
+    min-height: 44px;
+    color: var(--color-ink);
+  }
+
+  .vctl__retry {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .vctl__retry:hover {
+    border-color: var(--color-accent);
+  }
+
+  /* The spinner keeps turning under reduced motion — it is the only sign of
+     progress — but slower; the global rule would otherwise freeze it. */
+  @media (prefers-reduced-motion: reduce) {
+    .vctl__spinner {
+      animation-duration: 1600ms !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 
   /* The media's own box inside the figure, so the mark can cover the picture
@@ -4811,10 +4905,6 @@
   --------------------------------------------------------------------------- */
 
   /* Panels and cards. */
-  .journey__stop,
-  [data-motion='on'] .journey__stop,
-  .journey__work,
-  .journey__learned,
   .contact__aside,
   .contact__direct,
   .sent,
@@ -4837,8 +4927,6 @@
   }
 
   /* Small inner parts: chips, swatches, steps. */
-  .journey__tech li,
-  .journey__work-head em,
   .filters a,
   .accent-picker__swatch,
   .accent-picker__chip,
@@ -4851,10 +4939,6 @@
      buttons whose whole job is to be pressed. */
   .header-cta,
   .button,
-  .progress,
-  .progress__bar,
-  .journey__line,
-  .journey__bar,
   .hero__rail,
   .splash__rule,
   .splash__rule span {
@@ -5065,6 +5149,21 @@
     :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover {
       border-bottom-color: transparent;
     }
+
+    /* Single-line blocks — list items, labels, the facts beside them — take
+       a tighter card: at the full 14px radius one line reads as a pill. */
+    :root:not([data-texture='off']):not([data-gate='shut'])
+      main
+      :is(.did li, .story__label, .story__n, .facts-inline dd) {
+      --card-radius: 10px;
+      --card-inset: -4px -10px;
+    }
+
+    /* The accent dash would vanish on the light card; it takes the card's
+       text colour with the words beside it. */
+    :root:not([data-texture='off']):not([data-gate='shut']) main .did li:hover::after {
+      background: var(--card-text);
+    }
   }
 }
 
@@ -5135,22 +5234,15 @@
  * and the document keeps its natural flow.
  */
 /*
- * -88svh was precisely tuned for the hero's *old* CLEAR_TO/WORK_IN_TO of
- * 0.86 — close enough to a coincidence that it's worth writing down: with a
- * 180vh track, pulling the showcase up by 88svh puts its visual top exactly
- * where the ledger used to finish clearing. Extending the hold (see
- * MastheadHero's CLEAR_FROM/TO) moved that finish point later without
- * moving this, which opened a ~120px dead scroll of nothing on screen
- * before the showcase caught up — measured, not guessed, between where
- * `--work-in` reached 1 and where the first panel started fading in.
- *
- * -101.5svh instead: `hero-height-vh - WORK_IN_TO * (hero-height-vh - 100)`,
- * which comes out within a degree of the same value for the 180vh desktop
- * track and the 140vh mobile one, so one number covers both without a
- * breakpoint-specific override.
+ * How far the work index is pulled up: `--hero-pull`, -103.8svh, and
+ * -102.3svh below 768px. Each is `track - WORK_IN_TO * (track - 100)` for the
+ * hero's 150svh desktop and 130svh phone tracks, which puts the showcase's
+ * top exactly where `--work-in` reaches 1 — no dead scroll between the hero
+ * clearing and the first project. The earlier single -101.5svh was worked
+ * out for 180vh/140vh tracks and left a gap once the tracks were shortened.
  */
 [data-motion='on'] .hero + main {
-  margin-top: -101.5svh;
+  margin-top: var(--hero-pull);
   opacity: var(--work-in, 1);
   transform: translate3d(0, calc((1 - var(--work-in, 1)) * 26px), 0);
 }
@@ -5176,30 +5268,6 @@
   .arch:not(.arch--detail) {
     min-height: 0;
     padding: 36px 0 40px;
-  }
-}
-
-@media (max-height: 800px) {
-  [data-motion='on'] .journey__stage {
-    padding-bottom: 80px;
-  }
-
-  [data-motion='on'] .journey__strip {
-    /* The stage gives 12px of its bottom padding back above, so the card may
-       take them. */
-    --card-h: clamp(320px, calc(100svh - var(--header-h) - 120px), 760px);
-  }
-
-  [data-motion='on'] .journey__body {
-    padding: 20px 22px 22px;
-  }
-
-  [data-motion='on'] .journey__stop[data-kind='education'] .journey__body {
-    padding: 0 22px 0 0;
-  }
-
-  .journey__ticks em {
-    display: none;
   }
 }
 
@@ -5315,69 +5383,6 @@
     width: 96px;
     font-size: 0.625rem;
   }
-
-  /*
-   * Selected Work, on a laptop lid.
-   *
-   * The hero was tuned for short windows; the showcase never was, and it is
-   * the one that could least afford it. Measured at 1366x628: the panel's
-   * content came to 628px inside a 556px stage, so `overflow: hidden` on
-   * `.showcase__stage` took 72px off the bottom — which is precisely where
-   * "View project" and the foot of the device rig are. Nothing looked
-   * broken, it just quietly had no call to action.
-   *
-   * The text column is the taller of the two, at 517px against the figure's
-   * 389, so shrinking the rig would not have bought a single pixel. What
-   * follows takes the 72px out of the type and the gaps instead, which is
-   * the one place it can come from.
-   *
-   * All of it is `min-width: 1024px` because below that `.panel__body`
-   * stacks to one column and has its own rules already.
-   */
-  .panel__title {
-    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
-  }
-
-  .panel__attr {
-    margin-top: 8px;
-  }
-
-  .panel__summary {
-    margin-top: 14px;
-  }
-
-  .panel__meta {
-    margin-top: 16px;
-    padding-top: 12px;
-    gap: 8px;
-  }
-
-  .panel__out {
-    margin-top: 14px;
-  }
-
-  .panel__cta {
-    margin-top: 18px;
-  }
-
-  /* Brought down with the text so the rig stays the same size relative to
-     the column beside it — the arrangement reads as a set, and a laptop
-     that stays large while the words shrink reads as a different one. */
-  .panel__figure {
-    height: min(52svh, 420px);
-  }
-
-  /*
-   * Capped by width, because that is what actually sets its height: the rig
-   * is `width: 100%; max-width: 640px` with `aspect-ratio: 3 / 2`, so 640
-   * wide is 427 tall no matter what the figure box around it says. The
-   * tablet and the phone are positioned to hang below the laptop, so they
-   * cleared the stage's bottom edge by 33 and 41px and were sliced off
-   * mid-bezel — measured at 1366x628.
-   */
-  .rig {
-    max-width: 500px;
-  }
 }
 
 /*
@@ -5396,9 +5401,207 @@
   }
 }
 
+/*
+ * Short laptops — 1024px and wider, at most 820px tall.
+ *
+ * MacBook 14″ and 13″ once the browser's own bars are subtracted, the IdeaPad
+ * 1366×768, and a 1920×1080 panel at 125%. The settled hero has to keep its
+ * call to action inside the window, and every project's "View case study"
+ * has to clear the bottom of the stage. Type and gaps give the room; nothing
+ * is hidden at this tier except the third "What I did" item, which is why
+ * that list ends in "More in the case study" rather than a count.
+ *
+ * Height-based, and only from 1024 up: narrower windows already stack and
+ * have their own rules. The masthead is still measured by MastheadHero, so a
+ * smaller name changes nothing else.
+ */
+@media (min-width: 1024px) and (max-height: 820px) {
+  .masthead {
+    font-size: clamp(84px, min(15.6vw, 24svh), 210px);
+  }
+
+  .intro {
+    margin-top: 24px;
+  }
+
+  .intro__line > span {
+    font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+  }
+
+  .intro__note {
+    margin-top: 12px;
+  }
+
+  .intro__note + .intro__note {
+    margin-top: 6px;
+  }
+
+  .intro__note > span {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  .facts {
+    margin-top: 20px;
+  }
+
+  .facts__row > dt,
+  .facts__row > dd {
+    padding: 8px 0;
+  }
+
+  .facts__row > dd {
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .hero__cta {
+    margin-top: 20px;
+  }
+
+  .hero__foot {
+    bottom: 24px;
+  }
+
+  .hero__rail {
+    height: 40px;
+  }
+
+  .chapters {
+    padding-top: 14px;
+  }
+
+  .chapter {
+    min-height: 38px;
+    gap: 6px;
+  }
+
+  .showcase__body {
+    gap: 44px;
+  }
+
+  .story__title {
+    font-size: clamp(1.75rem, 2.6vw, 2.25rem);
+  }
+
+  .system {
+    margin-top: 12px;
+    padding: 11px 16px 12px 18px;
+  }
+
+  .system__desc {
+    font-size: 1rem;
+  }
+
+  .story__cols {
+    margin-top: 14px;
+  }
+
+  .did ul {
+    gap: 6px;
+  }
+
+  .ptext .did li:nth-child(3):not([data-more]) {
+    display: none;
+  }
+
+  .story__foot {
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+
+  .story__cta {
+    margin-top: 14px;
+  }
+
+  .story__cta .button {
+    min-height: 44px;
+    padding: 10px 22px;
+  }
+
+  .showcase__figure {
+    height: min(54svh, 520px);
+  }
+
+  .hint {
+    bottom: 12px;
+  }
+}
+
+/*
+ * Very short — at most 700px tall: a 1920×1080 IdeaPad 14″ at the Windows
+ * default of 150% is 1280×603 inside the browser. The two hero notes go (the
+ * same text is on /about, and in the reduced-motion intro), and so do the
+ * hero's foot, the stack chips and the scroll hint. The lanyard needs no rule
+ * here: IdCard's segmentFor() already shortens the cord to the room it has.
+ */
+@media (min-width: 1024px) and (max-height: 700px) {
+  :root {
+    --header-h: 60px;
+  }
+
+  .logo {
+    font-size: 24px;
+  }
+
+  .intro__note,
+  .hero__foot,
+  .ptext .chips,
+  .hint {
+    display: none;
+  }
+
+  .intro__line > span {
+    font-size: clamp(1.125rem, 1.9vw, 1.375rem);
+  }
+
+  .facts {
+    margin-top: 14px;
+  }
+
+  .facts__row > dt,
+  .facts__row > dd {
+    padding: 6px 0;
+  }
+
+  .facts__row > dd {
+    font-size: 0.8125rem;
+  }
+
+  .hero__cta {
+    margin-top: 14px;
+  }
+
+  .hero-actions .button {
+    min-height: 44px;
+    padding: 10px 22px;
+  }
+
+  .story__title {
+    font-size: 1.75rem;
+  }
+
+  .system__desc {
+    font-size: 0.9375rem;
+  }
+
+  .ptext .problem p:not(.story__label) {
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+  }
+
+  .did li {
+    font-size: var(--text-small);
+  }
+
+  .story__foot {
+    gap: 8px 18px;
+  }
+}
+
 @media (max-width: 1279px) {
   .row {
-    grid-template-columns: 40px minmax(180px, 240px) minmax(140px, 180px) 1fr 120px;
+    grid-template-columns: 40px minmax(180px, 240px) minmax(140px, 180px) 1fr;
     gap: 18px;
   }
 }
@@ -5435,11 +5638,6 @@
     padding-top: 0;
   }
 
-  .row__out {
-    text-align: left;
-    padding-top: 6px;
-  }
-
   /* A phone does not need a screenful of chrome around four rows of text,
      and forcing one only pushes the contact band off the fold.
      `:not(.arch--detail)` so this cannot reach the /about placement, which
@@ -5474,31 +5672,6 @@
   .field-pair {
     grid-template-columns: 1fr;
     gap: 22px;
-  }
-
-  [data-motion='on'] .journey__strip {
-    --card-w: 84vw;
-  }
-
-  /* One column on a phone — 84vw is not wide enough to pair the bullets. */
-  [data-motion='on'] .journey__did {
-    columns: 1;
-  }
-
-  [data-motion='on'] .journey__body {
-    padding: 22px 20px 24px;
-  }
-
-  [data-motion='on'] .journey__ghost {
-    font-size: 5rem;
-  }
-
-  .journey__ticks em {
-    display: none;
-  }
-
-  .progress {
-    width: 110px;
   }
 
   /* docs/04-UIUX-BRIEF.md §8: mobile is a single column and §5.6 warns the

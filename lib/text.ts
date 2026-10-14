@@ -1,8 +1,7 @@
 /**
  * Everything the page renders from the content source passes through here.
  *
- * The site reads three sources — the API, the committed snapshot, the MDX —
- * and only the third is written by hand. A field typed into the admin can
+ * Every value comes from the admin's forms through the API. A field typed in can
  * arrive with a stray `**`, a pasted non-breaking space, a Windows line break
  * mid-sentence, or simply empty; a list can arrive with a blank entry in it
  * because somebody left a row in the form. None of that should reach a

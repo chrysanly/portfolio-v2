@@ -1,7 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import matter from 'gray-matter';
-import { clearContentCache, readContentPayload } from './content-source';
+import { readContentPayload } from './content-source';
 import {
   PROJECT_TYPES,
   type Project,
@@ -12,14 +9,12 @@ import {
 /** Reserved because /work/type/[type] occupies this segment under /work. */
 const RESERVED_SLUGS = new Set(['type']);
 
-const CONTENT_DIR = path.join(process.cwd(), 'content', 'projects');
-
 /**
- * Projects, from whichever source content-source.ts resolves — the API first,
- * the committed snapshot after it, and the MDX below that.
+ * Projects, from the API through content-source.ts — the only source.
  *
- * All three run through the same Zod schema, so a backend that drifts from the
- * contract fails exactly the way a bad MDX file does.
+ * Every row runs through the Zod schema, so a backend that drifts from the
+ * contract fails the build (or, at runtime, the regeneration) rather than
+ * rendering a broken page.
  */
 function validate(data: unknown, source: string): Project {
   const parsed = projectFrontmatterSchema.safeParse(data);
@@ -41,47 +36,17 @@ function validate(data: unknown, source: string): Project {
 
 /**
  * Read, validate and sort. A malformed project throws here, which fails the
- * build — docs/02-TRD.md §8. Empty content directory is a supported state.
+ * build — docs/02-TRD.md §8. An empty list is a supported state.
  */
 async function readAll(): Promise<Project[]> {
   const payload = await readContentPayload();
 
-  if (payload && Array.isArray(payload.projects)) {
-    return finalise(
-      payload.projects.map((row, i) => validate(row, `the content source (project ${i + 1})`)),
-    );
-  }
-
-  if (!fs.existsSync(CONTENT_DIR)) return [];
-
-  const files = fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.mdx'));
-
-  const projects = files.map((file) => {
-    const raw = fs.readFileSync(path.join(CONTENT_DIR, file), 'utf8');
-    const { data, content } = matter(raw);
-    const parsed = projectFrontmatterSchema.safeParse(data);
-
-    if (!parsed.success) {
-      const detail = parsed.error.issues
-        .map((i) => `  ${i.path.join('.') || '(root)'}: ${i.message}`)
-        .join('\n');
-      throw new Error(`Invalid project frontmatter in content/projects/${file}\n${detail}`);
-    }
-
-    const expected = file.replace(/\.mdx$/, '');
-    if (parsed.data.slug !== expected) {
-      throw new Error(
-        `Slug mismatch in content/projects/${file}: slug is "${parsed.data.slug}", filename says "${expected}".`,
-      );
-    }
-
-    return { ...parsed.data, body: content.trim() };
-  });
-
-  return finalise(projects);
+  return finalise(
+    (payload.projects ?? []).map((row, i) => validate(row, `the API (project ${i + 1})`)),
+  );
 }
 
-/** The checks that apply whichever source the projects came from. */
+/** Slugs must be unique and must not collide with a route segment. */
 function finalise(projects: Project[]): Project[] {
   const seen = new Set<string>();
   for (const p of projects) {
@@ -93,22 +58,6 @@ function finalise(projects: Project[]): Project[] {
   }
 
   return projects.sort((a, b) => a.order - b.order);
-}
-
-/**
- * Deduplicates the work within a single render pass.
- *
- * A page can ask for the projects several times — the page body, its metadata
- * and its OG image all do — and without this each would be a separate call.
- * Next's own data cache handles it across requests; this handles it within one.
- *
- * It holds the promise rather than the result, so concurrent callers share the
- * one request instead of starting several before the first resolves. It is
- * cleared whenever content is revalidated, and in development it is never
- * populated at all, so a save in the admin is visible on the next refresh.
- */
-export function clearProjectCache(): void {
-  clearContentCache();
 }
 
 export async function getAllProjects(): Promise<Project[]> {

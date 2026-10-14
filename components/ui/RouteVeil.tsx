@@ -1,26 +1,40 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * A short veil over navigations and over the contact form's submit.
+ * A veil over navigations and over the contact form's submit.
  *
- * Chrys's complaint was exact: "it looks like nothing happened when I click
- * something." On a static site a route change is fast but not instant, and
- * between the click and the new paint there is no feedback at all — which reads
- * as a dead button, and the usual response is to click again.
+ * Chrys's first complaint was "it looks like nothing happened when I click
+ * something", so a click shows the veil at once. The second was the reverse:
+ * "it will show the loading state and stop, then there's a delay on showing
+ * the case study page". The veil used to give up after a fixed 1.4s whether
+ * or not the page had arrived, and on a slower load the visitor saw the
+ * loading state, then the old page again, then the new one.
  *
- * It borrows the opening splash's language deliberately, so a navigation feels
- * like the same site rather than a different effect. It is much quicker, and it
- * is capped three ways: it hides when the path changes, it hides on an explicit
- * done event, and it hides after MAX_MS whatever happens. A veil that can
- * strand a visitor behind it would be far worse than no veil.
+ * Now it waits for the route itself:
+ *
+ *  - it hides when the path changes, held to MIN_MS so a fast load flashes
+ *    rather than strobes, and only once the new page has painted;
+ *  - after SLOW_MS it says what it is opening, so a slow load reads as
+ *    loading rather than stuck;
+ *  - after FAIL_MS it offers "Try again" and "Stay here" rather than holding
+ *    the visitor behind it — the one way out that never depends on the page.
+ *
+ * The form's own show/hide events keep the short behaviour they had.
  */
 
-/** Long enough to register, short enough not to be in the way. */
 const MIN_MS = 260;
-const MAX_MS = 1400;
+const SLOW_MS = 1200;
+const FAIL_MS = 8000;
+const FILL_MS = 160;
+
+// The bar's last fill is skipped under reduced motion: the line is static.
+const fillMs = () =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : FILL_MS;
+
+type VeilState = 'loading' | 'error';
 
 export function showVeil() {
   window.dispatchEvent(new CustomEvent('route:veil'));
@@ -32,18 +46,22 @@ export function hideVeil() {
 
 export function RouteVeil() {
   const pathname = usePathname();
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
+  const [state, setState] = useState<VeilState>('loading');
+  const [slow, setSlow] = useState(false);
+  const [done, setDone] = useState(false);
+  const [caption, setCaption] = useState('');
+  const retryRef = useRef<HTMLButtonElement>(null);
+
   /*
-   * A ref as well as state, so the listeners below can be attached once.
-   * They used to be re-attached on every change of `visible`, and that
-   * effect's cleanup cleared the timers — including the MAX_MS backstop, the
-   * one thing that was never supposed to be cancelled. After a browser Back
-   * the route has already changed by the time `popstate` shows the veil, so
-   * the arrival effect never fired again and, with the backstop gone, the veil
-   * stayed up for good over the held masthead (Chrys, 2026-09-23).
+   * Refs alongside the state, so the listeners below are attached once and
+   * the timers are never cleared by a re-render — the backstop must outlive
+   * every change of `visible`.
    */
   const visibleRef = useRef(false);
   const shownAt = useRef(0);
+  const target = useRef<string | null>(null);
   const timers = useRef<number[]>([]);
 
   useEffect(() => {
@@ -52,33 +70,54 @@ export function RouteVeil() {
       timers.current = [];
     };
 
-    const setShown = (on: boolean) => {
-      visibleRef.current = on;
-      setVisible(on);
-    };
-
-    const show = () => {
+    const show = (href: string | null = null, title = '') => {
       if (visibleRef.current) return;
+      clearTimers();
+      visibleRef.current = true;
       shownAt.current = performance.now();
-      setShown(true);
-      // The backstop. Nothing below is allowed to be the only way out.
-      timers.current.push(window.setTimeout(() => setShown(false), MAX_MS));
+      target.current = href;
+      setCaption(title ? `Opening ${title}…` : 'Opening…');
+      setState('loading');
+      setSlow(false);
+      setDone(false);
+      setVisible(true);
+      timers.current.push(window.setTimeout(() => setSlow(true), SLOW_MS));
+
+      if (href) {
+        // A navigation that never arrives ends in a choice, not a stuck screen.
+        timers.current.push(window.setTimeout(() => setState('error'), FAIL_MS));
+      } else {
+        // The form's submit has no page to wait for: the old backstop stays.
+        timers.current.push(window.setTimeout(hide, FAIL_MS));
+      }
     };
 
     const hide = () => {
       const shown = performance.now() - shownAt.current;
       clearTimers();
-      // Held to a minimum so a fast navigation flashes rather than strobes.
       timers.current.push(
-        window.setTimeout(() => setShown(false), Math.max(0, MIN_MS - shown)),
+        window.setTimeout(
+          () => {
+            setDone(true);
+            // Two frames: the new page has painted under the veil first. Then
+            // the bar's 160ms fill to 100% is seen before the veil lifts.
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => {
+                timers.current.push(
+                  window.setTimeout(() => {
+                    visibleRef.current = false;
+                    target.current = null;
+                    setVisible(false);
+                  }, fillMs()),
+                );
+              }),
+            );
+          },
+          Math.max(0, MIN_MS - shown),
+        ),
       );
     };
 
-    /*
-     * Coming back through history repaints without a click we ever saw, and
-     * the route may already have changed by now — so the arrival effect
-     * below cannot be relied on to end it. Two frames is a painted page.
-     */
     const onPopState = () => {
       show();
       requestAnimationFrame(() => requestAnimationFrame(hide));
@@ -113,46 +152,98 @@ export function RouteVeil() {
       // Same page: nothing is going to load, so nothing should be veiled.
       if (url.pathname === window.location.pathname) return;
 
-      show();
+      show(url.pathname + url.search, anchor.dataset.veilTitle ?? '');
     };
 
+    const onFormShow = () => show();
+
     document.addEventListener('click', onClick, true);
-    window.addEventListener('route:veil', show);
+    window.addEventListener('route:veil', onFormShow);
     window.addEventListener('route:veil-done', hide);
     window.addEventListener('popstate', onPopState);
+    window.addEventListener('route:arrived', hide);
 
     return () => {
       document.removeEventListener('click', onClick, true);
-      window.removeEventListener('route:veil', show);
+      window.removeEventListener('route:veil', onFormShow);
       window.removeEventListener('route:veil-done', hide);
       window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('route:arrived', hide);
       clearTimers();
     };
   }, []);
 
-  // The new route has painted; the veil has done its job.
+  // The choice takes focus when it appears, so the keyboard is never left
+  // behind a screen it cannot see.
+  useEffect(() => {
+    if (state === 'error' && visible) retryRef.current?.focus();
+  }, [state, visible]);
+
+  /*
+   * The new route has committed. If it is still showing its loading
+   * placeholder (`data-route-loading`, see app/work/[slug]/loading.tsx), the
+   * page is not here yet: keep the veil up and let the page say when it has
+   * arrived (ArrivalFocus dispatches `route:arrived`). Anything else is the
+   * page itself, so hand over now.
+   */
   useEffect(() => {
     if (!visibleRef.current) return;
-    const shown = performance.now() - shownAt.current;
-    const t = window.setTimeout(
-      () => {
-        visibleRef.current = false;
-        setVisible(false);
-      },
-      Math.max(0, MIN_MS - shown),
-    );
-    return () => window.clearTimeout(t);
-    // Keyed on pathname alone: this is what "arrived" means.
+    if (document.querySelector('[data-route-loading]')) return;
+    window.dispatchEvent(new CustomEvent('route:arrived'));
   }, [pathname]);
 
+  const retry = () => {
+    const href = target.current;
+    if (!href) return;
+    setState('loading');
+    setSlow(true);
+    router.push(href);
+    timers.current.push(window.setTimeout(() => setState('error'), FAIL_MS));
+  };
+
+  const stay = () => {
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+    visibleRef.current = false;
+    target.current = null;
+    setVisible(false);
+  };
+
   return (
-    <div className="veil" data-on={visible ? 'true' : undefined} aria-hidden="true">
-      <div className="veil__mark">
-        {'CHRYS'.split('').map((letter, i) => (
-          <span key={letter + i} style={{ animationDelay: `${i * 45}ms` }}>
-            {letter}
-          </span>
-        ))}
+    <div
+      className="veil"
+      data-on={visible ? 'true' : undefined}
+      data-state={state}
+      data-slow={slow ? 'true' : undefined}
+      data-done={done ? 'true' : undefined}
+      aria-hidden={state === 'error' && visible ? undefined : 'true'}
+    >
+      <div className="veil__inner">
+        <div className="veil__mark">
+          {'CHRYS'.split('').map((letter, i) => (
+            <span key={letter + i} style={{ animationDelay: `${i * 45}ms` }}>
+              {letter}
+            </span>
+          ))}
+        </div>
+        <span className="veil__bar">
+          <i />
+        </span>
+        <p className="veil__caption">{caption}</p>
+
+        {state === 'error' && visible ? (
+          <div className="veil__error" role="alert">
+            <p>This is taking longer than usual.</p>
+            <div>
+              <button type="button" className="button" onClick={retry} ref={retryRef}>
+                Try again
+              </button>
+              <button type="button" className="button veil__stay" onClick={stay}>
+                Stay here
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

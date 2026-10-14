@@ -41,7 +41,7 @@ const TO_WORK_MS = 1000;
  * follows), and the anchor's own href is what happens with no JavaScript.
  */
 function showcaseTarget(): number | null {
-  const panel = document.querySelector<HTMLElement>('.panel[data-substep-y]');
+  const panel = document.querySelector<HTMLElement>('.ptext[data-substep-y]');
   const measured = Number(panel?.dataset.substepY);
 
   if (Number.isFinite(measured) && measured > 0) return measured;

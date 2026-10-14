@@ -1,33 +1,19 @@
 import type { NextConfig } from 'next';
 
 /*
- * Local development only: trust Herd's self-signed certificate.
- *
- * The site now reads content from the Laravel API at
- * https://portfolio-api.test, which Herd serves with a certificate Node will
- * not accept — so without this every content read falls back to the snapshot
- * and nothing saved in the admin ever appears.
- *
- * Guarded on NODE_ENV so it cannot follow the code into production, and set
- * here rather than asked of whoever runs `npm run dev`, because a step people
- * have to remember is a step that gets forgotten.
- *
- * Skipped when NODE_EXTRA_CA_CERTS is set, which is the better mechanism and
- * what `.env` uses: trusting Herd's own authority keeps verification ON for
- * every other connection, where this turns it off for all of them.
- *
- * That variable only works if it is set **before Node starts**, which is why
- * `npm run dev` goes through scripts/with-ca.mjs. Setting it in `.env` alone
- * puts it in `process.env` too late to matter — and, worse, makes the check
- * above skip this fallback, so TLS fails either way. That combination is
- * exactly what produced `API unreachable: fetch failed` on every request while
- * the same CA worked fine for the content pull.
+ * Herd serves portfolio-api.test with its own certificate authority. Node
+ * trusts it only through NODE_EXTRA_CA_CERTS, set before Node starts — which
+ * is why `dev`, `build` and `start` go through scripts/with-ca.mjs. TLS
+ * verification is never turned off: without the CA, the content fetch fails
+ * and says so.
  */
-if (process.env.NODE_ENV !== 'production' && !process.env.NODE_EXTRA_CA_CERTS) {
+if (
+  /\.test(\/|:|$)/.test(process.env.PORTFOLIO_API_URL ?? '') &&
+  !process.env.NODE_EXTRA_CA_CERTS
+) {
   console.warn(
-    '[tls] No NODE_EXTRA_CA_CERTS — disabling certificate verification for this dev process.',
+    '[tls] PORTFOLIO_API_URL is a .test host but NODE_EXTRA_CA_CERTS is not set, so content fetches will fail certificate verification. Point it at the Herd CA in .env.local.',
   );
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
 const nextConfig: NextConfig = {

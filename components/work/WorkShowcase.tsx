@@ -2,23 +2,26 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import type { Device, Project, ProjectImage } from '@/lib/schema';
-import { DEVICE_SIZES, PROJECT_TYPE_LABELS } from '@/lib/schema';
+import { DEVICE_SIZES, mediaKind, PROJECT_TYPE_LABELS } from '@/lib/schema';
+import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
 import { NdaWatermark } from './NdaWatermark';
 
 /**
  * The work index as a pinned sequence — one project at a time.
  *
- * Gate (per the `animate` skill): a visitor passes this once per visit, so it
- * sits in the rare tier where a deliberate animation is warranted. Purpose is
- * explanation plus spatial consistency — the index is an ordered run of work
- * and the motion is what makes the order legible.
+ * Three layers on one sticky stage: a chapter index across the top (one bar
+ * per project, the current one underlined, clickable), the project's story on the left,
+ * and a single device rig on the right whose screens cross-fade from one
+ * project's shots to the next. One rig rather than one per project, so the
+ * hardware stays put and only the work on it changes — the eye has one thing
+ * to follow.
  *
  * Transform and opacity only. The scroll value is the same spring the hero
- * uses, so the whole page shares one sense of weight. Panels enter from below
- * and leave upward: the exit is the entrance reversed, which is what stops a
- * scroll-back from feeling like a different animation.
+ * uses, so the whole page shares one sense of weight. Each story's parts
+ * enter in a short stagger and leave together, upward.
  *
  * With JavaScript off or reduced motion set this renders nothing and the plain
  * server-rendered list underneath is what the visitor gets — same content, no
@@ -28,191 +31,368 @@ import { NdaWatermark } from './NdaWatermark';
 const EASE = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const span = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
+const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Panel timing inside its own slot, 0–1. */
-const IN_END = 0.26;
-const OUT_START = 0.8;
+/** How many contributions the story lists before pointing at the case study. */
+const DID_SHOWN = 3;
+/** Stack chips before "+N". */
+const CHIPS_SHOWN = 5;
+
+const DEVICES: Device[] = ['laptop', 'tablet', 'mobile'];
 
 export type ShowcaseProject = Pick<
   Project,
-  'slug' | 'title' | 'type' | 'year' | 'role' | 'summary' | 'stack' | 'outcome' | 'images'
-> & { attribution: string };
+  | 'slug'
+  | 'title'
+  | 'type'
+  | 'year'
+  | 'role'
+  | 'summary'
+  | 'problem'
+  | 'contributions'
+  | 'stack'
+  | 'images'
+> & { context: string };
 
 /**
- * A stand-in, not a screenshot.
- *
- * The seeded content points every project's images at placehold.co — grey
- * rectangles with "1440 x 900" printed across them. Rendered inside the
- * shells they read as three flat slabs rather than as three devices, and the
- * dimension text is the loudest thing on the panel.
- *
- * So they are treated as what they are: an absence. The shell still draws,
- * the screen is left empty, and the composition reads as a laptop, a tablet
- * and a phone — which is the point of the rig. Real screenshots replace them
- * with no further change here (docs/CONTENT-TODO.md, blocker 5).
+ * A stand-in, not a screenshot. placehold.co rectangles with "1440 x 900"
+ * printed across them read as flat slabs inside the shells, so they are
+ * treated as an absence: the shell still draws and the screen stays empty.
  */
 function isStandIn(src: string): boolean {
   return src.trim() === '' || /(^|\/\/|\.)placehold\.co\//.test(src);
 }
 
 /**
- * One screen inside a device shell.
+ * One project's picture on one screen of the rig.
  *
- * `width`/`height` are always emitted — from the image when it declares them,
- * otherwise from DEVICE_SIZES — so the browser reserves the box before the
- * file arrives and a slow image cannot shift the panel.
+ * The blur is on the media element itself (`.nda-media`), not inferred from
+ * a sibling with `:has()` — so it holds in every browser that draws the
+ * ribbon. Video is muted, looped and started by the paint loop only while
+ * its project is on screen.
  */
-function Screen({ device, image }: { device: Device; image?: ProjectImage }) {
-  if (!image || isStandIn(image.src)) return null;
+function Shot({
+  image,
+  device,
+  shotRef,
+}: {
+  image?: ProjectImage;
+  device: Device;
+  shotRef: (el: HTMLDivElement | null) => void;
+}) {
+  const usable = image && !isStandIn(image.src) ? image : null;
   const size = DEVICE_SIZES[device];
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={image.src}
-        alt={image.alt}
-        width={image.width ?? size.width}
-        height={image.height ?? size.height}
-        loading="lazy"
-        decoding="async"
-      />
+  const media = usable?.nda ? 'nda-media' : undefined;
 
-      {/* Sized down hard for this context by CSS — inside a phone shell on
-          this rig a screen is barely 120px tall. */}
-      {image.nda ? <NdaWatermark /> : null}
-    </>
+  return (
+    <div className="shot" ref={shotRef}>
+      {usable && mediaKind(usable) === 'video' ? (
+        <video
+          className={media}
+          src={usable.src}
+          width={usable.width ?? size.width}
+          height={usable.height ?? size.height}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+      ) : usable ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className={media}
+          src={usable.src}
+          alt=""
+          width={usable.width ?? size.width}
+          height={usable.height ?? size.height}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : null}
+      {usable?.nda ? <NdaWatermark /> : null}
+    </div>
   );
 }
 
 /**
  * The three devices as one arrangement: laptop behind, phone overlapping at
- * the left, tablet at the right. Drawn in CSS — docs/02-TRD.md §1 allows no
- * image assets for chrome, and a mockup PNG would not recolour for dark mode.
- *
- * Each shell moves at its own rate as the panel arrives, so the group assembles
- * rather than sliding in as one block.
+ * the left, tablet at the right. Drawn in CSS so it recolours with the theme.
+ * Every screen holds one shot per project, stacked; the paint loop decides
+ * which is visible.
  */
 function DeviceRig({
-  images,
-  shellRefs,
+  projects,
+  shotRefs,
+  className = 'rig',
 }: {
-  images: ProjectImage[];
-  shellRefs: (el: HTMLElement | null, slot: number) => void;
+  projects: Pick<ShowcaseProject, 'slug' | 'images'>[];
+  shotRefs: (el: HTMLDivElement | null, project: number, device: Device) => void;
+  className?: string;
 }) {
-  const byDevice = (d: Device) => images.find((img) => img.device === d);
-  const laptop = byDevice('laptop');
-  const tablet = byDevice('tablet');
-  const mobile = byDevice('mobile');
+  const screen = (device: Device) => (
+    <div className="rig__screen">
+      {projects.map((project, i) => (
+        <Shot
+          key={project.slug}
+          device={device}
+          image={project.images.find((img) => img.device === device)}
+          shotRef={(el) => shotRefs(el, i, device)}
+        />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="rig" aria-hidden={images.length === 0 || undefined}>
-      {laptop ? (
-        <div className="rig__laptop" ref={(el) => shellRefs(el, 0)}>
-          <div className="rig__lid">
-            <span className="rig__cam" />
-            <div className="rig__screen">
-              <Screen device="laptop" image={laptop} />
-            </div>
-          </div>
-          {/* The deck, seen foreshortened: keyboard well, trackpad, front lip. */}
-          <div className="rig__base">
-            <span className="rig__keys" />
-            <span className="rig__trackpad" />
-            <span className="rig__notch" />
-          </div>
+    <div className={className}>
+      <div className="rig__laptop">
+        <div className="rig__body">
+          <span className="rig__cam" />
+          {screen('laptop')}
         </div>
-      ) : null}
+        <div className="rig__base" />
+      </div>
 
-      {tablet ? (
-        <div className="rig__tablet" ref={(el) => shellRefs(el, 1)}>
-          <span className="rig__cam rig__cam--edge" />
-          <span className="rig__btn rig__btn--power" />
-          <span className="rig__btn rig__btn--vol" />
-          <div className="rig__screen">
-            <Screen device="tablet" image={tablet} />
-          </div>
+      <div className="rig__tablet">
+        <div className="rig__body">
+          <span className="rig__cam" />
+          <span className="rig__btn rig__btn--top" />
+          <span className="rig__btn rig__btn--side" />
+          {screen('tablet')}
         </div>
-      ) : null}
+      </div>
 
-      {mobile ? (
-        <div className="rig__phone" ref={(el) => shellRefs(el, 2)}>
+      <div className="rig__phone">
+        <div className="rig__body">
           <span className="rig__island" />
           <span className="rig__btn rig__btn--power" />
-          <span className="rig__btn rig__btn--vol-up" />
-          <span className="rig__btn rig__btn--vol-down" />
-          <div className="rig__screen">
-            <Screen device="mobile" image={mobile} />
-          </div>
+          <span className="rig__btn rig__btn--up" />
+          <span className="rig__btn rig__btn--down" />
+          {screen('mobile')}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
 
+const Arrow = () => (
+  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path
+      d="M6 3l5 5-5 5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="square"
+    />
+  </svg>
+);
+
+/**
+ * One project's story. Every animated part carries `data-k`, its place in the
+ * entrance stagger.
+ *
+ * "More in the case study" rather than "+N more": the short-laptop tier hides
+ * the third item in CSS, and a count would then be wrong.
+ */
+function Story({
+  project,
+  index,
+  count,
+}: {
+  project: ShowcaseProject;
+  index: number;
+  count: number;
+}) {
+  const did = project.contributions.slice(0, DID_SHOWN);
+  const more = project.contributions.length > DID_SHOWN - 1;
+  const extraStack = project.stack.length - CHIPS_SHOWN;
+  const cols = (project.problem ? 1 : 0) + (did.length > 0 ? 1 : 0);
+
+  return (
+    <>
+      <div className="story__head" data-k="0">
+        <span className="story__n">
+          {pad(index + 1)} / {pad(count)}
+        </span>
+        <h3 className="story__title">{project.title}</h3>
+      </div>
+
+      <div className="system" data-k="1">
+        <p className="system__kind">
+          <span>{PROJECT_TYPE_LABELS[project.type]} system</span>
+          {project.context ? <span>{project.context}</span> : null}
+        </p>
+        <p className="system__desc">{project.summary}</p>
+      </div>
+
+      {cols > 0 ? (
+        <div className="story__cols" data-cols={cols}>
+          {project.problem ? (
+            <div className="problem" data-k="2">
+              <p className="story__label">The problem</p>
+              <p>{project.problem}</p>
+            </div>
+          ) : null}
+
+          {did.length > 0 ? (
+            <div className="did">
+              <p className="story__label" data-k="3">
+                What I did
+              </p>
+              <ul>
+                {did.map((item, j) => (
+                  <li key={item} data-k={3 + j}>
+                    {item}
+                  </li>
+                ))}
+                {more ? (
+                  <li data-more="" data-k={3 + did.length}>
+                    More in the case study
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="story__foot" data-k="7">
+        <div className="facts-inline">
+          <span>
+            <b>Year</b>
+            {project.year}
+          </span>
+          <span>
+            <b>Role</b>
+            {project.role}
+          </span>
+        </div>
+        {project.stack.length > 0 ? (
+          <ul className="chips">
+            {project.stack.slice(0, CHIPS_SHOWN).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+            {extraStack > 0 ? <li>+{extraStack}</li> : null}
+          </ul>
+        ) : null}
+      </div>
+
+      {/*
+       * `tabIndex={-1}` because the whole section is `aria-hidden`: a focusable
+       * control inside an aria-hidden subtree lands focus somewhere a screen
+       * reader will not announce. Keyboard and AT users reach the same pages
+       * through the header's Work link.
+       */}
+      <p className="story__cta" data-k="8">
+        <Link
+          className="button panel__button"
+          href={`/work/${project.slug}`}
+          tabIndex={-1}
+          data-veil-title={project.title}
+          prefetch
+        >
+          View case study
+          <Arrow />
+        </Link>
+      </p>
+    </>
+  );
+}
+
+interface StoryParts {
+  el: HTMLElement;
+  parts: { el: HTMLElement; k: number }[];
+  system: HTMLElement | null;
+}
+
 export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
   const reduced = useReducedMotion();
+  const router = useRouter();
+
+  /*
+   * Every case study is fetched ahead, as soon as the showcase is up — the
+   * links sit in hidden panels until their project's turn, so waiting for
+   * them to scroll into view left the click to do the fetching. With the
+   * page already in the router cache, the veil hands straight over to it.
+   */
+  useEffect(() => {
+    for (const project of projects) router.prefetch(`/work/${project.slug}`);
+  }, [projects, router]);
   const trackRef = useRef<HTMLDivElement>(null);
-  const panelRefs = useRef<(HTMLElement | null)[]>([]);
-  const figureRefs = useRef<(HTMLDivElement | null)[]>([]);
-  /** [panelIndex][slot] — laptop, tablet, phone. */
-  const shellRefs = useRef<(HTMLElement | null)[][]>([]);
+  const storyRefs = useRef<(HTMLElement | null)[]>([]);
+  const stories = useRef<StoryParts[]>([]);
+  /** [project][device] — every project's shot on every screen. */
+  const shotRefs = useRef<Partial<Record<Device, HTMLDivElement | null>>[]>([]);
+  const chapterRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const nowRef = useRef<HTMLParagraphElement>(null);
+  const hintRef = useRef<HTMLParagraphElement>(null);
+  const current = useRef(-1);
+
+  const count = projects.length;
+  const hasShots = projects.some((p) => p.images.some((img) => !isStandIn(img.src)));
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ['start start', 'end end'],
   });
 
+  // The same spring as the hero: settles about 0.25s after the wheel stops.
   const progress = useSpring(scrollYProgress, {
-    stiffness: 60,
-    damping: 28,
+    stiffness: 260,
+    damping: 42,
+    mass: 0.6,
     restDelta: 0.001,
   });
 
-  const count = projects.length;
-
   /*
-   * The section pager treats each project as its own stop rather than
-   * jumping straight from one end of the showcase to the other — "Next"
-   * from Details used to skip every panel but the first, which is the
-   * opposite of what a showcase is for. Same problem as the hero's Details
-   * stop: a panel's slot lives inside one pinned track, so nothing about it
-   * has a DOM position that means anything as a scroll offset. Each panel
-   * carries `data-substep-title` (its project's title, set once in the JSX
-   * below) and `data-substep-y` (its slot's midpoint in pixels — past its
-   * entrance, before its exit — written here once geometry is known); the
-   * pager reads both to build one titled stop per project instead of a
-   * single generic one. `data-showcase-active`/`data-showcase-panel`, kept
-   * live by a plain scroll listener rather than the spring-smoothed
-   * `progress` below, say which one is current: the pager needs the raw,
-   * immediate position, not the same trailing motion the panels animate
-   * with.
+   * The section pager treats each project as its own stop. A story's slot
+   * lives inside one pinned track, so it has no DOM position that means
+   * anything as a scroll offset: each story carries `data-substep-title` and
+   * `data-substep-y` (its slot's midpoint, written here once geometry is
+   * known), and `data-showcase-active`/`data-showcase-panel` — kept live by a
+   * plain scroll listener rather than the spring — say which one is current.
    */
-  const showcaseGeometry = useRef({ trackTop: 0, scrollable: 0 });
+  const geometry = useRef({ trackTop: 0, scrollable: 0 });
 
-  const measureShowcaseGeometry = useCallback(() => {
+  const projectY = useCallback(
+    (i: number) => {
+      const { trackTop, scrollable } = geometry.current;
+      return Math.round(trackTop + ((i + 0.5) / count) * scrollable);
+    },
+    [count],
+  );
+
+  const measure = useCallback(() => {
     const track = trackRef.current;
     const stage = track?.querySelector<HTMLElement>('.showcase__stage');
     if (!track || !stage || count === 0) return;
 
-    const trackTop = track.getBoundingClientRect().top + window.scrollY;
-    const scrollable = track.offsetHeight - stage.offsetHeight;
-    showcaseGeometry.current = { trackTop, scrollable };
+    geometry.current = {
+      trackTop: track.getBoundingClientRect().top + window.scrollY,
+      scrollable: track.offsetHeight - stage.offsetHeight,
+    };
 
-    for (let i = 0; i < count; i += 1) {
-      const panel = panelRefs.current[i];
-      if (!panel) continue;
-      panel.dataset.substepY = String(Math.round(trackTop + ((i + 0.5) / count) * scrollable));
-    }
-  }, [count]);
+    storyRefs.current.forEach((el, i) => {
+      if (el) el.dataset.substepY = String(projectY(i));
+    });
+  }, [count, projectY]);
 
   useLayoutEffect(() => {
     if (reduced || count === 0) return;
 
-    measureShowcaseGeometry();
-    window.addEventListener('resize', measureShowcaseGeometry);
+    stories.current = storyRefs.current.map((el) => ({
+      el: el as HTMLElement,
+      parts: [...(el?.querySelectorAll<HTMLElement>('[data-k]') ?? [])].map((part) => ({
+        el: part,
+        k: Number(part.dataset.k),
+      })),
+      system: el?.querySelector<HTMLElement>('.system') ?? null,
+    }));
+
+    measure();
+    window.addEventListener('resize', measure);
 
     const onScroll = () => {
-      const { trackTop, scrollable } = showcaseGeometry.current;
+      const { trackTop, scrollable } = geometry.current;
       const y = window.scrollY;
       const active = scrollable > 0 && y >= trackTop - 4 && y <= trackTop + scrollable + 4;
       document.documentElement.dataset.showcaseActive = active ? 'on' : 'off';
@@ -227,67 +407,91 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
     onScroll();
 
     return () => {
-      window.removeEventListener('resize', measureShowcaseGeometry);
+      window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', onScroll);
       delete document.documentElement.dataset.showcaseActive;
     };
-  }, [reduced, count, measureShowcaseGeometry]);
+  }, [reduced, count, measure]);
+
+  const paintStories = useCallback(
+    (f: number) => {
+      stories.current.forEach(({ el, parts, system }, i) => {
+        const a = f - i;
+        const live = !((a < 0 && i > 0) || (a > 1 && i < count - 1));
+        // The last story never leaves: there is nothing after it to make room for.
+        const exit = i === count - 1 ? 0 : EASE(span(a, 0.84, 1));
+
+        el.style.visibility = live && exit < 0.99 ? 'visible' : 'hidden';
+        if (!live) return;
+
+        for (const part of parts) {
+          // The first story is already in place when the stage pins.
+          const enter = i === 0 ? 1 : EASE(span(a, part.k * 0.025, 0.12 + part.k * 0.025));
+          part.el.style.opacity = (enter * (1 - exit)).toFixed(3);
+          part.el.style.transform = `translate3d(0, ${((1 - enter) * 14 - exit * 10).toFixed(1)}px, 0)`;
+        }
+
+        system?.style.setProperty(
+          '--grow',
+          (i === 0 ? 1 : EASE(span(a, 0.03, 0.16))).toFixed(3),
+        );
+      });
+    },
+    [count],
+  );
+
+  const paintShots = useCallback(
+    (f: number) => {
+      shotRefs.current.forEach((byDevice, i) => {
+        const a = f - i;
+        const enter = i === 0 ? 1 : EASE(span(a, -0.06, 0.1));
+        const leave = i === count - 1 ? 0 : EASE(span(a, 0.9, 1.06));
+        const gone = (a < -0.06 && i > 0) || (a > 1.06 && i < count - 1);
+        const shown = gone ? 0 : enter * (1 - leave);
+
+        for (const device of DEVICES) {
+          const shot = byDevice?.[device];
+          if (!shot) continue;
+          shot.style.opacity = shown.toFixed(3);
+          shot.style.visibility = shown < 0.01 ? 'hidden' : 'visible';
+
+          const video = shot.querySelector('video');
+          if (!video) continue;
+          if (shown > 0.01 && video.paused) video.play().catch(() => {});
+          if (shown <= 0.01 && !video.paused) video.pause();
+        }
+      });
+    },
+    [count],
+  );
+
+  const paintIndex = useCallback(
+    (f: number) => {
+      const now = Math.min(count - 1, Math.max(0, Math.floor(f)));
+      if (now !== current.current) {
+        current.current = now;
+        chapterRefs.current.forEach((chapter, i) => {
+          if (chapter) chapter.dataset.current = String(i === now);
+        });
+        if (nowRef.current) {
+          nowRef.current.dataset.n = `${pad(now + 1)} / ${pad(count)}`;
+          nowRef.current.textContent = projects[now]?.title ?? '';
+        }
+      }
+
+      if (hintRef.current) hintRef.current.style.opacity = (1 - span(f, 0.12, 0.32)).toFixed(3);
+    },
+    [count, projects],
+  );
 
   const paint = useCallback(
     (p: number) => {
-      for (let i = 0; i < count; i += 1) {
-        const panel = panelRefs.current[i];
-        if (!panel) continue;
-
-        // Where this panel sits in its own slot: <0 not yet, >1 already gone.
-        const a = p * count - i;
-
-        let show = 0;
-        let shift = 34;
-        let scale = 0.985;
-
-        if (a >= 0 && a <= 1.08) {
-          const enter = EASE(span(a, 0, IN_END));
-          const leave = EASE(span(a, OUT_START, 1.08));
-          show = enter * (1 - leave);
-          shift = (1 - enter) * 34 - leave * 26;
-          scale = 0.985 + enter * 0.015 - leave * 0.012;
-        }
-
-        panel.style.opacity = show.toFixed(3);
-        panel.style.transform = `translate3d(0, ${shift.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
-        panel.style.visibility = show < 0.01 ? 'hidden' : 'visible';
-
-        // The figure travels further than the text, which gives the panel
-        // depth without a parallax library.
-        const figure = figureRefs.current[i];
-        if (figure) {
-          const f = a >= 0 && a <= 1.08 ? EASE(span(a, 0, IN_END + 0.12)) : 0;
-          figure.style.transform = `translate3d(0, ${((1 - f) * 62).toFixed(1)}px, 0)`;
-        }
-
-        /*
-         * Each shell settles on its own delay so the arrangement assembles —
-         * laptop first, then tablet, then phone. Transforms are written to the
-         * elements directly rather than inherited from a variable on the
-         * parent, which would restyle every child each frame.
-         */
-        const shells = shellRefs.current[i];
-        if (shells) {
-          for (let sIdx = 0; sIdx < shells.length; sIdx += 1) {
-            const shell = shells[sIdx];
-            if (!shell) continue;
-            const delay = sIdx * 0.07;
-            const k = a >= 0 && a <= 1.08 ? EASE(span(a, delay, delay + IN_END + 0.16)) : 0;
-            const rise = (1 - k) * (26 + sIdx * 16);
-            const dim = 0.35 + k * 0.65;
-            shell.style.transform = `translate3d(0, ${rise.toFixed(1)}px, 0) scale(${(0.955 + k * 0.045).toFixed(4)})`;
-            shell.style.opacity = dim.toFixed(3);
-          }
-        }
-      }
+      const f = clamp(p) * count;
+      paintStories(f);
+      paintShots(f);
+      paintIndex(f);
     },
-    [count],
+    [count, paintStories, paintShots, paintIndex],
   );
 
   useMotionValueEvent(progress, 'change', paint);
@@ -296,121 +500,85 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
     if (!reduced) paint(progress.get());
   }, [reduced, paint, progress]);
 
-  if (reduced) return null;
+  const jumpTo = (i: number) => {
+    measure();
+    const distance = Math.abs(i - Math.max(0, current.current));
+    void animateScrollTo(projectY(i), Math.min(900, 350 + distance * 110), easeInOutCubic);
+  };
+
+  if (reduced || count === 0) return null;
 
   return (
     <section className="showcase" aria-hidden="true">
-      <div ref={trackRef} className="showcase__track" style={{ height: `${count * 88}vh` }}>
+      <div ref={trackRef} className="showcase__track" style={{ height: `${count * 75}vh` }}>
         <div className="showcase__stage">
-          {projects.map((project, i) => {
-            /*
-             * Counts stand-ins too, deliberately. `data-shots="false"` hides
-             * the figure altogether and gives the text the full measure —
-             * right for a project with no imagery at all, wrong here, where
-             * the shells are the imagery: empty device chrome is the frame,
-             * not a placeholder graphic sitting in it.
-             */
-            const hasShots = project.images.length > 0;
+          <nav className="chapters wrap">
+            <ol style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}>
+              {projects.map((project, i) => (
+                <li key={project.slug}>
+                  <button
+                    type="button"
+                    className="chapter"
+                    tabIndex={-1}
+                    onClick={() => jumpTo(i)}
+                    ref={(el) => {
+                      chapterRefs.current[i] = el;
+                    }}
+                  >
+                    <span className="chapter__label">
+                      <b>{pad(i + 1)}</b>
+                      {project.title}
+                    </span>
+                    <span className="chapter__bar" aria-hidden="true">
+                      <i />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <p className="chapters__now" ref={nowRef} />
+          </nav>
 
-            return (
-              <article
-                key={project.slug}
-                className="panel"
-                data-shots={hasShots ? 'true' : 'false'}
-                data-substep-title={project.title}
-                ref={(el) => {
-                  panelRefs.current[i] = el;
-                }}
-              >
-                <div className="wrap panel__inner">
-                  <p className="panel__count">
-                    <span>{String(i + 1).padStart(2, '0')}</span>
-                    <em>/ {String(count).padStart(2, '0')}</em>
-                    <b>{PROJECT_TYPE_LABELS[project.type]}</b>
-                  </p>
+          <div className="showcase__body wrap" data-shots={hasShots ? 'true' : 'false'}>
+            <div className="texts">
+              {projects.map((project, i) => (
+                <article
+                  key={project.slug}
+                  className="ptext"
+                  data-substep-title={project.title}
+                  ref={(el) => {
+                    storyRefs.current[i] = el;
+                  }}
+                >
+                  <Story project={project} index={i} count={count} />
+                </article>
+              ))}
+            </div>
 
-                  <div className="panel__body">
-                    <div className="panel__text">
-                      <h3 className="panel__title">{project.title}</h3>
-                      <p className="panel__attr">{project.attribution}</p>
-                      <p className="panel__summary">{project.summary}</p>
+            {hasShots ? (
+              <div className="showcase__figure">
+                <DeviceRig
+                  projects={projects}
+                  shotRefs={(el, i, device) => {
+                    if (!shotRefs.current[i]) shotRefs.current[i] = {};
+                    shotRefs.current[i][device] = el;
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
 
-                      <dl className="panel__meta">
-                        <div>
-                          <dt>Year</dt>
-                          <dd>{project.year}</dd>
-                        </div>
-                        <div>
-                          <dt>Role</dt>
-                          <dd>{project.role}</dd>
-                        </div>
-                        <div>
-                          <dt>Stack</dt>
-                          <dd>{project.stack.join(', ')}</dd>
-                        </div>
-                      </dl>
-
-                      <p className="panel__out">
-                        <b>{project.outcome.value}</b>
-                        <em>{project.outcome.label}</em>
-                      </p>
-
-                      {/*
-                       * The way into the project from the showcase. Without it
-                       * the panels were a slideshow with no exit — the only
-                       * link to a case study was in the plain list, which is
-                       * `display: none` whenever the showcase is on.
-                       *
-                       * `tabIndex={-1}` because this whole section is
-                       * `aria-hidden` (see the section element): a focusable
-                       * control inside an aria-hidden subtree is a real
-                       * violation — the focus lands somewhere a screen reader
-                       * refuses to announce. Pointer users get the link;
-                       * keyboard and AT users reach the same page through the
-                       * header's Work link. Widening that is a separate job,
-                       * noted in the reply that added this.
-                       */}
-                      <p className="panel__cta">
-                        <Link
-                          className="button panel__button"
-                          href={`/work/${project.slug}`}
-                          tabIndex={-1}
-                        >
-                          View project
-                          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                            <path
-                              d="M6 3l5 5-5 5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="square"
-                            />
-                          </svg>
-                        </Link>
-                      </p>
-                    </div>
-
-                    <div
-                      className="panel__figure"
-                      ref={(el) => {
-                        figureRefs.current[i] = el;
-                      }}
-                    >
-                      {hasShots ? (
-                        <DeviceRig
-                          images={project.images}
-                          shellRefs={(el, slot) => {
-                            if (!shellRefs.current[i]) shellRefs.current[i] = [];
-                            shellRefs.current[i][slot] = el;
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          <p className="hint" ref={hintRef}>
+            Scroll for the next project
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path
+                d="M8 3v10M3.5 8.5 8 13l4.5-4.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </p>
         </div>
       </div>
     </section>

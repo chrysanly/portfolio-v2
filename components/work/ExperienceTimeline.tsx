@@ -1,89 +1,99 @@
-import { getJourney } from '@/lib/journey';
+import { getJourney, type JourneyEntry } from '@/lib/journey';
 import { getAllProjects } from '@/lib/projects';
-import { JourneyTimeline, type JourneyStop } from './JourneyTimeline';
+import { type JourneyChapter, JourneyTimeline } from './JourneyTimeline';
 
 /**
- * The journey: college through to the current post.
+ * "My journey": school first, then each post in turn, to today.
  *
- * Read forwards, oldest first, because that is the direction a career is
- * actually walked — `07-SOURCE-CONTENT.md` §4 lists it newest first, which is
- * CV order, not narrative order.
+ * Read forwards, oldest first, because that is the direction a life is
+ * walked — the degree leads even though the first job overlaps it, because it
+ * is where the story starts.
  *
- * The degree opens the run. Chronologically it overlaps the first job — §1
- * gives 2020 as the graduation year and §4 has him working as a junior
- * developer from Nov 2018 — but it is where the story starts, so it leads and
- * the period label carries the year that settles the order.
+ * Every word in a chapter comes from the stop the admin holds: the sky title
+ * is its `phase`, the card is its title, organisation, place, period and
+ * "what I took from it", and the spoken line is built from those same facts.
+ * Nothing here is new copy. When the admin gains a narration field of its
+ * own, that is what `say` should become.
  *
- * Projects attach to a stop by the relation the backend states — each stop
- * carries the slugs of the work built there, set on the journey screen in the
- * admin.
- *
- * They used to be matched by the role string, which made the job title
- * load-bearing: rewording either side emptied a stop on the public site with
- * nothing anywhere to report it. That matching survives as a fallback only,
- * for a snapshot written before the relation existed — the MDX content and the
- * hardcoded `content/site.ts` journey both still rely on it.
- *
- * The NDA marker is per project, not per employer: §5.8 is explicit that
- * employment is already public and it is project detail that is restricted.
+ * Projects attach to a stop by the slugs the backend states; the old match
+ * on the role string survives only as a fallback when no stop states any.
  */
+
+const PLACEHOLDER = /^\s*\[.*\]\s*$/;
+
+/** One spoken line, first person, from the stop's own facts. */
+function sayFor(stop: JourneyEntry): string {
+  if (stop.kind === 'education') {
+    return `This is where it started: ${stop.title} at ${stop.organisation}.`;
+  }
+  const present = /present/i.test(stop.period);
+  return present
+    ? `Today: ${stop.title} at ${stop.organisation}, ${stop.location}.`
+    : `${stop.period}: ${stop.title} at ${stop.organisation}.`;
+}
+
 export async function ExperienceTimeline() {
   const projects = await getAllProjects();
-
-  // Already oldest-first, whether it came from the admin or from the
-  // hardcoded fallback — lib/journey.ts reconciles the two.
   const journey = await getJourney();
 
-  /*
-   * Decided once, for the whole timeline, and not per stop.
-   *
-   * Asking "does this stop carry slugs" would make an emptied stop
-   * indistinguishable from an old payload — and the fallback would then
-   * helpfully re-guess the very projects someone had just detached. Whether
-   * *anything* in the payload states a relation is the honest test of which
-   * source is in play.
-   */
+  // Decided once for the whole journey: whether anything states a relation.
   const stated = journey.some((stop) => stop.projects.length > 0);
 
-  const stops: JourneyStop[] = journey.map((stop) => {
+  const chapters: JourneyChapter[] = journey.map((stop) => {
     const mine = stated
-      ? // The backend's own order: the slugs arrive in the order the site
-        // lists work, and re-sorting here would lose it.
-        stop.projects
+      ? stop.projects
           .map((slug) => projects.find((p) => p.slug === slug))
           .filter((p): p is (typeof projects)[number] => p !== undefined)
       : stop.kind === 'education'
         ? []
         : projects.filter((p) => p.role === stop.title || p.role.startsWith(`${stop.title} `));
 
+    const learned = stop.learned?.trim() || null;
+    // The card's sector, summary, "What I did" and tools come from the first
+    // project built here — facts the site already publishes, nothing new.
+    const lead = mine[0];
+
     return {
-      kind: stop.kind === 'education' ? 'education' : 'role',
-      period: stop.period,
+      kind: stop.kind,
+      chapter: stop.kind === 'education' ? 'Where it started' : (stop.phase ?? stop.title),
       title: stop.title,
-      place: `${stop.organisation}, ${stop.location}`,
-      learned: stop.learned ?? undefined,
-      phase: stop.phase ?? undefined,
-      // Everything he worked with there, de-duplicated across that stop's
-      // projects and kept in the order the source lists it.
-      tech: Array.from(new Set(mine.flatMap((p) => p.stack))),
-      work: mine.map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        summary: p.summary,
-        confidential: p.confidential,
-        contributions: p.contributions,
-      })),
+      org: stop.organisation,
+      loc: stop.location,
+      period: stop.period,
+      learned,
+      // Admin text is sanitised HTML; older rows and placeholders are plain.
+      learnedIsHtml: !!learned && !PLACEHOLDER.test(learned) && learned.startsWith('<'),
+      say: sayFor(stop),
+      projects: mine.map((p) => ({ title: p.title, href: `/work/${p.slug}` })),
+      sector: lead?.sector ?? null,
+      short: lead?.summary,
+      did: lead?.contributions ?? [],
+      tools: lead?.stack.slice(0, 5) ?? [],
     };
   });
 
-  return (
-    <section className="track-band" aria-labelledby="experience-heading">
-      <div className="wrap">
-        <h2 id="experience-heading" className="section-label">
-          The journey
-        </h2>
+  if (chapters.length === 0) return null;
 
-        <JourneyTimeline stops={stops} />
+  return (
+    <section className="jw" aria-labelledby="journey-heading">
+      <div className="wrap jw-intro">
+        <p className="jw-kicker">The Journey</p>
+        <h2 id="journey-heading" className="jw-title">
+          My journey
+        </h2>
+        <p className="jw-lede">
+          {chapters.length === 6 ? 'Six' : chapters.length} chapters, in my own words. Scroll,
+          and walk with me through them.
+        </p>
+      </div>
+
+      <JourneyTimeline chapters={chapters} />
+
+      <div className="wrap jw-end">
+        <p className="jw-kicker">Next chapter</p>
+        <p className="jw-next">
+          <b>Open to remote work worldwide</b>, part-time or full-time, by agreement.
+        </p>
       </div>
     </section>
   );

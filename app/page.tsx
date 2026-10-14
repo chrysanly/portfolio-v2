@@ -25,7 +25,7 @@ function personJsonLd(profile: Profile) {
     email: `mailto:${profile.email}`,
     address: { '@type': 'PostalAddress', addressLocality: 'Dubai', addressCountry: 'AE' },
     url: process.env.NEXT_PUBLIC_SITE_URL ?? undefined,
-    sameAs: [profile.links.github],
+    sameAs: [profile.links.github, profile.links.linkedin].filter(Boolean),
     knowsAbout: ['ERP systems', 'Automation', 'System integration', 'REST API design'],
   };
 }
@@ -43,10 +43,13 @@ export default async function HomePage() {
     year: p.year,
     role: p.role,
     summary: p.summary,
+    problem: p.problem,
+    contributions: p.contributions,
     stack: p.stack,
-    outcome: p.outcome,
     images: p.images,
-    attribution: attribution(p),
+    // The second half of the "ERP system · …" line: who it was for, or that
+    // the client cannot be named.
+    context: p.confidential ? `Client under NDA · ${p.sector}` : attribution(p),
   }));
 
   return (

@@ -5,8 +5,8 @@ import { cleanLine, cleanList, cleanText } from './text';
  * Every string and every list from the content source is normalised before it
  * is validated, not after.
  *
- * Three sources feed this schema and only one of them is written by hand, so
- * the imperfections are the ordinary ones: a stray emphasis marker left in a
+ * Everything here arrives from the admin's forms, so the imperfections are
+ * the ordinary ones: a stray emphasis marker left in a
  * form field, a pasted non-breaking space, a Windows line break inside a
  * one-line value, a blank row somebody left in a list. Cleaning on the way in
  * means one place decides what a usable string is, and every consumer — pages,
@@ -51,13 +51,13 @@ export type Device = (typeof DEVICES)[number];
  * The exact pixel box each frame expects, so a screenshot drops in without
  * being letterboxed and a backend can generate the right crop.
  *
- * These are real viewport sizes, not arbitrary ratios: a 16:10 laptop, a 4:3
+ * These are real viewport sizes, not arbitrary ratios: a 16:10 laptop, a portrait 3:4
  * tablet and a 390x844 phone. The frame's CSS aspect-ratio is derived from
  * these numbers — change them here and the frames follow.
  */
 export const DEVICE_SIZES: Record<Device, { width: number; height: number }> = {
   laptop: { width: 1440, height: 900 },
-  tablet: { width: 1024, height: 768 },
+  tablet: { width: 768, height: 1024 },
   mobile: { width: 390, height: 844 },
 };
 
@@ -69,19 +69,15 @@ export const projectImageSchema = z.object({
   src: line(z.string().min(1)),
   alt: line(z.string().min(1, 'alt is required — never generate it from the filename')),
   caption: line(z.string()).optional(),
-  /**
-   * Absent on everything uploaded before videos were allowed, so it is
-   * inferred from the extension rather than required — see `mediaKind()`.
-   */
-  kind: z.enum(MEDIA_KINDS).optional(),
+  /** Decided by the backend (ProjectImageResource) for every file it serves. */
+  kind: z.enum(MEDIA_KINDS).default('image'),
   /**
    * Whether this file is still under the client's NDA. The backend allows a
    * screenshot onto a confidential project and marks it instead of refusing
    * it, and the mark is drawn here — see `NdaWatermark`.
    *
-   * Defaults false, so a snapshot written before the field existed renders
-   * exactly as it did. Those images only got past the old backend because
-   * their project was public or already cleared.
+   * The backend sends it on every image; the default only covers a field
+   * the payload omits, which the backend's own tests rule out.
    */
   nda: z.boolean().default(false),
   /** Which frame the showcase renders this in. */
@@ -96,14 +92,12 @@ export const projectImageSchema = z.object({
 });
 
 /**
- * What to render a piece of evidence with. Trusts an explicit `kind` when
- * the backend sends one and falls back to the extension, because the
- * snapshot may predate the field — and because an MDX entry written by hand
- * will never bother to set it.
+ * What to render a piece of evidence with: the backend's `kind`, as sent.
+ * It knows what the file is — a Cloudinary video URL carries no extension to
+ * guess from.
  */
-export function mediaKind(image: { src: string; kind?: MediaKind }): MediaKind {
-  if (image.kind) return image.kind;
-  return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(image.src) ? 'video' : 'image';
+export function mediaKind(image: { kind: MediaKind }): MediaKind {
+  return image.kind;
 }
 
 export const outcomeSchema = z.object({
@@ -153,14 +147,23 @@ export const projectFrontmatterSchema = z
      */
     contributions: list(8).default([]),
     /**
+     * The problem the project solved, one short paragraph. The showcase puts
+     * it beside "What I did"; empty when the admin leaves it blank, and the
+     * column is then not drawn.
+     */
+    problem: prose(z.string().max(1500)).default(''),
+    /**
+     * Markdown on the tools and why they were chosen. Its own section of the
+     * case study, after the approach; null when the admin leaves it blank.
+     */
+    stackNotes: prose(z.string()).nullable().default(null),
+    /**
      * The engineering the case study is actually about — stored procedures for
      * transaction safety, a Repository and Service split enforcing SOLID,
      * Pusher plus S3 plus Passport. Asked for on 2026-09-22: a technical lead
      * reads this paragraph and often nothing else.
      *
-     * Optional, and absent on every project written before the field existed,
-     * so an older snapshot renders exactly as it did — the section is simply
-     * not drawn.
+     * Optional: a project without one simply does not draw the section.
      */
     engineeringDepth: prose(z.string().max(1200)).nullable().default(null),
     images: z.array(projectImageSchema).default([]),
@@ -215,6 +218,21 @@ export const journeyStopSchema = z.object({
   location: line(z.string().min(1).max(120)),
   /** Free text — "Nov 2022 – Feb 2025", or just "2020" for a degree. */
   period: line(z.string().min(1).max(60)),
+  /**
+   * The dates the period is worked out from, ISO `YYYY-MM-DD`. Null on a stop
+   * saved before the dates existed, and `endedOn` null for the post held now.
+   * The site prints `period`; these are for anything that needs to compare.
+   */
+  startedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .default(null),
+  endedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .default(null),
   /** The editorial arc beside the real job title. A degree has none. */
   phase: line(z.string().max(120)).nullable().default(null),
   /**
@@ -223,8 +241,8 @@ export const journeyStopSchema = z.object({
    * than the prose: the same two sentences cost three times as much once they
    * are two tagged paragraphs with a link in them.
    *
-   * Older snapshots hold plain text, which is why the timeline wraps anything
-   * that does not start with a tag in a paragraph rather than assuming markup.
+   * Rows written before the editor hold plain text, which is why the timeline
+   * wraps anything that does not start with a tag in a paragraph.
    */
   learned: z.string().max(20000).nullable().default(null),
   /**
@@ -237,7 +255,7 @@ export const journeyStopSchema = z.object({
    * the same payload, and sending them twice invites disagreement.
    *
    * Defaults empty, and the timeline falls back to the old matching when it
-   * is, so a snapshot written before this field still renders.
+   * is.
    */
   projects: list(40).default([]),
   order: z.number().int().min(0),
@@ -250,33 +268,31 @@ export type JourneyStopData = z.infer<typeof journeyStopSchema>;
  * ledger beneath them, and the card on the lanyard — the contract the
  * backend's `ProfileResource` is written against.
  *
- * Every field is optional. The payload's `site` key predates this table and
- * older snapshots carry only a handful of these, so a missing key falls back
- * to `content/site.ts` rather than failing a build. What is validated is the
- * shape of whatever *is* there.
+ * The API is the only source, so the fields are required: a profile missing
+ * one fails the build rather than rendering a hole. Only what the admin may
+ * legitimately leave empty — availability, portrait, CV, the two links — is
+ * nullable.
  *
  * No phone number, deliberately, and no date of birth or civil status —
  * docs/07-SOURCE-CONTENT.md §1. Those never travel in this payload.
  */
 export const profileSchema = z.object({
-  name: line(z.string().min(1).max(60)).optional(),
-  fullName: line(z.string().min(1).max(160)).optional(),
-  role: line(z.string().min(1).max(120)).optional(),
-  location: line(z.string().min(1).max(120)).optional(),
-  yearsExperience: line(z.string().min(1).max(20)).optional(),
+  name: line(z.string().min(1).max(60)),
+  fullName: line(z.string().min(1).max(160)),
+  role: line(z.string().min(1).max(120)),
+  location: line(z.string().min(1).max(120)),
+  yearsExperience: line(z.string().min(1).max(20)),
   availability: line(z.string().max(60)).nullable().optional(),
-  email: line(z.string().email()).optional(),
-  languages: list(20).optional(),
+  email: line(z.string().email()),
+  languages: list(20),
   portrait: line(z.string().min(1)).nullable().optional(),
-  links: z
-    .object({
-      github: z.string().nullable().optional(),
-      linkedin: z.string().nullable().optional(),
-    })
-    .optional(),
-  intro: list(6).optional(),
-  notes: list(12).optional(),
-  positioning: prose(z.string().max(1200)).optional(),
+  links: z.object({
+    github: line(z.string().url()).nullable().optional(),
+    linkedin: line(z.string().url()).nullable().optional(),
+  }),
+  intro: list(6),
+  notes: list(12),
+  positioning: prose(z.string().max(1200)),
   /**
    * The CV, when one has been uploaded in the admin — absent or null until
    * then, and the hero's second button is not drawn at all in that case.
@@ -294,16 +310,14 @@ export const profileSchema = z.object({
     })
     .nullable()
     .optional(),
-  meta: z
-    .object({
-      discipline: z.string().max(200),
-      architecture: z.string().max(240),
-      principalStack: z.string().max(240),
-      databases: z.string().max(240),
-      security: z.string().max(240),
-      currentRole: z.string().max(240),
-    })
-    .optional(),
+  meta: z.object({
+    discipline: z.string().max(200),
+    architecture: z.string().max(240),
+    principalStack: z.string().max(240),
+    databases: z.string().max(240),
+    security: z.string().max(240),
+    currentRole: z.string().max(240),
+  }),
 });
 
 export type ProfileData = z.infer<typeof profileSchema>;

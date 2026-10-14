@@ -573,7 +573,9 @@ export function IdCard({ profile }: { profile: Profile }) {
             </div>
           </dl>
 
-          <p className="lanyard__foot">{profile.links.github.replace('https://', '')}</p>
+          {profile.links.github && (
+            <p className="lanyard__foot">{profile.links.github.replace('https://', '')}</p>
+          )}
         </div>
       </div>
     </div>

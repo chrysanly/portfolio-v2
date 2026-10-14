@@ -1,6 +1,6 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { CONTENT_TAG, clearContentCache } from '@/lib/content-source';
+import { CONTENT_TAG } from '@/lib/content-source';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * The backend calls this when a published project is saved, and the admin's
  * "Sync site" button calls it on demand. It is what makes the content editable
  * at runtime while every page a visitor requests is still served from cache —
- * see the header of lib/projects.ts.
+ * see the header of lib/content-source.ts.
  *
  * Authenticated with a shared secret rather than the Sanctum build token,
  * because they are different permissions: the build token reads content, this
@@ -42,7 +42,6 @@ export async function POST(request: Request) {
   }
 
   revalidateTag(CONTENT_TAG);
-  clearContentCache();
 
   /*
    * The tag alone refreshes the data, but the pages that render it are

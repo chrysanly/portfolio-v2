@@ -234,6 +234,52 @@ const shutGate = (shut: boolean) => {
 
 const ZERO: Geometry = { spread: 0, tx: 0, ty: 0, scale: 0.133, width: 0, mastH: 0 };
 
+/**
+ * The second statement line, with its object underlined: "building | ERP and
+ * automation systems". Split after the first word rather than on a fixed
+ * phrase, so the line stays underlined when it is reworded in the admin.
+ */
+function MarkedLine({
+  line,
+  markRef,
+}: {
+  line: string;
+  markRef: React.RefObject<HTMLSpanElement | null>;
+}) {
+  const split = line.indexOf(' ');
+  if (split < 1) return <>{line}</>;
+
+  return (
+    <>
+      {line.slice(0, split + 1)}
+      <span className="mark" ref={markRef}>
+        {line.slice(split + 1)}
+      </span>
+    </>
+  );
+}
+
+/**
+ * A note's key terms in <strong>: the list that follows "Strongest in".
+ * Any other note renders as written — there is no list to pick out, and
+ * guessing at emphasis would be inventing it.
+ */
+function KeyTerms({ note }: { note: string }) {
+  const match = /^(Strongest in )(.+?)(\.?)$/.exec(note);
+  if (!match) return <>{note}</>;
+
+  const [, lead, list, stop] = match;
+  const parts = list.split(/(, and |, | and )/);
+
+  return (
+    <>
+      {lead}
+      {parts.map((part, i) => (i % 2 === 0 ? <strong key={i}>{part}</strong> : part))}
+      {stop}
+    </>
+  );
+}
+
 export function MastheadHero({
   logoRef,
   profile,
@@ -249,6 +295,7 @@ export function MastheadHero({
   const mastheadRef = useRef<HTMLDivElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const markRef = useRef<HTMLSpanElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const noteRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const factRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -258,7 +305,6 @@ export function MastheadHero({
   const gateRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const barRef = useRef<HTMLDivElement>(null);
 
   const geometry = useRef<Geometry>(ZERO);
   const [ready, setReady] = useState(false);
@@ -288,9 +334,12 @@ export function MastheadHero({
   });
 
   /** Motion trails the scroll rather than tracking it frame-for-frame. */
+  // Stiff enough to settle about 0.25s after the wheel stops; the old 60/28
+  // kept the stage drifting for most of a second.
   const progress = useSpring(scrollYProgress, {
-    stiffness: 60,
-    damping: 28,
+    stiffness: 260,
+    damping: 42,
+    mass: 0.6,
     restDelta: 0.001,
   });
 
@@ -447,9 +496,21 @@ export function MastheadHero({
     );
     wipe(ctaRef.current, ease(span(p, CTA_START, CTA_START + WIPE_SPAN)), out, 0);
 
-    factRefs.current.forEach((el, i) =>
-      wipe(el, ease(span(p, FACT_STARTS[i], FACT_STARTS[i] + WIPE_SPAN)), out, 0),
+    // The underline under the statement's object draws once its line is in.
+    markRef.current?.style.setProperty(
+      '--mark',
+      ease(span(p, LINE_STARTS[1] + 0.06, LINE_STARTS[1] + 0.17)).toFixed(3),
     );
+
+    // Each row's rule draws just ahead of its text, which then wipes in a
+    // beat later — the ledger is ruled before it is written.
+    factRefs.current.forEach((el, i) => {
+      el?.style.setProperty(
+        '--draw',
+        ease(span(p, FACT_STARTS[i] - 0.04, FACT_STARTS[i] + 0.03)).toFixed(3),
+      );
+      wipe(el, ease(span(p, FACT_STARTS[i] + 0.01, FACT_STARTS[i] + 0.01 + WIPE_SPAN)), out, 0);
+    });
 
     /*
      * The card drifts up a little slower than the ledger, which is what makes
@@ -483,7 +544,6 @@ export function MastheadHero({
     }
     if (railRef.current)
       railRef.current.style.transform = `scaleY(${1 - ease(span(p, 0.02, 0.22))})`;
-    if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
 
     // Hand the masthead over to the real sticky header at the very end.
     const root = document.documentElement;
@@ -714,14 +774,15 @@ export function MastheadHero({
         the dock and the hand-over.
 
         The useful number is the track height minus the sticky child, not the
-        track height: the stage is 100vh, so 150vh gives 50vh of travel. The
+        track height: the stage is 100svh, so 150svh gives 50svh of travel —
+        svh, not vh, so a phone's collapsing toolbar does not resize it. The
         first attempt at 110vh gave 10vh, and the whole hero cleared inside
         200px of scrolling — measured, which is the only reason it was caught.
         50vh puts the fade between roughly 170px and 290px, and the showcase
         immediately after.
       */}
-      <div ref={trackRef} className="h-[150vh] md:h-[150vh] max-md:h-[130vh] relative">
-        <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
+      <div ref={trackRef} className="h-[150svh] max-md:h-[130svh] relative">
+        <div className="sticky top-0 h-svh flex flex-col justify-center overflow-hidden">
           <p ref={eyebrowRef} className="hero__eyebrow">
             {profile.location}
           </p>
@@ -754,7 +815,7 @@ export function MastheadHero({
                       lineRefs.current[i] = el;
                     }}
                   >
-                    <span>{line}</span>
+                    <span>{i === 1 ? <MarkedLine line={line} markRef={markRef} /> : line}</span>
                   </div>
                 ))}
               </div>
@@ -767,7 +828,9 @@ export function MastheadHero({
                     noteRefs.current[i] = el;
                   }}
                 >
-                  <span>{note}</span>
+                  <span>
+                    <KeyTerms note={note} />
+                  </span>
                 </p>
               ))}
 
@@ -835,9 +898,6 @@ export function MastheadHero({
           <div ref={footRef} className="hero__foot">
             <div className="cue-group">
               <span ref={railRef} className="hero__rail" aria-hidden="true" />
-            </div>
-            <div className="progress">
-              <div ref={barRef} className="progress__bar" />
             </div>
           </div>
         </div>

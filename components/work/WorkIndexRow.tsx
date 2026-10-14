@@ -42,11 +42,6 @@ export function WorkIndexRow({ project, index }: { project: Project; index: numb
           {rest > 0 ? ` +${rest}` : ''}
         </em>
       </span>
-
-      <span className="row__out">
-        <b>{project.outcome.value}</b>
-        <em>{project.outcome.label}</em>
-      </span>
     </Link>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useReducedMotion } from 'framer-motion';
 import { DEVICE_SIZES, mediaKind, type ProjectFrontmatter } from '@/lib/schema';
 import { NdaWatermark } from './NdaWatermark';
 
@@ -27,6 +28,165 @@ function shotRatio(item: Item): React.CSSProperties {
   return { '--shot-ratio': `${width} / ${height}` } as React.CSSProperties;
 }
 
+/** `m:ss`, for the clip's time readout. */
+function clock(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+}
+
+/**
+ * An NDA video in the lightbox: the blurred clip, with its controls in a row
+ * underneath.
+ *
+ * The blur sits on the <video> element, and native controls are drawn
+ * *inside* that element, so they would be blurred with it. These controls are
+ * ordinary elements below the picture instead: play/pause, a seek range, the
+ * time, and a mute toggle — the clip starts muted so it may autoplay, and the
+ * toggle is how its sound comes back.
+ *
+ * Autoplay only when the visitor has not asked for reduced motion.
+ */
+function NdaVideo({ item, autoPlay }: { item: Item; autoPlay: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+
+  const video = () => videoRef.current;
+
+  const toggle = () => {
+    const el = video();
+    if (!el) return;
+    if (el.paused) void el.play().catch(() => {});
+    else el.pause();
+  };
+
+  const retry = () => {
+    setState('loading');
+    setAttempt((n) => n + 1);
+  };
+
+  const disabled = state !== 'ready';
+
+  return (
+    <span className="lightbox__media lightbox__media--video">
+      <span className="lightbox__shot" style={shotRatio(item)}>
+        <video
+          key={attempt}
+          ref={videoRef}
+          className="nda-media"
+          src={item.src}
+          autoPlay={autoPlay}
+          muted={muted}
+          loop
+          playsInline
+          preload="metadata"
+          onLoadedMetadata={(e) => {
+            setDuration(e.currentTarget.duration);
+            setState('ready');
+          }}
+          onError={() => setState('error')}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+          onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
+        />
+        <NdaWatermark />
+      </span>
+
+      {state === 'error' ? (
+        <span className="vctl vctl--error" role="alert">
+          This clip didn&rsquo;t load.
+          <button type="button" className="vctl__retry" onClick={retry}>
+            Try again
+          </button>
+        </span>
+      ) : (
+        <span className="vctl" data-disabled={disabled || undefined}>
+          <button
+            type="button"
+            className="vctl__btn"
+            onClick={toggle}
+            disabled={disabled}
+            aria-label="Play video"
+            aria-pressed={playing}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              {playing ? (
+                <path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" strokeWidth="2.2" />
+              ) : (
+                <path d="M8 5l11 7-11 7z" fill="currentColor" />
+              )}
+            </svg>
+          </button>
+
+          <input
+            type="range"
+            className="vctl__seek"
+            min={0}
+            max={duration || 0}
+            step={0.1}
+            value={Math.min(time, duration || 0)}
+            disabled={disabled}
+            aria-label="Seek"
+            aria-valuetext={`${clock(time)} of ${clock(duration)}`}
+            onChange={(e) => {
+              const el = video();
+              if (el) el.currentTime = Number(e.currentTarget.value);
+            }}
+          />
+
+          <span className="vctl__time" aria-hidden="true">
+            {clock(time)} / {clock(duration)}
+          </span>
+
+          <button
+            type="button"
+            className="vctl__btn"
+            onClick={() => {
+              const el = video();
+              if (el) el.muted = !el.muted;
+            }}
+            disabled={disabled}
+            aria-label="Mute"
+            aria-pressed={muted}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+              {muted ? (
+                <path
+                  d="m16 9 5 6m0-6-5 6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+              ) : (
+                <path
+                  d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+              )}
+            </svg>
+          </button>
+
+          {state === 'loading' ? (
+            <span className="vctl__status" role="status">
+              <span className="vctl__spinner" aria-hidden="true" />
+              Loading clip…
+            </span>
+          ) : null}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /**
  * Evidence, as a contact sheet rather than a column of full-bleed images.
  *
@@ -40,10 +200,14 @@ function shotRatio(item: Item): React.CSSProperties {
  * dialog, two arrows and a keyboard handler.
  *
  * Video is a first-class case, not an image with a different tag: it gets
- * controls, it is never autoplayed with sound, and moving to the next item
- * stops whatever was playing.
+ * controls, it is never autoplayed with sound or under reduced motion, and
+ * moving to the next item stops whatever was playing.
+ *
+ * An `nda` item's blur is on the media element (`.nda-media`) rather than
+ * inferred from the ribbon beside it, so it does not depend on `:has()`.
  */
 export function EvidenceGallery({ items }: { items: Item[] }) {
+  const reduced = useReducedMotion();
   const [open, setOpen] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -123,12 +287,24 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                   <>
                     {/* A muted first frame is the honest thumbnail for a
                         video: any still we invented would be a guess. */}
-                    <video src={item.src} muted playsInline preload="metadata" />
+                    <video
+                      className={item.nda ? 'nda-media' : undefined}
+                      src={item.src}
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
                     <span className="evidence__play" aria-hidden="true" />
                   </>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.src} alt="" loading="lazy" decoding="async" />
+                  <img
+                    className={item.nda ? 'nda-media' : undefined}
+                    src={item.src}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
                 )}
                 {item.nda ? <NdaWatermark /> : null}
                 <span className="evidence__device">{item.device}</span>
@@ -183,36 +359,39 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                * without covering the caption — the figure is a two-row grid and
                * an overlay on the figure would cross both rows.
                */}
-              <span className="lightbox__media">
-                {/*
-                 * The inner box shrinks to the picture, and the mark goes
-                 * inside it. `.lightbox__media` fills the figure's row, so a
-                 * corner mark placed on it lands on the corner of the *row* —
-                 * measured 451px clear of a portrait phone screenshot,
-                 * floating in the empty space beside it. An inline-block
-                 * shrink-wraps to the image's used size, after `max-height`
-                 * has had its say, which is the one box that is always exactly
-                 * the picture.
-                 */}
-                <span className="lightbox__shot" style={shotRatio(current)}>
-                  {mediaKind(current) === 'video' ? (
-                    <video
-                      // Keyed on src so moving between videos remounts the element
-                      // rather than leaving the previous one playing underneath.
-                      key={current.src}
-                      src={current.src}
-                      controls
-                      autoPlay
-                      playsInline
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={current.src} alt={current.alt} />
-                  )}
+              {current.nda && mediaKind(current) === 'video' ? (
+                // Keyed on src so moving between videos remounts the player
+                // rather than leaving the previous one playing underneath.
+                <NdaVideo key={current.src} item={current} autoPlay={!reduced} />
+              ) : (
+                <span className="lightbox__media">
+                  {/*
+                   * The inner box shrinks to the picture, and the mark goes
+                   * inside it, so the ribbon sits on the picture's corner
+                   * rather than the row's — see shotRatio().
+                   */}
+                  <span className="lightbox__shot" style={shotRatio(current)}>
+                    {mediaKind(current) === 'video' ? (
+                      <video
+                        key={current.src}
+                        src={current.src}
+                        controls
+                        autoPlay={!reduced}
+                        playsInline
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        className={current.nda ? 'nda-media' : undefined}
+                        src={current.src}
+                        alt={current.alt}
+                      />
+                    )}
 
-                  {current.nda ? <NdaWatermark /> : null}
+                    {current.nda ? <NdaWatermark /> : null}
+                  </span>
                 </span>
-              </span>
+              )}
 
               <figcaption>
                 {current.nda ? <b className="lightbox__nda">Under NDA</b> : null}

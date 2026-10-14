@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { site } from '@/content/site';
+import { CopyEmail } from './CopyEmail';
 
 /**
  * Closes every page. Keeps contact one tap away — docs/03-APPFLOW.md §2.
@@ -16,32 +17,38 @@ export function ContactBand() {
       <div className="wrap contact-band__grid">
         <div className="contact-band__main">
           <p className="label">Contact</p>
-          <h2 style={{ marginTop: '14px' }}>
+          <h2 className="contact-band__title">
             Stop fighting your software. Let&rsquo;s make it work for you.
           </h2>
-          <p className="prose-body" style={{ marginTop: '18px' }}>
+          {/* "Mid-sized businesses", not "UK & US": Chrys is open to clients
+              anywhere — docs/07-SOURCE-CONTENT.md §5.10. */}
+          <p className="prose-body contact-band__lead">
             Based in {site.location}, providing seamless{' '}
-            <b>ERP, automation, and integration solutions</b> that help mid-sized{' '}
-            <b>UK & US businesses</b> scale smoothly, eliminate manual data entry, and cut
-            operational costs.
+            <b>ERP, automation, and integration solutions</b> that help mid-sized businesses
+            scale smoothly, eliminate manual data entry, and cut operational costs.
           </p>
-          <p style={{ marginTop: '26px', display: 'flex', gap: '26px', flexWrap: 'wrap' }}>
-            <Link className="button" href="/contact">
+
+          <div className="contact-band__actions">
+            <Link className="button button--solid" href="/contact">
               <span className="cta-dot" aria-hidden="true" />
               Send a message
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path
+                  d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
             </Link>
-            <a
-              href={`mailto:${site.email}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                minHeight: '44px',
-                fontSize: 'var(--text-body)',
-              }}
-            >
-              {site.email}
-            </a>
-          </p>
+            {/* The /contact page's own lead, so no new copy. */}
+            <p className="contact-band__ask">Tell me what you are trying to build or fix.</p>
+          </div>
+
+          <div className="contact-band__direct">
+            <h3 className="label">Direct</h3>
+            <CopyEmail email={site.email} />
+          </div>
         </div>
 
         <nav className="contact-band__more" aria-label="More pages">
@@ -114,9 +121,18 @@ export function ContactBand() {
         the full measure rather than becoming a third column, and reads as
         the end of the page rather than as more content.
       */}
+      {/* The closing statement, in Chrys's words — docs/07-SOURCE-CONTENT.md §5.10. */}
+      <div className="wrap">
+        <p className="avail">
+          <span className="avail__dot" aria-hidden="true" />
+          <span className="avail__head">Open to remote work worldwide</span>
+          <span className="avail__terms">Part-time or full-time, by agreement.</span>
+          <span className="avail__where">{site.location} · UTC+4</span>
+        </p>
+      </div>
+
       <div className="wrap contact-band__meta">
         <small>© 2026 {site.name} Roma</small>
-        <small>{site.location}</small>
       </div>
     </section>
   );

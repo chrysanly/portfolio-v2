@@ -257,7 +257,11 @@ client: Personal project
 **Summary:** Structured extraction from supplier PDFs with dynamic
 per-company branding applied to generated output.
 
-**Stack:** Python, Laravel, PDF parsing
+**Stack:** Python, Laravel, PDF parsing, React, TypeScript
+
+React and TypeScript added on 2026-10-14 from the public repo
+`chrysanly/crm-pdf-parser` (Laravel + Inertia React + TypeScript, a Python
+sidecar, PDF output through dompdf). See §7.
 
 **Outcome:** `[METRIC]` / `[what it improved]`
 
@@ -313,6 +317,39 @@ Do not change any of these defaults without his explicit instruction.
 
 ---
 
+## 5.9 How "What I did" is written on the site
+
+Chrys, 2026-10-14, in his own words:
+
+> Keep the "What I Did" section of my portfolio short and focused on keywords
+> or brief phrases rather than detailed descriptions. This will make my
+> portfolio cleaner and allow me to explain my responsibilities,
+> contributions, and achievements in more detail during interviews.
+
+So the site shows each bullet in §5 as a short phrase (48 characters at most),
+cut down from that bullet's own words — nothing added. The full bullets above
+stay here as the source; the short phrases live in
+`portfolio-api/database/seeders/data/projects.json` and the admin.
+
+## 5.10 Availability — the closing statement
+
+Chrys, 2026-10-14, in his own words:
+
+> My portfolio should primarily highlight my professional experience and real
+> projects. At the bottom, include a statement that I am open to remote
+> opportunities worldwide, not just in the US or UK, so I can attract clients
+> from different countries.
+>
+> Mention that I am open to both part-time and full-time opportunities,
+> depending on discussion and agreement.
+
+On the site, at the foot of every page (the contact band):
+
+> **Open to remote work worldwide**
+> Part-time or full-time, by agreement.
+
+The band's lead no longer names "UK & US businesses" for the same reason.
+
 ## 6. Still unknown — must ship as placeholders
 
 | Placeholder                       | What's needed                                                                 |
@@ -333,3 +370,44 @@ converts a visitor into an enquiry.
 For each featured project, Chrys should supply one of: time saved, error rate
 reduced, throughput increased, cost avoided, or users served. An honest
 approximation stated as approximate is fine. An invented number is not.
+
+---
+
+## 7. Checked against GitHub — 2026-10-14
+
+Chrys asked that everything here be "accurate and consistent with my GitHub
+repositories", in plain words. The public repos under `github.com/chrysanly`
+and the profile README were read; private repos were not.
+
+**Changed, because a repo backs it**
+
+| Where                        | Change                          | Evidence                                                               |
+| ---------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| §5.5 Document Parsing Engine | Stack adds React and TypeScript | `crm-pdf-parser`: Inertia React + TypeScript beside Laravel and Python |
+
+**Consistent — nothing to change**
+
+- Role and focus: the profile README says "Senior Full-Stack Engineer" with
+  ERP, financial aging, asset depreciation and multi-tenant work — matching
+  §1, §2 and §5.1.
+- Patterns: SOLID, Service and Repository layers and RBAC, as in §2 and §5.1.
+- Document Parsing Engine: the README's "unstructured vendor data into
+  multi-tenant branded digital reports" matches §5.5's summary.
+
+**For Chrys to decide — not changed, because no public repo settles it**
+
+1. **Years of experience.** The profile shows "6+" but the positioning
+   paragraph in §2 says "5+ years". GitHub does not say which.
+2. **Project name.** The GitHub README lists a "CRM Communication Suite"
+   (legacy refactor, real-time messaging). The site calls the closest project
+   "Real-time Platform Suite" (§5.3). Same project, or a different one?
+3. **devio's stack** is still `[stack]`. `devio-atlas` (a real-estate demo,
+   Laravel + React + TypeScript) is public, but it is a demo, not a statement
+   of what the practice uses — so the placeholder stays until Chrys confirms.
+4. **Stack the README names and the site does not:** CodeIgniter, Yii2,
+   MariaDB, Bootstrap, Jira, Postman. Add any of them to §3?
+5. **Stack the site names and the README does not:** Node.js, PostgreSQL,
+   MongoDB, Firebase. All four appear in §4–§5 project history, so they stay;
+   the README could list them too.
+6. **Every client project** (§5.1–§5.4) is under NDA with no public repo, so
+   none of it can be checked against GitHub — it rests on the CV.

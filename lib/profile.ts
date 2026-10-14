@@ -1,19 +1,10 @@
-import path from 'node:path';
-import { languages as fallbackLanguages, site } from '@/content/site';
 import { readContentPayload } from './content-source';
 import { profileSchema } from './schema';
 
 /**
- * Who the site says he is, from the same two sources as everything else and
- * in the same order of preference — docs/08-BACKEND.md §2.
- *
- *  1. `content/snapshot.json`'s `site` key, written from the Laravel admin.
- *  2. `content/site.ts`, the hardcoded copy the site shipped with.
- *
- * Merged rather than chosen between: the API's payload is a superset that
- * grew over time, so an older snapshot may carry six keys where the current
- * one carries fifteen. Anything absent falls through to the file, which
- * means a stale snapshot degrades field by field instead of all at once.
+ * Who the site says he is, from the API's `site` key — the profile row edited
+ * in the admin. There is no fallback: a missing or malformed profile throws,
+ * like every other content read (lib/content-source.ts).
  *
  * The phone number never comes from the API — docs/07-SOURCE-CONTENT.md §1
  * keeps it off every payload — so it is read from `content/site.ts` alone
@@ -38,7 +29,8 @@ export interface Profile {
    * admin, which is also how he replaces it without a deploy.
    */
   cv: { url: string; updatedAt: string | null; label: string | null } | null;
-  links: { github: string; linkedin: string };
+  /** Null when the admin leaves the link empty; the UI then omits it. */
+  links: { github: string | null; linkedin: string | null };
   intro: readonly string[];
   notes: readonly string[];
   positioning: string;
@@ -52,77 +44,26 @@ export interface Profile {
   };
 }
 
-async function fromApi() {
+export async function getProfile(): Promise<Profile> {
   const payload = await readContentPayload();
-  const raw = payload?.site;
-
-  if (!raw || typeof raw !== 'object') return null;
-
-  const parsed = profileSchema.safeParse(raw);
+  const parsed = profileSchema.safeParse(payload.site);
 
   if (!parsed.success) {
     const detail = parsed.error.issues
       .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('\n');
-    throw new Error(`Invalid site profile from the content source\n${detail}`);
+    throw new Error(`Invalid site profile from the API\n${detail}`);
   }
 
-  return parsed.data;
-}
+  const api = parsed.data;
 
-/**
- * This used to read `content/snapshot.json` straight off disk. That file is
- * only rewritten by `scripts/pull-content.mjs` during a build, so changing a
- * name or a role in the admin genuinely did require a rebuild before it
- * appeared — while a project edit showed up immediately. Same admin, same
- * save, two different behaviours. Both go through one loader now.
- */
-let cache: Profile | null = null;
-
-export function clearProfileCache(): void {
-  cache = null;
-}
-
-export async function getProfile(): Promise<Profile> {
-  // Cached for the life of the process only in production; in development a
-  // save must show on the next request.
-  if (cache && process.env.NODE_ENV === 'production') return cache;
-
-  const api = await fromApi();
-
-  const profile: Profile = {
-    name: api?.name ?? site.name,
-    fullName: api?.fullName ?? site.fullName,
-    role: api?.role ?? site.role,
-    location: api?.location ?? site.location,
-    yearsExperience: api?.yearsExperience ?? site.yearsExperience,
-    availability: api?.availability ?? site.availability,
-    email: api?.email ?? site.email,
-    languages: api?.languages ?? fallbackLanguages,
-    portrait: api?.portrait !== undefined ? api.portrait : site.portrait,
-    /*
-     * The API is the only source. There is no fallback in content/site.ts on
-     * purpose: a CV is a file, and the one file in this repository is the one
-     * that must not be published. No upload means no button.
-     */
-    cv: api?.cv
-      ? {
-          url: api.cv.url,
-          updatedAt: api.cv.updatedAt ?? null,
-          label: api.cv.label ?? null,
-        }
+  return {
+    ...api,
+    availability: api.availability ?? '',
+    portrait: api.portrait ?? null,
+    cv: api.cv
+      ? { url: api.cv.url, updatedAt: api.cv.updatedAt ?? null, label: api.cv.label ?? null }
       : null,
-    links: {
-      github: api?.links?.github ?? site.links.github,
-      linkedin: api?.links?.linkedin ?? site.links.linkedin,
-    },
-    intro: api?.intro ?? site.intro,
-    notes: api?.notes ?? site.notes,
-    positioning: api?.positioning ?? site.positioning,
-    meta: api?.meta ?? site.meta,
+    links: { github: api.links.github ?? null, linkedin: api.links.linkedin ?? null },
   };
-
-  cache = profile;
-
-  return profile;
 }

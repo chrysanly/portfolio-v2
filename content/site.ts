@@ -32,9 +32,6 @@ export const site = {
     // this one is public by design — it may appear anywhere, footer included.
     linkedin: 'https://www.linkedin.com/in/chrysanly-john-roma-7517012a8/',
     github: 'https://github.com/chrysanly',
-    // Not rendered anywhere yet: public/resume.pdf does not exist. Wire the
-    // About link back up once Chrys supplies the file. docs/CONTENT-TODO.md.
-    resume: '/resume.pdf',
   },
   /** The hero's three reveal lines. Editing these changes the sequence. */
   intro: [

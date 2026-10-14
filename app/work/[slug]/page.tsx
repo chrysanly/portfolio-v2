@@ -6,9 +6,10 @@ import { SiteHeader } from '@/components/ui/SiteHeader';
 import { BackLink } from '@/components/ui/BackLink';
 import { ContactBand } from '@/components/ui/ContactBand';
 import { EvidenceGallery } from '@/components/work/EvidenceGallery';
-import { ProjectMeta } from '@/components/work/ProjectMeta';
-import { OutcomeFigure } from '@/components/work/OutcomeFigure';
+import { ArrivalFocus } from '@/components/ui/ArrivalFocus';
+import { caseStudySource } from '@/lib/case-study';
 import { adjacentProjects, attribution, getAllProjects, getProject } from '@/lib/projects';
+import { PROJECT_TYPE_LABELS } from '@/lib/schema';
 
 export async function generateStaticParams() {
   return (await getAllProjects()).map((p) => ({ slug: p.slug }));
@@ -35,66 +36,116 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   if (!project) notFound();
 
   const { previous, next } = await adjacentProjects(slug);
+  const all = await getAllProjects();
+  const index = all.findIndex((p) => p.slug === slug);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const context = project.confidential
+    ? `Client under NDA · ${project.sector}`
+    : attribution(project);
 
   return (
     <>
       <SiteHeader current="/work" />
       <main id="content">
-        <div className="wrap">
+        <div className="wrap cs">
           {/*
             Back where Back is meaningful, Home otherwise — a project page is
-            the one page on the site that is always arrived at from somewhere,
-            usually mid-scroll through the showcase, and returning to the top
-            of the home page instead of to the panel is the whole complaint.
-            The Work eyebrow stays: it is a breadcrumb, and it is the only
-            thing naming which index this page belongs to.
+            always arrived at from somewhere, usually mid-scroll through the
+            showcase, and returning to the top of the home page instead of to
+            the panel is the whole complaint.
           */}
-          <BackLink allowHistory />
-
-          <p className="section-label">
-            <Link href="/work">Work</Link>
-          </p>
-
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 'clamp(2rem, 5vw, 3.25rem)',
-              lineHeight: 1.15,
-              maxWidth: '9em',
-            }}
-          >
-            {project.title}
-          </h1>
-          <p className="visually-hidden">{attribution(project)}</p>
-
-          <ProjectMeta project={project} />
+          <div className="arrive" style={{ '--i': 0 } as React.CSSProperties}>
+            <BackLink allowHistory />
+          </div>
 
           {/*
-            One grid, and the order below is `docs/03-APPFLOW.md` §5 exactly —
-            outcome, body, stack, evidence, next/previous. What changes on a
-            wide screen is only where CSS *puts* them: the outcome and the
-            stack are placed in a right-hand column beside the body, because
-            prose holds its measure at 34em and everything to the right of it
-            was empty from the outcome all the way down to the evidence. Grid
-            placement, not reordered markup — a narrow screen, a screen reader
-            and a page with no CSS all still get the fixed order.
+            The hero: the showcase panel, opened. Number, title and the tinted
+            system box, then the facts, on the left; the full stack on the
+            right. Both settle on one baseline above a rule, so the hero reads
+            as one block. The screens are in "Screens from the build" below.
           */}
-          <div className="detail-body">
-            <OutcomeFigure outcome={project.outcome} />
+          <div className="cs__hero arrive" style={{ '--i': 1 } as React.CSSProperties}>
+            <div>
+              <p className="story__head">
+                <span className="story__n">
+                  <Link href="/work">Case study</Link> · {pad(index + 1)} / {pad(all.length)}
+                </span>
+              </p>
+              <h1 id="cs-title" className="story__title" tabIndex={-1}>
+                {project.title}
+              </h1>
+              <p className="visually-hidden">{attribution(project)}</p>
 
-            <div className="mdx">
-              <MDXRemote source={project.body} />
+              <div className="system">
+                <p className="system__kind">
+                  <span>{PROJECT_TYPE_LABELS[project.type]} system</span>
+                  {context ? <span>{context}</span> : null}
+                </p>
+                <p className="system__desc">{project.summary}</p>
+              </div>
+
+              <dl className="cs__meta">
+                <div>
+                  <dt>Year</dt>
+                  <dd>{project.year}</dd>
+                </div>
+                <div>
+                  <dt>Role</dt>
+                  <dd>{project.role}</dd>
+                </div>
+              </dl>
             </div>
 
-            {/*
-              The engineering, given its own section rather than left inside
-              the body's prose. Asked for on 2026-09-22: the reader this is
-              for — a technical lead — reads this paragraph and often nothing
-              else, and it was previously buried in the middle of "Approach".
-              Absent on a project that has not been given one, in which case
-              nothing is drawn at all.
-            */}
+            {project.stack.length > 0 ? (
+              <section className="cs__stack" aria-labelledby="cs-stack">
+                <h2 id="cs-stack" className="story__label">
+                  Stack
+                </h2>
+                <ul className="chips">
+                  {project.stack.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+
+          {/* The problem beside what was done. Nothing is clamped here: this
+              is where the detail lives. */}
+          {project.problem || project.contributions.length > 0 ? (
+            <div
+              className="cs__cols arrive"
+              data-cols={project.problem && project.contributions.length > 0 ? 2 : 1}
+              style={{ '--i': 2 } as React.CSSProperties}
+            >
+              {project.problem ? (
+                <div className="problem">
+                  <h2 className="story__label">The problem</h2>
+                  <p>{project.problem}</p>
+                </div>
+              ) : null}
+              {project.contributions.length > 0 ? (
+                <div className="did">
+                  <h2 className="story__label">What I did</h2>
+                  <ul>
+                    {project.contributions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <ArrivalFocus targetId="cs-title" />
+          <div
+            className="detail-body detail-body--cs arrive"
+            style={{ '--i': 3 } as React.CSSProperties}
+          >
+            <div className="mdx">
+              <MDXRemote source={caseStudySource(project)} />
+            </div>
+
             {project.engineeringDepth ? (
               <section className="detail-section detail-depth">
                 <h2>Engineering depth</h2>
@@ -102,28 +153,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
               </section>
             ) : null}
 
-            {/*
-              Collapses entirely when the list is empty rather than leaving a
-              heading over nothing — Chrys's brief of 2026-09-22 item 1. The
-              entries themselves are already cleaned of blanks and stray
-              emphasis by the schema (lib/text.ts), so there is no such thing
-              here as a bullet with nothing after it.
-            */}
-            {project.stack.length > 0 ? (
-              <section className="detail-section detail-body__stack">
-                <h2>Stack</h2>
-                <ul className="stack-list">
-                  {project.stack.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
             {/* Evidence is omitted entirely when images is empty — never a placeholder box. */}
             {project.images.length > 0 ? (
               <section className="detail-section detail-body__wide">
-                <h2>Evidence</h2>
+                <h2>Screens from the build</h2>
                 <EvidenceGallery items={[...project.images]} />
               </section>
             ) : null}
