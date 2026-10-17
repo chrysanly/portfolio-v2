@@ -343,7 +343,16 @@ Chrys, 2026-10-14, in his own words:
 > Mention that I am open to both part-time and full-time opportunities,
 > depending on discussion and agreement.
 
-On the site, at the foot of every page (the contact band):
+On the site, once per page, in the closing strip of the contact band:
+
+> **Working remotely with teams anywhere in the world**
+> Part-time or full-time, as we agree.
+
+Reworded 2026-10-16 at Chrys's request ("remove the redundant … because I
+always see it. change the description"): the same three facts — remote,
+worldwide, part-time or full-time by agreement — in fresher words, nothing
+added. It used to appear twice on the home page (also as "Next chapter" at the
+end of the journey); it now appears only here. The earlier wording was:
 
 > **Open to remote work worldwide**
 > Part-time or full-time, by agreement.

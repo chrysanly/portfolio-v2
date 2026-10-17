@@ -298,6 +298,28 @@ function Story({
   );
 }
 
+/**
+ * The story column is capped at the panel's height (globals.css), and its
+ * problem / What-I-did columns are the part that gives way. Rather than let
+ * them be cut mid-line, whole parts step out until what is left fits: the
+ * extra "What I did" lines, then that list, then both columns, and on a phone
+ * on its side the year and role last of all. The full text
+ * is always on the case study; "View case study" is never what gives way.
+ */
+const FIT_STEPS = ['did-1', 'no-did', 'no-cols', 'no-foot'] as const;
+
+function fitStory(el: HTMLElement) {
+  delete el.dataset.fit;
+  const cols = el.querySelector<HTMLElement>('.story__cols');
+  const fits = () =>
+    (!cols || cols.scrollHeight <= cols.clientHeight + 1) &&
+    el.scrollHeight <= el.clientHeight + 1;
+  for (const step of FIT_STEPS) {
+    if (fits()) return;
+    el.dataset.fit = step;
+  }
+}
+
 interface StoryParts {
   el: HTMLElement;
   parts: { el: HTMLElement; k: number }[];
@@ -372,7 +394,9 @@ export function WorkShowcase({ projects }: { projects: ShowcaseProject[] }) {
     };
 
     storyRefs.current.forEach((el, i) => {
-      if (el) el.dataset.substepY = String(projectY(i));
+      if (!el) return;
+      el.dataset.substepY = String(projectY(i));
+      fitStory(el);
     });
   }, [count, projectY]);
 

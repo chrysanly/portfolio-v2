@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { attribution, getAllProjects, getProject } from '@/lib/projects';
 import { site } from '@/content/site';
+import { PROJECT_TYPE_LABELS } from '@/lib/schema';
 
 export const runtime = 'nodejs';
 export const size = { width: 1200, height: 630 };
@@ -51,7 +52,11 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         }}
       >
         <span>{site.name}</span>
-        <span style={{ color: ACCENT }}>{project?.outcome.value ?? ''}</span>
+        {/* The kind of system, not the outcome: the outcome is no longer
+            published, and its `[METRIC]` placeholder must not reach a card. */}
+        <span style={{ color: ACCENT }}>
+          {project ? `${PROJECT_TYPE_LABELS[project.type]} system` : ''}
+        </span>
       </div>
     </div>,
     size,

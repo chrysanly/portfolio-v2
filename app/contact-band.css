@@ -180,15 +180,30 @@
     color: var(--color-ink);
   }
 
-  /* ----- the closing availability line ----- */
+  /* ----- the closing strip: availability left, where and © right ----- */
   .avail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 6px 32px;
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--color-ink);
+  }
+
+  .avail__line {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 14px;
-    margin-top: 56px;
-    padding-top: 22px;
-    border-top: 1px solid var(--color-ink);
+    min-width: 0;
+  }
+
+  .avail__meta {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    text-align: right;
   }
 
   .avail__dot {
@@ -212,26 +227,42 @@
   }
 
   .avail__where {
-    margin-left: auto;
     font-family: var(--font-mono);
     font-size: var(--text-small);
     color: var(--color-faint);
   }
 
-  /* Texture hover: the availability line takes a card shaped to it, and an
-     empty status line never lights up. */
+  .avail__copy {
+    font-size: var(--text-meta);
+    letter-spacing: 0.04em;
+    color: var(--color-faint);
+  }
+
+  /* Texture hover: the whole closing strip, © included, takes one card
+     shaped to it, and an empty status line never lights up. On the card the
+     secondary lines sit a step softer than the head, in the card's label
+     colour (the ground mixed 80% toward the ink). `:not(#_)` lifts that one
+     rule past the hover card's own "everything inside takes the card text"
+     rule in globals.css without !important. */
   @media (hover: hover) and (pointer: fine) {
-    :root:not([data-texture='off']):not([data-gate='shut']) main .avail {
+    :root:not([data-texture='off']) main .avail {
       --card-inset: 12px -14px -10px;
       --card-radius: var(--radius);
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut']) main .avail:hover {
+    :root:not([data-texture='off']) main .avail:hover {
       border-top-color: transparent;
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut']) main .avail:hover .avail__dot {
+    :root:not([data-texture='off']) main .avail:hover .avail__dot {
       background: var(--card-text);
+    }
+
+    :root:not([data-texture='off'])
+      main
+      .avail:hover
+      :is(.avail__terms, .avail__where, .avail__copy):not(#_) {
+      color: var(--card-label, var(--card-text));
     }
 
     :root:not([data-texture='off']) main .contact-band__status:empty::before {
@@ -251,17 +282,20 @@
       min-height: 44px;
     }
 
+    /* One column: where and © drop under the terms, still in the strip. */
     .avail {
+      grid-template-columns: minmax(0, 1fr);
       margin-top: 40px;
     }
 
-    .avail__where {
-      flex-basis: 100%;
-      margin-left: 0;
+    .avail__meta {
+      justify-items: start;
+      margin-top: 8px;
+      text-align: left;
     }
   }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (max-width: 1024px) {
     .contact-band__main .contact-band__direct a,
     .contact-band__direct button {
       min-height: 44px;

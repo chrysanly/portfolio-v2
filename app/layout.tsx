@@ -1,6 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
-import { site } from '@/content/site';
+import { getProfile } from '@/lib/profile';
 import { AccentPicker } from '@/components/ui/AccentPicker';
 import { CursorDot } from '@/components/ui/CursorDot';
 import { RouteVeil } from '@/components/ui/RouteVeil';
@@ -47,20 +47,32 @@ const jetbrainsMono = JetBrains_Mono({
 // this in.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://chrys.dev';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: `${site.name} — ${site.role}`,
-    template: `${site.name} — %s`,
-  },
-  description: `${site.role} in ${site.location}, building ERP and automation systems.`,
-  openGraph: {
-    type: 'website',
-    siteName: site.name,
-    locale: 'en_AE',
-  },
-  robots: { index: true, follow: true },
+/** `viewport-fit=cover` so env(safe-area-inset-*) reports the notch and the
+    home indicator, and the fixed bars in globals.css can keep clear of them. */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
+
+/** The name, role and place come from the admin's profile, as the pages do. */
+export async function generateMetadata(): Promise<Metadata> {
+  const profile = await getProfile();
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: `${profile.name} — ${profile.role}`,
+      template: `${profile.name} — %s`,
+    },
+    description: `${profile.role} in ${profile.location}, building ERP and automation systems.`,
+    openGraph: {
+      type: 'website',
+      siteName: profile.name,
+      locale: 'en_AE',
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

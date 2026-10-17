@@ -25,6 +25,17 @@ const line = (schema: z.ZodString) => z.preprocess((value) => cleanLine(value), 
 const prose = (schema: z.ZodString) => z.preprocess((value) => cleanText(value), schema);
 
 /**
+ * Markdown written in the admin's editor, as the plain sentence the site
+ * prints: emphasis, code and heading marks dropped, links reduced to their
+ * text. The admin preview applies the same rule (`plain` in site-preview.tsx).
+ */
+const plainText = (markdown: string) =>
+  markdown
+    .replace(/[*_`#>]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .trim();
+
+/**
  * A list with the holes taken out: nulls, blanks and duplicates are dropped
  * rather than failing validation. An empty list is a valid state — the UI
  * collapses the section — because a build that dies when somebody clears a
@@ -151,7 +162,7 @@ export const projectFrontmatterSchema = z
      * it beside "What I did"; empty when the admin leaves it blank, and the
      * column is then not drawn.
      */
-    problem: prose(z.string().max(1500)).default(''),
+    problem: prose(z.string()).transform(plainText).default(''),
     /**
      * Markdown on the tools and why they were chosen. Its own section of the
      * case study, after the approach; null when the admin leaves it blank.
@@ -257,7 +268,7 @@ export const journeyStopSchema = z.object({
    * Defaults empty, and the timeline falls back to the old matching when it
    * is.
    */
-  projects: list(40).default([]),
+  projects: list(50).default([]),
   order: z.number().int().min(0),
 });
 
@@ -283,7 +294,17 @@ export const profileSchema = z.object({
   location: line(z.string().min(1).max(120)),
   yearsExperience: line(z.string().min(1).max(20)),
   availability: line(z.string().max(60)).nullable().optional(),
-  email: line(z.string().email()),
+  /*
+   * The same check the admin applies (Laravel's `email` rule), not Zod's
+   * stricter one: an address the admin saves must never fail the build.
+   */
+  email: line(
+    z
+      .string()
+      .min(3)
+      .max(160)
+      .regex(/^[^\s@]+@[^\s@]+$/, 'not an email address'),
+  ),
   languages: list(20),
   portrait: line(z.string().min(1)).nullable().optional(),
   links: z.object({
@@ -311,12 +332,12 @@ export const profileSchema = z.object({
     .nullable()
     .optional(),
   meta: z.object({
-    discipline: z.string().max(200),
-    architecture: z.string().max(240),
-    principalStack: z.string().max(240),
-    databases: z.string().max(240),
-    security: z.string().max(240),
-    currentRole: z.string().max(240),
+    discipline: line(z.string().max(200)),
+    architecture: line(z.string().max(240)),
+    principalStack: line(z.string().max(240)),
+    databases: line(z.string().max(240)),
+    security: line(z.string().max(240)),
+    currentRole: line(z.string().max(240)),
   }),
 });
 

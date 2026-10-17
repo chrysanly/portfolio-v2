@@ -109,6 +109,22 @@ a{color:inherit;text-decoration:none}
   .intro-t{font-size:2rem}.skip{margin-top:20px}
 }
 
+/* A phone on its side: too short to stack, so the scene and the card sit
+   side by side again, the card scrolls within its half and Previous/Next
+   stay pinned at its foot. */
+@media (max-width:1023px) and (orientation:landscape) and (max-height:540px){
+  .stage{grid-template-columns:2fr 3fr;grid-template-rows:none;min-height:0}
+  .side{place-items:start stretch;padding:12px var(--page-x,20px) 0;overflow:auto}
+  .card{width:100%}
+  .card h3{font-size:1.25rem;margin-top:8px}
+  .org{font-size:.875rem}
+  .facts{grid-auto-flow:column;grid-template-columns:none;margin-top:10px;padding-top:10px}
+  .short{font-size:.875rem;margin-top:10px}
+  .sec{margin-top:10px;padding-top:10px}
+  .nav{position:sticky;bottom:0;margin-top:12px;padding:8px 128px calc(8px + env(safe-area-inset-bottom,0px)) 0;background:var(--stage-bg)}
+  .nav .pill{flex:1}.hint{display:none}
+  .intro-t{font-size:1.75rem}.intro-how,.cue{display:none}.skip{margin-top:12px}
+}
 :host([data-reduce=true]) .track{height:auto!important}
 :host([data-reduce=true]) .stage{position:relative;top:0;height:min(92svh,820px)}
 :host([data-reduce=true]) .breath,:host([data-reduce=true]) .mouth{animation:none!important}

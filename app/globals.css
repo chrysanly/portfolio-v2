@@ -1694,6 +1694,9 @@
   .showcase__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* One definite row: the story column can then be capped at the panel's
+       height instead of running past its bottom edge. */
+    grid-template-rows: minmax(0, 1fr);
     gap: 56px;
     align-items: center;
     min-height: 0;
@@ -1707,14 +1710,36 @@
     max-width: 62rem;
   }
 
-  /* Every story occupies the same cell; the paint loop shows one at a time. */
+  /* Every story occupies the same cell; the paint loop shows one at a time.
+     The cell is never taller than the panel: the story's columns give up
+     height first, so "View case study" stays whole at the column's foot. */
   .texts {
     display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    max-height: 100%;
+    min-height: 0;
   }
 
   .ptext {
     grid-area: 1 / 1;
     visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .ptext > * {
+    flex: none;
+  }
+
+  /* The one part that shrinks. Padded out and pulled back by the same amount
+     so a hovered item's card is not clipped by the cut. */
+  .ptext > .story__cols {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    margin-inline: -12px;
+    padding: 6px 12px;
   }
 
   .ptext [data-k] {
@@ -1817,7 +1842,15 @@
     color: var(--color-faint);
   }
 
+  /* Natural height up to five lines, then an ellipsis; short text is never
+     cut. Shorter windows lower the cap below. The full text is on the case
+     study. */
   .problem p:not(.story__label) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
     font-size: 0.9375rem;
     line-height: 1.55;
     color: var(--color-muted);
@@ -1955,10 +1988,8 @@
     }
 
     .ptext .problem p:not(.story__label) {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
     }
   }
 
@@ -2235,14 +2266,23 @@
       color: var(--color-faint);
     }
 
+    /* The rig on top, the story in the rest of the panel: the story's row
+       is definite, so its column fits the panel and the button stays. */
     .showcase__body {
+      grid-template-rows: auto minmax(0, 1fr);
       align-content: start;
       gap: 12px;
       padding-top: 14px;
     }
 
+    .texts {
+      grid-row: 2;
+      align-self: start;
+    }
+
     .showcase__figure {
       order: -1;
+      grid-row: 1;
       height: auto;
     }
 
@@ -2268,10 +2308,16 @@
       font-size: 0.875rem;
     }
 
-    .ptext .problem,
     .ptext .chips,
     .hint {
       display: none;
+    }
+
+    /* Two lines on a phone, then the ellipsis. */
+    .ptext .problem p:not(.story__label) {
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      font-size: var(--text-small);
     }
 
     .ptext .did li:nth-child(n + 3):not([data-more]) {
@@ -5008,15 +5054,14 @@
        * the dark theme, near-black on the light — so it stands clear of the
        * mesh either way (Chrys, 2026-09-23).
        *
-       * The accent cannot go on it as it is: the dark theme's pale clay on
-       * white is ~3:1, the light theme's deep red on near-black ~2:1. So it
-       * is mixed toward the card's own text colour, which keeps the hue and
-       * brings it past 4.5:1 on both; an accent picked in the switcher goes
-       * through the same mix.
+       * Its text is the ground: white on the light theme's black card, black
+       * on the dark theme's white one (Chrys, 2026-10-15) — about 16:1 either
+       * way, list items and labels included. Labels sit a step softer, still
+       * past 9:1.
        */
-      --card-bg: color-mix(in srgb, var(--color-ink) 95%, transparent);
-      --card-text: color-mix(in srgb, var(--color-accent) 55%, var(--color-ground));
-      --card-label: color-mix(in srgb, var(--color-ground) 70%, var(--color-ink));
+      --card-bg: var(--color-ink);
+      --card-text: var(--color-ground);
+      --card-label: color-mix(in srgb, var(--color-ground) 80%, var(--color-ink));
       transition:
         translate 260ms cubic-bezier(0.23, 1, 0.32, 1),
         color 180ms ease;
@@ -5497,6 +5542,12 @@
     margin-top: 14px;
   }
 
+  /* A short window: the problem's cap drops to three lines. */
+  .ptext .problem p:not(.story__label) {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
   .did ul {
     gap: 6px;
   }
@@ -5587,6 +5638,7 @@
 
   .ptext .problem p:not(.story__label) {
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     font-size: 0.875rem;
   }
 
@@ -5723,5 +5775,234 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ----- touch, small screens and device edges --------------------------------
+   The responsive pass of 2026-10-15, at 320–1920px wide in both
+   orientations. Last in the file and in `components`, so each rule wins over
+   the one it adjusts without raising specificity.
+   - Every control is at least 44px in both directions (WCAG 2.5.5).
+   - Fixed bars keep clear of the notch and the home indicator: the viewport
+     is `viewport-fit=cover` (app/layout.tsx), so env() reports real insets.
+   - Pinned scroll stages keep `svh`, not `dvh`: a stage sized to the dynamic
+     viewport changes height while the phone's toolbar slides away, which
+     moves the whole scene mid-scroll. Full-screen overlays use `inset: 0`.
+--------------------------------------------------------------------------- */
+@layer components {
+  .logo {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .site-nav a,
+  .theme-toggle {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  .back,
+  .contact__direct a,
+  .contact-band__more a,
+  .header-cta {
+    min-height: 44px;
+  }
+
+  .detail-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* Touch screens, tablets included: the floating controls take a full
+     44px target. A mouse keeps the compact sizes. */
+  @media (pointer: coarse), (max-width: 1024px) {
+    .accent-picker__trigger {
+      height: 44px;
+    }
+
+    .pager__step {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  /* The lightbox's Close and arrows: full 44px targets. */
+  .lightbox__bar button,
+  .lightbox__step {
+    width: 44px;
+    height: 44px;
+  }
+
+  .lightbox__step {
+    margin-top: -22px;
+  }
+
+  /* On a phone the arrows sit at the foot, either side of the caption: the
+     caption keeps clear of them instead of running underneath. */
+  @media (max-width: 767px) {
+    .lightbox__step {
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .lightbox__figure figcaption {
+      padding-inline: 48px;
+    }
+  }
+
+  /* The showcase's project tabs stay tappable on a phone, where they lose
+     their labels and become a row of bars. */
+  @media (max-width: 767px) {
+    .chapter {
+      min-height: 44px;
+    }
+  }
+
+  .hero__stage {
+    height: 100vh;
+    height: 100svh;
+  }
+
+  .accent-picker {
+    right: calc(14px + env(safe-area-inset-right, 0px));
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pager {
+    left: calc(14px + env(safe-area-inset-left, 0px));
+  }
+
+  .lightbox {
+    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (max-width: 767px) {
+    .accent-picker {
+      right: calc(10px + env(safe-area-inset-right, 0px));
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  /* A phone's pinned showcase keeps its foot clear of the home indicator. */
+  @media (max-width: 767px) {
+    .showcase__stage {
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  /* A short phone: the story gives up lines before anything is cut — three
+     of the summary, two of the problem, two of what was done. */
+  @media (max-width: 767px) and (max-height: 700px) {
+    .system__desc {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+  }
+
+  /* What WorkShowcase's fitStory() takes out when the columns do not fit. */
+  .ptext[data-fit='did-1'] .did li:nth-child(n + 2):not([data-more]),
+  .ptext[data-fit='no-did'] .did,
+  .ptext[data-fit='no-cols'] .story__cols,
+  .ptext[data-fit='no-foot'] .story__cols,
+  .ptext[data-fit='no-foot'] .story__foot {
+    display: none;
+  }
+
+  /* A phone on its side: about 300px of panel under the header. The tabs
+     and the story tighten, and the panel's foot clears the accent picker,
+     which floats over the bottom-right corner. */
+  @media (max-height: 540px) and (orientation: landscape) and (max-width: 1023px) {
+    .chapters {
+      padding-top: 6px;
+    }
+
+    .chapters__now {
+      display: none;
+    }
+
+    .showcase__body {
+      padding-top: 6px;
+    }
+
+    .story__title {
+      font-size: 1.25rem;
+    }
+
+    .system {
+      margin-top: 8px;
+      padding: 8px 12px 9px 16px;
+    }
+
+    .system__desc {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
+      font-size: var(--text-small);
+    }
+
+    .story__foot,
+    .story__cta {
+      margin-top: 8px;
+    }
+
+    .showcase__stage {
+      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .story__cta {
+      padding-right: 140px;
+    }
+  }
+
+  /* Where the floating accent picker sits under the button's row, the story
+     ends above it rather than under it. */
+  @media (max-width: 380px) {
+    .showcase__stage {
+      padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  /* The narrowest phones: the header's word labels no longer fit beside the
+     nav. The theme toggle keeps its glyph and its accessible name. */
+  @media (max-width: 380px) {
+    .site-header__end {
+      gap: 12px;
+    }
+
+    .site-nav {
+      gap: 10px;
+    }
+
+    .theme-toggle__text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+  }
+
+  /* 320px: three nav words, the toggle and the wordmark only fit with the
+     header's own inset and gaps pulled in. Every target keeps 44px. */
+  @media (max-width: 360px) {
+    .site-header__inner {
+      gap: 8px;
+      padding-inline: 14px;
+    }
+
+    .logo {
+      font-size: 20px;
+    }
+
+    .site-header__end,
+    .site-nav {
+      gap: 4px;
+    }
   }
 }

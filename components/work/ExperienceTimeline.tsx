@@ -55,7 +55,9 @@ export async function ExperienceTimeline() {
 
     return {
       kind: stop.kind,
-      chapter: stop.kind === 'education' ? 'Where it started' : (stop.phase ?? stop.title),
+      // The no-JS list's kicker. Not `phase`: the admin no longer has a field
+      // for it, so the site cannot depend on it.
+      chapter: stop.kind === 'education' ? 'School' : 'Work',
       title: stop.title,
       org: stop.organisation,
       loc: stop.location,
@@ -82,19 +84,12 @@ export async function ExperienceTimeline() {
           My journey
         </h2>
         <p className="jw-lede">
-          {chapters.length === 6 ? 'Six' : chapters.length} chapters, in my own words. Scroll,
-          and walk with me through them.
+          {chapters.length === 6 ? 'Six' : chapters.length} stops, in my own words. Scroll, and
+          climb with me through them.
         </p>
       </div>
 
       <JourneyTimeline chapters={chapters} />
-
-      <div className="wrap jw-end">
-        <p className="jw-kicker">Next chapter</p>
-        <p className="jw-next">
-          <b>Open to remote work worldwide</b>, part-time or full-time, by agreement.
-        </p>
-      </div>
     </section>
   );
 }
