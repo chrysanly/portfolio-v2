@@ -37,6 +37,8 @@ export interface Placement {
 }
 
 const GAP = 16;
+/** Above the target the card carries a down arrow, which needs the extra room. */
+const ARROW_GAP = 24;
 const EDGE = 16;
 /** At or under this width the card docks full width to a screen edge. */
 export const PHONE_MAX = 520;
@@ -44,7 +46,8 @@ export const PHONE_MAX = 520;
 const clamp = (value: number, max: number) => Math.max(EDGE, Math.min(value, max - EDGE));
 
 /**
- * Beside the target on `side` with a 16px gap, kept 16px inside the viewport.
+ * Beside the target on `side` with a 16px gap (24px above it, for the arrow),
+ * kept 16px inside the viewport.
  * On a phone it docks to the edge away from the target instead: the top when
  * the target is in the lower half, the bottom otherwise.
  */
@@ -63,7 +66,7 @@ export function placeCard(target: Box, side: Side, card: Size, view: Size): Plac
     const centre = (target.left + target.right) / 2;
     return {
       x: clamp(centre - card.width / 2, maxX),
-      y: clamp(target.top - card.height - GAP, maxY),
+      y: clamp(target.top - card.height - ARROW_GAP, maxY),
       fromX: 0,
       fromY: 8,
     };

@@ -1,17 +1,19 @@
 /* ---------------------------------------------------------------------------
-   "What I build with" — components/ui/StackSection.tsx.
+   "What I build with": components/ui/StackSection.tsx and
+   components/work/StackTools.tsx.
 
-   An index, not a wall of cards: each group is a row under a hairline, its
-   label on the left and its tools flowing on the right, the way About and
-   the work list read. Tiles are quiet (ink logos, one rule border); the
-   brand colour is a hover reward, never the resting state, so sixty logos
-   do not turn the page into a sticker sheet.
+   Filter chips over one pill cloud. Each pill carries its logo on a small
+   light badge, so brand colours read the same on the light and dark themes.
+   Which pills hide behind "View more" is decided here (nth-child per
+   breakpoint), so the server markup is right before any script runs.
 
    Unlayered, like the site's other feature files, so it is never reordered
    under a Tailwind layer.
 --------------------------------------------------------------------------- */
 
 .stack {
+  --stack-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --stack-badge: #f5f3ee;
   padding-block: clamp(72px, 12vh, 140px);
   border-top: 1px solid var(--color-rule);
 }
@@ -35,58 +37,92 @@
   color: var(--color-muted);
 }
 
-.stack__groups {
-  display: grid;
-  margin-top: clamp(36px, 6vh, 64px);
+.stack-tools {
+  margin-top: clamp(28px, 5vh, 48px);
 }
 
-.stack__group {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding-block: 22px;
-  border-top: 1px solid var(--color-rule);
-}
-
-@media (min-width: 768px) {
-  .stack__group {
-    grid-template-columns: 220px minmax(0, 1fr);
-    gap: 32px;
-  }
-}
-
-.stack__label {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: var(--text-body);
-  font-weight: 500;
-  color: var(--color-ink);
-}
-
-@media (min-width: 768px) {
-  .stack__label {
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 6px;
-  }
-}
-
-.stack__count {
+.stack-tools__count {
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: var(--text-meta);
-  letter-spacing: 0.08em;
   color: var(--color-faint);
 }
 
-.stack__body {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
+/* ---- filter chips ------------------------------------------------------ */
+
+.stack-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
 }
 
-.stack__tiles {
+.stack-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-ground) 70%, transparent);
+  font-size: var(--text-small);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.stack-chip__count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-faint);
+}
+
+.stack-chip[aria-pressed='true'] {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.stack-chip[aria-pressed='true'] .stack-chip__count {
+  color: color-mix(in srgb, var(--color-ground) 65%, var(--color-ink));
+}
+
+.stack-chip[data-clone] {
+  display: none;
+}
+
+.stack-chip:focus-visible,
+.stack-more:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stack-chip:not([aria-pressed='true']):hover {
+    border-color: var(--color-faint);
+    color: var(--color-ink);
+  }
+}
+
+/* ---- the cloud ----------------------------------------------------------- */
+
+.stack-stage {
+  position: relative;
+}
+
+.stack-cloud {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -95,75 +131,496 @@
   list-style: none;
 }
 
-.stack__tile {
-  /* The brand colour this theme can carry; currentColor when it cannot. */
-  --brand: var(--brand-light, currentColor);
+.stack-cloud[data-moving] {
+  transition:
+    transform 280ms var(--stack-ease),
+    opacity 280ms var(--stack-ease);
+}
+
+.stack-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-height: 40px;
-  max-width: 100%;
-  padding: 0 13px 0 11px;
+  height: 44px;
+  padding: 0 16px 0 6px;
   border: 1px solid var(--color-rule);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
-  font-size: var(--text-small);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  font-family: var(--font-display);
+  font-size: 13.5px;
   font-weight: 500;
-  line-height: 1.25;
+  white-space: nowrap;
   color: var(--color-ink);
-  transition: border-color 160ms ease;
+  user-select: none;
+  transition:
+    transform 320ms var(--stack-ease),
+    border-color 320ms var(--stack-ease),
+    box-shadow 320ms var(--stack-ease),
+    background-color 320ms var(--stack-ease);
 }
 
-:root[data-theme='dark'] .stack__tile {
-  --brand: var(--brand-dark, currentColor);
-}
-
-.stack__logo {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  background-color: currentColor;
-  -webkit-mask: var(--logo) center / contain no-repeat;
-  mask: var(--logo) center / contain no-repeat;
-  transition: background-color 160ms ease;
-}
-
-.stack__mono {
+.stack-pill__badge {
   flex: none;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--stack-badge);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rule) 60%, transparent);
+  transition: transform 320ms var(--stack-ease);
+}
+
+.stack-pill__logo,
+.stack-pill__art {
+  width: 19px;
+  height: 19px;
+}
+
+.stack-pill__logo {
+  background-color: var(--logo-ink);
+  -webkit-mask: var(--logo) center / contain no-repeat;
+  mask: var(--logo) center / contain no-repeat;
+}
+
+.stack-pill__art {
+  background: center / contain no-repeat;
+}
+
+.stack-pill__badge--practice {
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface);
+  box-shadow: none;
+  color: var(--color-accent);
+}
+
+.stack-pill__badge--practice svg {
+  width: 17px;
+  height: 17px;
+}
+
+.stack-cloud__empty {
+  width: 100%;
+  padding: 40px;
+  border: 1px dashed var(--color-rule);
+  border-radius: var(--radius-lg);
+  text-align: center;
   color: var(--color-muted);
+}
+
+/* Pills rise in only after the visitor has done something: never on load. */
+.stack-cloud[data-animate] .stack-pill {
+  animation: stack-pill-in 360ms var(--stack-ease) both;
+  animation-delay: min(calc(var(--i) * 22ms), 400ms);
+}
+
+@keyframes stack-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .stack__tile:hover {
-    border-color: var(--color-ink);
+  .stack-pill:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--color-accent) 70%, var(--color-rule));
+    background: var(--color-surface);
+    box-shadow:
+      0 8px 20px rgb(0 0 0 / 0.25),
+      0 0 0 4px color-mix(in srgb, var(--color-accent) 12%, transparent);
   }
 
-  .stack__tile:hover .stack__logo {
-    background-color: var(--brand);
+  .stack-pill:hover .stack-pill__badge {
+    transform: rotate(-8deg) scale(1.12);
+  }
+
+  /* Texture off: flat, no lift, no glow. */
+  :root[data-texture='off'] .stack-pill:hover {
+    transform: none;
+    border-color: var(--color-accent);
+    box-shadow: none;
+  }
+
+  :root[data-texture='off'] .stack-pill:hover .stack-pill__badge {
+    transform: translateX(2px);
   }
 }
 
-.stack__concepts {
-  max-width: 52em;
+:root[data-texture='off'] .stack-pill {
+  background: var(--color-surface);
+}
+
+/* ---- View more: how many show first, by screen ---------------------------- */
+
+.stack-tools__foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.stack-more {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  background: transparent;
   font-size: var(--text-small);
-  line-height: 1.7;
-  color: var(--color-muted);
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    transform 200ms var(--stack-ease);
 }
 
-/* Windows high contrast: the mask paints in the system text colour. */
+.stack-more:hover {
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+
+.stack-more:active {
+  transform: scale(0.97);
+}
+
+.stack-more__arrow {
+  width: 14px;
+  height: 14px;
+  transition: transform 300ms var(--stack-ease);
+}
+
+.stack-more[aria-expanded='true'] .stack-more__arrow {
+  transform: rotate(180deg);
+}
+
+.stack-more__n--narrow,
+.stack-more__n--mid,
+.stack-more__n--wide {
+  display: none;
+}
+
+@media (max-width: 699px) {
+  .stack-cloud:not([data-open]) > .stack-pill:nth-child(n + 11) {
+    display: none;
+  }
+  .stack-cloud[data-open] > .stack-pill:nth-child(n + 11) {
+    animation-delay: min(calc((var(--i) - 10) * 22ms), 400ms);
+  }
+  .stack-more.has-more-narrow {
+    display: inline-flex;
+  }
+  .stack-more__n--narrow {
+    display: inline;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 1099px) {
+  .stack-cloud:not([data-open]) > .stack-pill:nth-child(n + 19) {
+    display: none;
+  }
+  .stack-cloud[data-open] > .stack-pill:nth-child(n + 19) {
+    animation-delay: min(calc((var(--i) - 18) * 22ms), 400ms);
+  }
+  .stack-more.has-more-mid {
+    display: inline-flex;
+  }
+  .stack-more__n--mid {
+    display: inline;
+  }
+}
+
+@media (min-width: 1100px) {
+  .stack-cloud:not([data-open]) > .stack-pill:nth-child(n + 29) {
+    display: none;
+  }
+  .stack-cloud[data-open] > .stack-pill:nth-child(n + 29) {
+    animation-delay: min(calc((var(--i) - 28) * 22ms), 400ms);
+  }
+  .stack-more.has-more-wide {
+    display: inline-flex;
+  }
+  .stack-more__n--wide {
+    display: inline;
+  }
+}
+
+/* ---- phone: draggable strip, draggable cloud, placeholders, handle -------- */
+
+.stack-ghost,
+.stack-grab,
+.stack-dots {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .stack-chips {
+    flex-wrap: nowrap;
+    margin: 0 calc(var(--page-x, 20px) * -1) 14px;
+    padding: 0 var(--page-x, 20px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    cursor: grab;
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent
+    );
+    transition: box-shadow 200ms ease;
+  }
+
+  .stack-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stack-chips[data-dragging] {
+    scroll-snap-type: none;
+    cursor: grabbing;
+    box-shadow:
+      inset 24px 0 16px -16px color-mix(in srgb, var(--color-accent) 45%, transparent),
+      inset -24px 0 16px -16px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+
+  .stack-chips[data-dragging] .stack-chip {
+    pointer-events: none;
+  }
+
+  .stack-chip {
+    flex: none;
+    height: 44px;
+    scroll-snap-align: center;
+  }
+
+  .stack-chip[data-clone] {
+    display: inline-flex;
+  }
+
+  .stack-grab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    height: 32px;
+    margin: 0 auto 12px;
+    padding: 0 14px 0 10px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-ground) 70%, transparent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+  }
+
+  .stack-grab.is-nudging {
+    animation: stack-nudge 1.4s var(--stack-ease) 600ms 1;
+  }
+
+  .stack-grab__grip {
+    display: grid;
+    grid-template-columns: repeat(3, 3px);
+    gap: 2px;
+  }
+
+  .stack-grab__grip i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-faint);
+  }
+
+  .stack-cloud {
+    gap: 6px;
+    touch-action: pan-y;
+    cursor: grab;
+  }
+
+  .stack-cloud[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .stack-cloud[data-dragging] .stack-pill {
+    pointer-events: none;
+  }
+
+  .stack-pill {
+    gap: 7px;
+    height: 40px;
+    padding-right: 12px;
+    font-size: 12.5px;
+  }
+
+  .stack-pill__badge {
+    width: 28px;
+    height: 28px;
+  }
+
+  .stack-pill__logo,
+  .stack-pill__art {
+    width: 16px;
+    height: 16px;
+  }
+
+  .stack-ghost {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 132px;
+    padding: 0 16px;
+    border: 1.5px dashed var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+    color: var(--color-muted);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 200ms ease,
+      border-color 200ms ease,
+      background-color 200ms ease;
+  }
+
+  .stack-ghost--prev {
+    left: 0;
+    align-items: flex-start;
+  }
+
+  .stack-ghost--next {
+    right: 0;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .stack-ghost b {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+
+  .stack-ghost small {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+  }
+
+  .stack-ghost i {
+    font-size: 20px;
+    font-style: normal;
+    line-height: 1;
+    color: var(--color-accent);
+    transition: transform 200ms var(--stack-ease);
+  }
+
+  .stack-ghost__release,
+  .stack-ghost[data-armed] .stack-ghost__count {
+    display: none;
+  }
+
+  .stack-ghost[data-armed] {
+    border-style: solid;
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  }
+
+  .stack-ghost[data-armed] .stack-ghost__release {
+    display: block;
+    color: var(--color-accent);
+  }
+
+  .stack-ghost--prev[data-armed] i {
+    transform: translateX(-4px);
+  }
+
+  .stack-ghost--next[data-armed] i {
+    transform: translateX(4px);
+  }
+
+  .stack-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .stack-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-rule);
+    transition:
+      transform 250ms var(--stack-ease),
+      background-color 250ms ease;
+  }
+
+  .stack-dots i[data-on] {
+    background: var(--color-accent);
+    transform: scale(1.4);
+  }
+}
+
+@keyframes stack-nudge {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateX(-6px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+/* Reduced motion: no nudge, rise, lift or spring. Colour changes stay, and
+   dragging still works; tabs simply switch in place. */
+@media (prefers-reduced-motion: reduce) {
+  .stack-pill,
+  .stack-pill__badge,
+  .stack-cloud[data-moving],
+  .stack-more,
+  .stack-more__arrow,
+  .stack-ghost i,
+  .stack-dots i {
+    transition-property: background-color, border-color, color, opacity;
+  }
+
+  .stack-cloud[data-animate] .stack-pill,
+  .stack-grab.is-nudging {
+    animation: none;
+  }
+
+  .stack-pill:hover,
+  .stack-pill:hover .stack-pill__badge,
+  .stack-ghost[data-armed] i {
+    transform: none;
+  }
+}
+
+/* Windows high contrast: masks paint in the system text colour. */
 @media (forced-colors: active) {
-  .stack__logo {
+  .stack-pill__logo {
     background-color: CanvasText;
   }
 }

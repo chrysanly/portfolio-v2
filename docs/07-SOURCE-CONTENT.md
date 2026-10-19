@@ -77,10 +77,11 @@ the CEO dashboard's AI features). Kept on the site, not in the admin, by his
 choice.
 
 **Languages & frameworks** — PHP, JavaScript, Python, Dart, SQL, HTML5,
-CSS3/SCSS, Laravel 7–12, Node.js, Vue 3, React, Angular 7–10, .NET Web API,
-Flutter, Ionic 5, Tauri
+CSS3/SCSS, Laravel, Node.js, Vue, React, Next.js, Angular, .NET Web API,
+Flutter, Ionic, Tauri
 
-**Databases** — MySQL, MariaDB, PostgreSQL, MongoDB, Firebase Firestore, SQLite
+**Databases** — MySQL, MariaDB, PostgreSQL, MongoDB, Firebase Firestore, SQLite,
+Neon Postgres
 
 **AI & agentic engineering** — Claude Code, Model Context Protocol (MCP),
 Groq; AI-assisted software development, agentic AI workflows, reusable AI
@@ -98,17 +99,25 @@ Tokens (JWT), Twilio OTP, role-based authorization
 integrations, mobile API integration
 
 **Tools & platforms** — Visual Studio Code, PhpStorm, Git, GitHub, GitLab,
-Azure, AWS, Firebase, Docker, Composer, NPM, Vite, Webpack, Postman, Apidog,
+Azure, AWS, Firebase, Docker, Render, Cloudinary, Composer, NPM, Vite, Webpack, Postman, Apidog,
 DBngin, TablePlus, JIRA, Figma
 
 **Testing & QA** — PHPUnit, Pest, Firebase Emulator, TDD, API testing
 
 **Desktop apps** — Tauri, Rust/Cargo, Orca
 
-Logos are Simple Icons (CC0, simple-icons 16.35.0) copied into
-`public/logos/`. Simple Icons publishes none for VS Code, Azure, AWS,
-Apidog, DBngin, TablePlus, Twilio, Tabby, Tamara, Etisalat, PHPUnit, Pest,
-Orca, Groq, OAuth or SQL: those get a lettered tile, never a drawn-up mark.
+Updated again 2026-10-19 at his request: version numbers dropped (Laravel,
+Vue, Angular, Ionic), and Next.js, Neon Postgres, Render and Cloudinary added
+("add the nextjs, render, cloudinary and neon postgre").
+
+Logos are Simple Icons (CC0, simple-icons 16.35.0) fetched into
+`public/logos/` by `scripts/generate-tech-icons.mjs`. Simple Icons publishes
+none for VS Code, Azure, AWS, Apidog, DBngin, TablePlus, Twilio, Tabby,
+Tamara, Etisalat, PHPUnit, Pest, Orca, Groq, OAuth or SQL. Those are simple
+marks drawn by hand in their brand colours (`drawnLogos` in content/site.ts),
+because he asked for every tool to show a logo, Tabby, Tamara and Etisalat
+by name. Trademarks belong to their owners and only identify the tools.
+Practices have no logo and show their group's icon.
 
 The work index shows a **principal stack** only: Laravel, Node.js, Vue, React,
 MySQL, TypeScript. The full list lives in the stack section and on About.

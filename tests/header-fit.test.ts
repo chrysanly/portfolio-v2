@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const read = (file: string) => readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
+const read = (file: string) =>
+  readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
 
 const header = read('components/ui/SiteHeader.tsx');
 const how = read('components/ui/HowItWorksButton.tsx');
@@ -31,11 +32,17 @@ test('below 480px only "Message" shows', () => {
 test('How? keeps its full name and shows only the "?" below 480px', () => {
   assert.match(how, /aria-label="How\? How this site works"/);
   assert.match(how, /<span className="how-btn__text">How\?<\/span>/);
-  assert.match(narrow, /\.how-btn__text \{[^}]*position: absolute;[^}]*clip-path: inset\(50%\);/);
+  assert.match(
+    narrow,
+    /\.how-btn__text \{[^}]*position: absolute;[^}]*clip-path: inset\(50%\);/,
+  );
 });
 
 test('the toggle drops its word below 768px; its name is in aria-label', () => {
-  assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.theme-toggle__text \{\s*display: none;/);
+  assert.match(
+    css,
+    /@media \(max-width: 767px\) \{[\s\S]*?\.theme-toggle__text \{\s*display: none;/,
+  );
   assert.match(read('components/ui/ThemeToggle.tsx'), /aria-label=\{`\$\{label\} theme`\}/);
 });
 
@@ -52,10 +59,12 @@ test('at 360px and below the nav routes fit: tighter inset, smaller logo and nav
   assert.match(tiny, /\.site-nav \{\s*gap: 0;/);
 });
 
-test('the CV button wraps its stamp on a phone instead of being clipped', () => {
+test('the CV date is its own line under the buttons, never squeezed inside one', () => {
   const globals = read('app/globals.css');
-  assert.match(globals, /\.hero-actions \.button--cv \{\s*flex-wrap: wrap;\s*max-width: 100%;/);
-  assert.match(globals, /\.hero-actions \.button--cv \.hero-actions__stamp \{\s*flex-basis: 100%;/);
+  const actions = read('components/ui/HeroActions.tsx');
+  assert.match(actions, /<p className="hero-actions__stamp">CV updated \{updated\}<\/p>/);
+  assert.doesNotMatch(actions, /<em className="hero-actions__stamp">/);
+  assert.doesNotMatch(globals, /\.button--cv \.hero-actions__stamp/);
 });
 
 test('no blanket overflow-x hiding', () => {

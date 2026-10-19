@@ -182,7 +182,7 @@
     --header-h: 72px;
     /* How far the work index is pulled up under the hero — see
        `.hero + main` near the end of this file. */
-    --hero-pull: -103.7svh;
+    --hero-pull: -104.4svh;
     /* One material for all three devices in the showcase rig. */
     --device: #232220;
     --device-edge: rgb(255 255 255 / 0.07);
@@ -276,7 +276,7 @@
     :root {
       --page-x: 20px;
       --header-h: 60px;
-      --hero-pull: -102.8svh;
+      --hero-pull: -103.4svh;
     }
   }
 
@@ -296,9 +296,16 @@
     border-radius: 0;
   }
 
+  /* The page bar is hidden (approved hero design, 2026-10-19): the page still
+     scrolls by wheel, touch and keys; the section pager shows where you are. */
   html {
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: 88px;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
   }
 
   /*
@@ -980,19 +987,31 @@
     box-shadow: 0 14px 26px -12px color-mix(in srgb, var(--color-accent) 75%, transparent);
   }
 
-  /* On a coloured field the 0.62 the stamp carries elsewhere drops under
-     contrast; the ground is already the readable pairing, so it only needs
-     holding back enough to stay secondary to the label. */
-  .button--cv .hero-actions__stamp {
-    opacity: 0.82;
+  .hero-actions {
+    margin-top: 34px;
   }
 
-  .hero-actions {
+  .hero-actions__pair {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 14px;
-    margin-top: 34px;
+  }
+
+  /* Press feedback for the pair: 160ms, transform only. */
+  .hero-actions .button:active {
+    transform: scale(0.97);
+    transition-duration: 160ms;
+  }
+
+  .hero-actions .button:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  /* The short label is the phone's; the long one everywhere else. */
+  .hero-actions__short {
+    display: none;
   }
 
   .hero-actions .button svg {
@@ -1008,31 +1027,47 @@
   }
 
   /* When the CV was last replaced, for a reader deciding whether they are
-     looking at something current. Inside the button, so it cannot drift away
-     from what it describes. */
+     looking at something current. A mono line under the pair (hero v2):
+     inside the button it squeezed the label on a phone. */
   .hero-actions__stamp {
-    font-style: normal;
+    margin: 12px 0 0;
+    font-family: var(--font-mono);
     font-size: var(--text-meta);
     font-weight: 500;
-    letter-spacing: 0.08em;
+    line-height: 1;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.62;
+    color: var(--color-faint);
   }
 
-  /* On a phone the label, the arrow and the stamp in one line came to 359px,
-     wider than a 320px screen's column, and the hero clipped the button's
-     end. The stamp takes its own line inside the button instead. */
-  @media (max-width: 479px) {
-    .hero-actions .button--cv {
-      flex-wrap: wrap;
-      max-width: 100%;
-      row-gap: 2px;
-      white-space: normal;
+  /*
+   * Phone (hero v2, 2026-10-20): the pair as a two-column grid at 48px over
+   * a top rule, "My work" short so both labels fit, the CV icon dropped for
+   * room. Replaces option D, the full-width CV bar with a text link, which
+   * was rejected.
+   */
+  @media (max-width: 767px) {
+    .hero-actions__pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 18px;
+      border-top: 1px solid var(--color-rule);
     }
 
-    .hero-actions .button--cv .hero-actions__stamp {
-      flex-basis: 100%;
-      text-align: center;
+    .hero-actions .button {
+      min-height: 48px;
+      padding: 0 12px;
+      font-size: 0.875rem;
+    }
+
+    .hero-actions__long,
+    .hero-actions__cv-icon {
+      display: none;
+    }
+
+    .hero-actions__short {
+      display: inline;
     }
   }
 
@@ -1212,17 +1247,189 @@
     user-select: none;
   }
 
+  /*
+   * The glyph (inner span). Hero v2, 2026-10-20: it rises in when the
+   * skeleton hands over — 14px and a fade, 320ms, 60ms apart by --i — then
+   * leans toward a fine pointer at rest: MastheadHero writes --ly (lift) and
+   * --lr (tilt) each frame and eases them, so transform has no transition
+   * once live. The nearest letter takes the accent with a 200ms colour fade.
+   */
   .masthead span > span {
     display: block;
-    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: 50% 100%;
+    transform: translate3d(0, var(--ly, 0px), 0) rotate(var(--lr, 0deg));
+    transition: color 200ms ease-out;
   }
 
-  .masthead:hover span > span {
-    transform: translate3d(0, 0.035em, 0);
+  .masthead span > span[data-near] {
+    color: var(--color-accent);
   }
 
-  .masthead span:hover > span {
-    transform: translate3d(0, -0.06em, 0);
+  .hero[data-load='pending'] .masthead span > span {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+
+  .hero[data-load='in'] .masthead span > span {
+    transition:
+      opacity 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  /* The eyebrow and the cue carry inline opacity from paint(), so the
+     pending state needs !important to hold them back, and the 250ms
+     crossfade runs only during the hand-over, never against the scroll. */
+  .hero[data-load='pending'] :is(.hero__eyebrow, .hero__cue) {
+    opacity: 0 !important;
+  }
+
+  .hero[data-load='in'] :is(.hero__eyebrow, .hero__cue) {
+    transition: opacity 250ms ease-out;
+  }
+
+  /* ----- first-load skeleton ---------------------------------------------
+     The hero's shape in the rule colour with a soft sweep. Hidden for a
+     120ms grace (CSS, so it holds before hydration too), then shown; it
+     fades out over 250ms when MastheadHero hands over. Transform and
+     opacity only.
+  --------------------------------------------------------------------------- */
+  .hero {
+    /* Ink over ground, so both themes get a block that reads on the texture
+       and a sweep that runs back toward the ground. */
+    --sk: color-mix(in srgb, var(--color-ink) 14%, var(--color-ground));
+    --sk-hi: color-mix(in srgb, var(--color-ink) 3%, var(--color-ground));
+  }
+
+  .hero-skel {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: inherit;
+    pointer-events: none;
+    opacity: 0;
+    animation: hero-skel-in 1ms linear 120ms forwards;
+  }
+
+  .hero[data-load='in'][data-skel] .hero-skel {
+    animation: hero-skel-out 250ms ease-out forwards;
+  }
+
+  .hero[data-load='in']:not([data-skel]) .hero-skel {
+    display: none;
+  }
+
+  @keyframes hero-skel-in {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes hero-skel-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  .sk {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: var(--sk);
+    border-radius: 2px;
+  }
+
+  .sk::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--sk-hi) 50%, transparent);
+    transform: translateX(-100%);
+    animation: sk-sweep 1200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes sk-sweep {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  .sk-eyebrow {
+    position: absolute;
+    top: calc((var(--header-h) - 11px) / 2 - var(--header-h));
+    left: var(--page-x);
+    width: 132px;
+    height: 11px;
+  }
+
+  /* Five blocks the height of the capitals, at the masthead's own size. */
+  .masthead.sk-mast {
+    justify-content: space-between;
+    height: 0.72em;
+  }
+
+  .sk-mast .sk {
+    width: 15%;
+    height: 100%;
+  }
+
+  .sk-mast .sk:nth-child(2)::after {
+    animation-delay: 60ms;
+  }
+  .sk-mast .sk:nth-child(3)::after {
+    animation-delay: 120ms;
+  }
+  .sk-mast .sk:nth-child(4)::after {
+    animation-delay: 180ms;
+  }
+  .sk-mast .sk:nth-child(5)::after {
+    animation-delay: 240ms;
+  }
+
+  .sk-cue {
+    position: absolute;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    width: 124px;
+    height: 83px;
+    translate: -50% 0;
+    border-radius: var(--radius-pill);
+  }
+
+  @media (max-width: 859px) and (pointer: fine) {
+    .sk-cue {
+      display: none;
+    }
+  }
+
+  /* Reduced motion: a still skeleton and an instant reveal. (MastheadHero
+     renders StaticIntro instead under reduced motion; this is the backstop.) */
+  @media (prefers-reduced-motion: reduce) {
+    .sk::after {
+      display: none;
+      animation: none;
+    }
+
+    .hero-skel {
+      animation: none;
+      opacity: 1;
+    }
+
+    .hero[data-load='in'] .hero-skel {
+      display: none;
+    }
+
+    .hero[data-load] .masthead span > span,
+    .hero[data-load] :is(.hero__eyebrow, .hero__cue) {
+      transition: none;
+      transform: none;
+    }
   }
 
   /*
@@ -1411,9 +1618,12 @@
     color: var(--color-ink);
   }
 
+  /* A phone's 20ch measure wrapped the phrase, and the ::after rule then
+     drew from mid-word. Kept on one line it drops below "building" whole and
+     the rule spans exactly it: ~265px at 19px, inside a 320px screen. */
   @media (max-width: 767px) {
     .mark {
-      white-space: normal;
+      display: inline-block;
     }
   }
 
@@ -2117,10 +2327,13 @@
      arrangement in the reference. Drawn in CSS so it recolours with the theme;
      a mockup PNG would be stuck in one palette and would not survive dark mode.
   --------------------------------------------------------------------------- */
+  /* Capped to the window under the header, so the rig scales down rather
+     than the column growing a scrollbar of its own on a short laptop. */
   .showcase__figure {
     display: grid;
     place-items: center;
     height: min(60svh, 600px);
+    max-height: calc(100dvh - var(--header-h) - 120px);
   }
 
   /*
@@ -2130,18 +2343,100 @@
    * `--device`, an inset `--device-edge`, one `--device-shadow`, and the same
    * `--glass` sheen over every screen.
    */
+  /*
+   * Interactive (2026-10-19): the rig leans toward a mouse (--rig-rx/ry,
+   * written by DeviceRig) and each device drifts by its depth (--rig-px/py),
+   * so the three read as layers. Transform only, 300ms to settle.
+   */
   .rig {
     position: relative;
     width: 100%;
     max-width: 640px;
     aspect-ratio: 3 / 2;
     container-type: inline-size;
+    transform: perspective(1400px) rotateX(var(--rig-rx, 0deg)) rotateY(var(--rig-ry, 0deg));
+    transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
   .rig__laptop,
   .rig__tablet,
   .rig__phone {
     position: absolute;
+    --depth: 4px;
+    translate: calc(var(--rig-px, 0) * var(--depth)) calc(var(--rig-py, 0) * var(--depth));
+    transition: translate 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .rig__tablet {
+    --depth: 9px;
+  }
+
+  .rig__phone {
+    --depth: 14px;
+  }
+
+  /* The click target over each device: cycles its screen. */
+  .rig__hit {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    padding: 0;
+    border: 0;
+    border-radius: 2cqw;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .rig__hit:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  .rig__body:has(~ .rig__hit:active) {
+    scale: 0.985;
+  }
+
+  .rig__body {
+    transition: scale 150ms ease-out;
+  }
+
+  /* A screenshot cycled in from another device: letterboxed, not cropped. */
+  .shot[data-foreign] :is(img, video) {
+    object-fit: contain;
+  }
+
+  .shot :is(img, video) {
+    animation: shot-in 220ms ease-out;
+  }
+
+  @keyframes shot-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rig {
+      transform: none;
+      transition: none;
+    }
+
+    .rig__laptop,
+    .rig__tablet,
+    .rig__phone {
+      translate: none;
+      transition: none;
+    }
+
+    .rig__body {
+      transition: none;
+      scale: none;
+    }
+
+    .shot :is(img, video) {
+      animation: none;
+    }
   }
 
   .rig__body {
@@ -2623,15 +2918,20 @@
    * home indicator. MastheadHero fades it out over the first few pixels of
    * scroll through inline `opacity`, so nothing here sets opacity.
    */
+  /* Shrinks to the mouse and its label: the tour's ring wraps this box, and
+     a full-width box drew a strip across the stage (2026-10-19). */
   .hero__cue {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(clamp(14px, 4svh, 40px) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    translate: -50% 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: max-content;
     margin: 0;
+    padding: 10px 14px;
+    border-radius: var(--radius-pill);
     font-size: var(--text-small);
     letter-spacing: 0.04em;
     color: var(--color-faint);
@@ -2672,8 +2972,17 @@
   }
 
   .cue-mouse svg {
-    width: 18px;
-    height: 28px;
+    width: 22px;
+    height: 34px;
+    color: var(--color-ink);
+  }
+
+  /* A narrow window with a mouse: the hero stacks and the cue would sit on
+     the call to action, so it goes. Touch keeps its swipe. */
+  @media (max-width: 859px) and (pointer: fine) {
+    .hero__cue {
+      display: none;
+    }
   }
 
   .cue-touch svg {
@@ -2684,11 +2993,11 @@
 
   /* The wheel dot rolls down the mouse and fades, as a scroll would move it. */
   .cue-wheel {
-    fill: currentColor;
+    fill: var(--color-accent);
     stroke: none;
     transform-box: fill-box;
     transform-origin: center;
-    animation: cue-wheel 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    animation: cue-wheel 1800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 
   /* Two chevrons rise in turn: the direction of the finger. */
@@ -2712,12 +3021,12 @@
       transform: translateY(0);
       opacity: 0;
     }
-    15% {
+    25% {
       opacity: 1;
     }
-    60%,
+    70%,
     100% {
-      transform: translateY(7px);
+      transform: translateY(10px);
       opacity: 0;
     }
   }
@@ -5467,11 +5776,11 @@
  * and the document keeps its natural flow.
  */
 /*
- * How far the work index is pulled up: `--hero-pull`, -103.7svh, and
- * -102.8svh below 768px. Each is `track - raw * (track - 100)`, where raw is
+ * How far the work index is pulled up: `--hero-pull`, -104.4svh, and
+ * -103.4svh below 768px. Each is `track - raw * (track - 100)`, where raw is
  * the scroll progress at which MastheadHero's timeline reaches WORK_IN_TO
- * (0.9692, through its piecewise map), for the hero's 220svh desktop and
- * 190svh phone tracks. That puts the showcase's
+ * (0.9754, through its piecewise map with the read hold), for the hero's
+ * 280svh desktop and 240svh phone tracks. That puts the showcase's
  * top exactly where `--work-in` reaches 1 — no dead scroll between the hero
  * clearing and the first project. The earlier single -101.5svh was worked
  * out for 180vh/140vh tracks and left a gap once the tracks were shortened.
@@ -5545,33 +5854,12 @@
   }
 
   /*
-   * Shrinking type only goes so far before it stops being legible, and a
-   * long enough employment/skills list will eventually out-grow any given
-   * window regardless. Past that point this is the same answer the journey
-   * timeline already gives its own tallest stops (`.journey__body` above):
-   * a bounded, internally-scrollable box rather than a clipped one — every
-   * fact stays reachable, just not always simultaneously visible, instead
-   * of the bottom rows vanishing behind `.hero__stage`'s own
-   * `overflow: hidden` with no way to reach them at all.
-   *
-   * No `overscroll-behavior: contain`. It stopped the wheel from ever
-   * reaching the page while the pointer was over the ledger — and Chrome
-   * applies it even when the box has nothing to scroll, so at 1111x578
-   * (ledger 180 of 180px, no overflow) the page simply would not move under
-   * the pointer. Chrys reported it on 2026-09-23. Without it the box scrolls
-   * its own rows when it truly overflows and then hands the wheel on.
-   */
-  /*
-   * The 14px inline gutter, cancelled by the margin so nothing moves, is room
-   * for the hovered row's card: this box is a scroller here, and a scroller
-   * clips its children's shadows at its own edge.
+   * No inner scroller any more (2026-10-19): a nested scrollbar showed on the
+   * ledger at 1366×768. It fits by type and row padding instead, three wide
+   * from 1024 (two rows of three, below).
    */
   .facts {
     margin-top: 6px;
-    margin-inline: -14px;
-    padding-inline: 14px;
-    max-height: calc(100svh - var(--header-h) - 300px);
-    overflow-y: auto;
   }
 
   .facts__row {
@@ -5607,7 +5895,7 @@
  * "ARCHITECTURE" / "PRINCIPAL STACK" labels at the old 150px width would
  * overflow into their own values.
  */
-@media (max-height: 780px) and (min-width: 1024px) {
+@media (max-height: 800px) and (min-width: 1024px) {
   .facts {
     grid-template-columns: repeat(3, 1fr);
     column-gap: 28px;
@@ -5770,6 +6058,18 @@
 }
 
 /*
+ * 1280×720 and 1366×768 laptops (2026-10-19): with the two hero notes the
+ * ledger and the buttons ran ~90px past the fold at 1280×720 (and ~50px at
+ * 1366×768). The notes go here too, as they already do at 700 and below;
+ * the text is on /about.
+ */
+@media (min-width: 1024px) and (max-height: 780px) {
+  .intro__note {
+    display: none;
+  }
+}
+
+/*
  * Very short — at most 700px tall: a 1920×1080 IdeaPad 14″ at the Windows
  * default of 150% is 1280×603 inside the browser. The two hero notes go (the
  * same text is on /about, and in the reduced-motion intro), and so do the
@@ -5916,20 +6216,88 @@
     gap: 22px;
   }
 
-  /* docs/04-UIUX-BRIEF.md §8: mobile is a single column and §5.6 warns the
-     sequence must not feel like a wall. The entries drop; the total stays, and
-     the full metadata row is a few hundred pixels below in any case. */
-  .facts__row {
+  /*
+   * Hero v2 on a phone (2026-10-20). CHRYS stays the masthead: the
+   * short-height rule above dropped it to 44px on a 375×667 phone, under the
+   * text it was meant to head. The intro is 19px in a 20ch measure, one note
+   * at 14px (none under 700px tall), and the ledger is a compact one-column
+   * list, four rows or two on a short phone. docs/04-UIUX-BRIEF.md §5.6
+   * still holds: a short list, not a wall; the full metadata is below.
+   */
+  .masthead {
+    font-size: clamp(76px, 23.5vw, 120px);
+  }
+
+  .intro {
+    margin-top: 20px;
+    max-width: none;
+  }
+
+  .intro__line > span {
+    max-width: 20ch;
+    font-size: 1.1875rem;
+    line-height: 1.28;
+  }
+
+  .intro__note {
+    margin-top: 10px;
+    max-width: 36ch;
+  }
+
+  .intro__note > span {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .intro__note + .intro__note {
     display: none;
   }
 
   .facts {
-    margin-top: 26px;
-    border-top: 0;
+    display: block;
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .facts__row {
+    gap: 12px;
+  }
+
+  .facts__row:nth-child(n + 5) {
+    display: none;
+  }
+
+  .facts__row > dt {
+    width: 96px;
+    padding: 5px 0;
+    font-family: var(--font-mono);
+    font-size: 0.65625rem;
+  }
+
+  .facts__row > dd {
+    padding: 5px 0;
+    font-size: 0.8125rem;
+    line-height: 1.42;
+  }
+
+  .hero__cta {
+    margin-top: 18px;
   }
 
   .tally > dt {
     width: auto;
+  }
+}
+
+/* A short phone (375×667): no note, two ledger rows, ~40px kept clear. */
+@media (max-width: 767px) and (max-height: 700px) {
+  .intro__note {
+    display: none;
+  }
+
+  .facts__row:nth-child(n + 3) {
+    display: none;
   }
 }
 

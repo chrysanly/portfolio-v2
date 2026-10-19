@@ -58,36 +58,21 @@ function flipFrom(source: HTMLElement, stage: HTMLElement, tilt: number) {
 
 interface ScrollLock {
   overflow: string;
-  gutter: string;
-  padding: string;
 }
 
 /**
- * Stops the page scrolling without the page moving. Hiding the scrollbar
- * would widen the viewport by its width and shift everything sideways, so
- * its gutter is kept (or, where scrollbar-gutter is unsupported, padded).
+ * Stops the page scrolling. The page has no scrollbar (globals.css hides it),
+ * so locking cannot shift the layout and no gutter is reserved.
  */
 function lockScroll(): ScrollLock {
   const html = document.documentElement;
-  const body = document.body;
-  const saved = {
-    overflow: html.style.overflow,
-    gutter: html.style.scrollbarGutter,
-    padding: body.style.paddingRight,
-  };
-  const gap = window.innerWidth - html.clientWidth;
+  const saved = { overflow: html.style.overflow };
   html.style.overflow = 'hidden';
-  if (gap > 0) {
-    if (CSS.supports('scrollbar-gutter', 'stable')) html.style.scrollbarGutter = 'stable';
-    else body.style.paddingRight = `${gap}px`;
-  }
   return saved;
 }
 
 function unlockScroll(saved: ScrollLock) {
   document.documentElement.style.overflow = saved.overflow;
-  document.documentElement.style.scrollbarGutter = saved.gutter;
-  document.body.style.paddingRight = saved.padding;
 }
 
 export function PhotoLightbox({

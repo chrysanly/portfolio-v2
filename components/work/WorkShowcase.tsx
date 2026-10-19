@@ -1,11 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import {
+  type PointerEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import type { Device, Project, ProjectImage } from '@/lib/schema';
 import { DEVICE_SIZES, mediaKind, PROJECT_TYPE_LABELS } from '@/lib/schema';
+import { deviceCycle, pickFor, tiltFor } from '@/lib/rig';
 import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
 import { NdaWatermark } from './NdaWatermark';
 
@@ -85,9 +93,15 @@ function Shot({
   const media = usable?.nda ? 'nda-media' : undefined;
 
   return (
-    <div className="shot" ref={shotRef}>
+    <div
+      className="shot"
+      ref={shotRef}
+      // Another device's shot, cycled onto this screen: letterboxed, not cropped.
+      data-foreign={usable && usable.device !== device ? '' : undefined}
+    >
       {usable && mediaKind(usable) === 'video' ? (
         <video
+          key={usable.src}
           className={media}
           src={usable.src}
           width={usable.width ?? size.width}
@@ -100,6 +114,7 @@ function Shot({
       ) : usable ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={usable.src}
           className={media}
           src={usable.src}
           alt=""
@@ -129,27 +144,81 @@ function DeviceRig({
   shotRefs: (el: HTMLDivElement | null, project: number, device: Device) => void;
   className?: string;
 }) {
+  // Clicks per device. One counter for every project: only the one on screen is seen.
+  const [picks, setPicks] = useState<Record<Device, number>>({
+    laptop: 0,
+    tablet: 0,
+    mobile: 0,
+  });
+  const rigRef = useRef<HTMLDivElement>(null);
+  const frame = useRef(0);
+
   const screen = (device: Device) => (
     <div className="rig__screen">
-      {projects.map((project, i) => (
-        <Shot
-          key={project.slug}
-          device={device}
-          image={project.images.find((img) => img.device === device)}
-          shotRef={(el) => shotRefs(el, i, device)}
-        />
-      ))}
+      {projects.map((project, i) => {
+        // Stand-ins render nothing, so a click must never land on one.
+        const cycle = deviceCycle(
+          project.images.filter((img) => !isStandIn(img.src)),
+          device,
+        );
+        return (
+          <Shot
+            key={project.slug}
+            device={device}
+            image={cycle[pickFor(picks[device], cycle.length)]}
+            shotRef={(el) => shotRefs(el, i, device)}
+          />
+        );
+      })}
     </div>
   );
 
+  // A transparent button over each device: focusable, and the click target.
+  const cycleButton = (device: Device, label: string) => (
+    <button
+      type="button"
+      className="rig__hit"
+      aria-label={`Show the next screenshot on the ${label}`}
+      onClick={() => setPicks((was) => ({ ...was, [device]: was[device] + 1 }))}
+    />
+  );
+
+  /*
+   * Lean toward a mouse or pen. Not on touch, where the finger is already on
+   * the glass, and written to CSS variables on one frame per move.
+   */
+  const lean = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') return;
+    const rig = rigRef.current;
+    if (!rig || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const { clientX, clientY } = event;
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const t = tiltFor({ x: clientX, y: clientY }, rig.getBoundingClientRect());
+      rig.style.setProperty('--rig-rx', `${t.rotateX.toFixed(2)}deg`);
+      rig.style.setProperty('--rig-ry', `${t.rotateY.toFixed(2)}deg`);
+      rig.style.setProperty('--rig-px', t.x.toFixed(3));
+      rig.style.setProperty('--rig-py', t.y.toFixed(3));
+    });
+  };
+
+  const settle = () => {
+    cancelAnimationFrame(frame.current);
+    for (const name of ['--rig-rx', '--rig-ry', '--rig-px', '--rig-py'])
+      rigRef.current?.style.removeProperty(name);
+  };
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
   return (
-    <div className={className}>
+    <div className={className} ref={rigRef} onPointerMove={lean} onPointerLeave={settle}>
       <div className="rig__laptop">
         <div className="rig__body">
           <span className="rig__cam" />
           {screen('laptop')}
         </div>
         <div className="rig__base" />
+        {cycleButton('laptop', 'laptop')}
       </div>
 
       <div className="rig__tablet">
@@ -159,6 +228,7 @@ function DeviceRig({
           <span className="rig__btn rig__btn--side" />
           {screen('tablet')}
         </div>
+        {cycleButton('tablet', 'tablet')}
       </div>
 
       <div className="rig__phone">
@@ -169,6 +239,7 @@ function DeviceRig({
           <span className="rig__btn rig__btn--down" />
           {screen('mobile')}
         </div>
+        {cycleButton('mobile', 'phone')}
       </div>
     </div>
   );

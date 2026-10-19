@@ -1,14 +1,9 @@
 /* ---------------------------------------------------------------------------
    "How this works?" — components/ui/ArchitectureNote.tsx.
 
-   The section shell (`.arch`, `.arch--detail`: the screenful of height, the
-   rule above it, the /about spacing) still comes from globals.css. This file
-   only draws what is inside it: five numbered steps on a rail. A column on
-   phones and tablets in portrait, a row from 1024px up — and only when the
-   section itself has the room, so the narrower /about column stays a column.
-
-   Unlayered on purpose: it has to win over `.detail-section h2`, which would
-   otherwise set the title as an 11px label on /about.
+   Shown only in the header's How? dialog now: the inline section on /about
+   was removed (2026-10-19). Five numbered steps on a rail — a column by
+   default, a row when the dialog's panel has the room.
 
    No accent here, as before: the step text is the loud thing.
 --------------------------------------------------------------------------- */
@@ -20,7 +15,6 @@
   --hiw-ease: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* The eyebrow on /about matches the entry labels around it. */
 .hiw__eyebrow {
   font-family: var(--font-body);
   font-weight: 500;
@@ -43,10 +37,6 @@
   color: var(--color-ink);
 }
 
-.arch--detail .hiw__title {
-  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
-}
-
 /* ----- the rail: a column by default ------------------------------------ */
 .hiw__rail {
   display: grid;
@@ -54,10 +44,6 @@
   margin-top: clamp(32px, 6vh, 72px);
   padding: 0;
   list-style: none;
-}
-
-.arch--detail .hiw__rail {
-  margin-top: clamp(24px, 4vh, 44px);
 }
 
 .hiw__step {

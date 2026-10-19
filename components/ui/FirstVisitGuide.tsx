@@ -7,6 +7,7 @@ import {
   ACCENT_PICK_EVENT,
   GUIDE_SEEN_KEY,
   type Box,
+  PHONE_MAX,
   placeCard,
   type Side,
   TOUR_MENU_EVENT,
@@ -43,6 +44,7 @@ function buildSteps(coarse: boolean): Step[] {
       id: 'scroll',
       targets: ['.hero__cue'],
       side: 'top',
+      pill: true,
       title: coarse ? 'Swipe up to begin.' : 'Scroll to begin.',
       body: 'The story plays as you move down the page, one stop at a time.',
     },
@@ -224,6 +226,10 @@ export function FirstVisitGuide() {
     );
     card.style.left = `${at.x}px`;
     card.style.top = `${at.y}px`;
+    // Points down at the target when the card sits above it; never docked on a phone.
+    const arrow = step.side === 'top' && window.innerWidth > PHONE_MAX;
+    card.toggleAttribute('data-arrow', arrow);
+    card.style.setProperty('--arrow-x', `${(padded.left + padded.right) / 2 - at.x}px`);
     card.style.setProperty('--from-x', `${at.fromX}px`);
     card.style.setProperty('--from-y', `${at.fromY}px`);
   }, [step]);
@@ -265,7 +271,10 @@ export function FirstVisitGuide() {
     }
     const id = window.setTimeout(() => {
       const coarse = window.matchMedia('(pointer: coarse)').matches;
-      const found = buildSteps(coarse).filter((s) => document.querySelector(s.targets[0]));
+      // Rendered, not just present: the scroll cue is display:none in a narrow window.
+      const found = buildSteps(coarse).filter(
+        (s) => (document.querySelector(s.targets[0])?.getClientRects().length ?? 0) > 0,
+      );
       if (found.length === 0) {
         setLagWatching(true);
         return;
@@ -453,13 +462,14 @@ export function FirstVisitGuide() {
         >
           {lag === 'ask' ? (
             <>
-              <h2 className="lag-notice__title" id={lagTitleId}>
-                Feeling slow? Switch off the texture.
-              </h2>
-              <p className="lag-notice__body" id={lagBodyId}>
-                The faceted background is the heaviest thing on the page. You can turn it back on
-                any time under Accent.
-              </p>
+              <div className="lag-notice__text">
+                <h2 className="lag-notice__title" id={lagTitleId}>
+                  Feeling slow? Switch off the texture.
+                </h2>
+                <p className="lag-notice__body" id={lagBodyId}>
+                  You can turn it back on any time under Accent.
+                </p>
+              </div>
               <div className="lag-notice__actions">
                 <button type="button" className="tour-btn tour-btn--ghost" onClick={closeLag}>
                   Keep it

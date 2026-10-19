@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import type { MouseEvent } from 'react';
+import { updatedLabel } from '@/lib/cv';
 import type { Profile } from '@/lib/profile';
 import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
 
@@ -52,12 +55,18 @@ function showcaseTarget(): number | null {
   return section.getBoundingClientRect().top + window.scrollY;
 }
 
-/** "September 2026" from whatever shape the backend sent. */
-function updatedLabel(updatedAt: string | null): string | null {
-  if (!updatedAt) return null;
-  const date = new Date(updatedAt);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+function goToWork(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const top = showcaseTarget();
+  if (top === null) return;
+  event.preventDefault();
+  /*
+   * Animated here, and with the hash left alone. Setting `#showcase` would
+   * make the browser jump to the element on the next reload — back to the
+   * blank offset this function exists to avoid. See lib/scrollJump.ts for
+   * why this is not `behavior: 'smooth'`.
+   */
+  void animateScrollTo(top, TO_WORK_MS, easeInOutCubic);
 }
 
 export function HeroActions({ cv }: { cv: Profile['cv'] }) {
@@ -66,70 +75,66 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
   return (
     <div className="hero-actions">
       {/*
-       * The outline one now. The CV is the page's primary action — see
-       * `.button--cv` — and two filled controls side by side say neither is.
+       * A pill pair at every width (hero v2, 2026-10-20). The phone's
+       * full-width CV bar with a text link under it (option D) was rejected:
+       * on a phone the pair is a two-column grid at 48px, "My work" short so
+       * both fit, and the CV's date is its own line underneath.
        */}
-      <a
-        className="button"
-        href="#showcase"
-        onClick={(event) => {
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-          const top = showcaseTarget();
-          if (top === null) return;
-          event.preventDefault();
-          /*
-           * Animated here, and with the hash left alone. Setting `#showcase`
-           * would make the browser jump to the element on the next reload —
-           * back to the blank offset this function exists to avoid. See
-           * lib/scrollJump.ts for why this is not `behavior: 'smooth'`.
-           */
-          void animateScrollTo(top, TO_WORK_MS, easeInOutCubic);
-        }}
-      >
-        View my work
-        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path
-            d="M8 3v10M3.5 8.5 8 13l4.5-4.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="square"
-          />
-        </svg>
-      </a>
-
-      {/*
-       * Drawn only when a CV has actually been uploaded. A button that leads
-       * to a 404 is worse than no button, and the file cannot be committed to
-       * this repository: `docs/resume.pdf` carries a date of birth and a civil
-       * status, which rule 2 of CLAUDE.md keeps off the site entirely.
-       *
-       * A new tab, and no `download` attribute: the file is served from
-       * another origin, where the attribute is ignored anyway, and a PDF the
-       * browser can preview first is kinder than one that lands in Downloads
-       * unseen. The backend sends it as an attachment when Chrys wants that.
-       */}
-      {cv ? (
-        <a
-          className="button button--cv"
-          href={cv.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={updated ? `PDF, updated ${updated}` : 'PDF'}
-        >
-          {cv.label ?? 'Download CV'}
+      <div className="hero-actions__pair">
+        {/*
+         * The outline one now. The CV is the page's primary action — see
+         * `.button--cv` — and two filled controls side by side say neither is.
+         */}
+        <a className="button hero-actions__work" href="#showcase" onClick={goToWork}>
+          <span className="hero-actions__long">View my work</span>
+          <span className="hero-actions__short">My work</span>
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path
-              d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13h10"
+              d="M8 3v10M3.5 8.5 8 13l4.5-4.5"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
               strokeLinecap="square"
             />
           </svg>
-          {updated ? <em className="hero-actions__stamp">Updated {updated}</em> : null}
         </a>
-      ) : null}
+
+        {/*
+         * Drawn only when a CV has actually been uploaded. A button that leads
+         * to a 404 is worse than no button, and the file cannot be committed to
+         * this repository: `docs/resume.pdf` carries a date of birth and a civil
+         * status, which rule 2 of CLAUDE.md keeps off the site entirely.
+         *
+         * "View CV", to /cv (2026-10-19): the file is previewed on the site
+         * with Open and Download beside it, rather than handed to whatever the
+         * browser does with a cross-origin PDF in a new tab.
+         */}
+        {cv ? (
+          <Link
+            className="button button--cv"
+            href="/cv"
+            title={updated ? `PDF, updated ${updated}` : 'PDF'}
+          >
+            View CV
+            <svg
+              className="hero-actions__cv-icon"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M4 1.75h5.5L12.25 4.5v9.75H4zM9.5 1.75V4.5h2.75M6 8h4.25M6 10.75h4.25"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="square"
+              />
+            </svg>
+          </Link>
+        ) : null}
+      </div>
+
+      {cv && updated ? <p className="hero-actions__stamp">CV updated {updated}</p> : null}
     </div>
   );
 }

@@ -9,3 +9,7 @@ next-env.d.ts
 
 # Contains DOB + civil status — never in the repo (CLAUDE.md rule 2)
 *.pdf
+
+# Playwright
+/test-results/
+/playwright-report/

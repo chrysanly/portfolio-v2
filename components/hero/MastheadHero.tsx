@@ -23,6 +23,13 @@ import type { Profile } from '@/lib/profile';
 import { IdCard } from './IdCard';
 import { HeroActions } from '@/components/ui/HeroActions';
 import { isJumping } from '@/lib/scrollJump';
+import {
+  ENTRANCE_TOTAL_MS,
+  LEAN_LERP,
+  leanTargets,
+  SKEL_GRACE_MS,
+  SKEL_MIN_MS,
+} from '@/lib/lean';
 
 /*
  * Timeline. Stage A holds the masthead alone, stage B reveals the statement
@@ -82,19 +89,25 @@ const CLEAR_TO = 0.9;
  * the pager) plays the reveal forwards and, scrolling up, backwards. Nothing
  * listens to wheel or touch, so nothing can trap a visitor.
  *
- * Raw scroll is mapped to the timeline in three linear pieces so the reveal
+ * Raw scroll is mapped to the timeline in four linear pieces so the reveal
  * is not slow to start the way the first attempt was:
  *  - 0 → LIFT_AT carries the stage A hold (0 → HOLD_END) in a few pixels,
  *    so the very first scroll starts the letters moving and clears the cue;
  *  - LIFT_AT → REVEAL_AT plays the whole reveal, up to SETTLE;
- *  - REVEAL_AT → 1 is the dock, the hand-over and the work arriving.
+ *  - REVEAL_AT → READ_END is the read hold: a flat piece at SETTLE, so the
+ *    intro, the ledger and the buttons sit at full opacity for a stretch of
+ *    scroll (about 4–6 s of ordinary wheel scrolling) before anything clears.
+ *    Chrys, 2026-10-20: the intro left before it could be read. A flat piece
+ *    of the map, not a timer, so it never fights the scroll;
+ *  - READ_END → 1 is the clear, the dock, the hand-over and the work arriving.
  *
  * SETTLE is one beat past the CTA's reveal, so everything in the body is
  * fully in and nothing has begun to clear.
  */
 const SETTLE = CTA_START + WIPE_SPAN;
 const LIFT_AT = 0.03;
-const REVEAL_AT = 0.6;
+const REVEAL_AT = 0.45;
+const READ_END = 0.68;
 
 /** Raw scroll progress through the track → timeline position. */
 const fromScroll = (raw: number) =>
@@ -102,15 +115,20 @@ const fromScroll = (raw: number) =>
     ? HOLD_END * (raw / LIFT_AT)
     : raw <= REVEAL_AT
       ? HOLD_END + (SETTLE - HOLD_END) * ((raw - LIFT_AT) / (REVEAL_AT - LIFT_AT))
-      : SETTLE + (1 - SETTLE) * ((raw - REVEAL_AT) / (1 - REVEAL_AT));
+      : raw <= READ_END
+        ? SETTLE
+        : SETTLE + (1 - SETTLE) * ((raw - READ_END) / (1 - READ_END));
 
-/** The inverse, for turning a timeline position into a scroll offset. */
+/**
+ * The inverse, for turning a timeline position into a scroll offset. SETTLE
+ * maps to the start of the read hold, so a jump there lands on the plateau.
+ */
 const toScroll = (p: number) =>
   p <= HOLD_END
     ? LIFT_AT * (p / HOLD_END)
     : p <= SETTLE
       ? LIFT_AT + (REVEAL_AT - LIFT_AT) * ((p - HOLD_END) / (SETTLE - HOLD_END))
-      : REVEAL_AT + (1 - REVEAL_AT) * ((p - SETTLE) / (1 - SETTLE));
+      : READ_END + (1 - READ_END) * ((p - SETTLE) / (1 - SETTLE));
 
 /*
  * The logo the masthead docks into lives in the header, above the stage, and
@@ -199,6 +217,8 @@ interface Geometry {
   width: number;
   /** Unscaled height of the masthead, used to track its visual bottom edge. */
   mastH: number;
+  /** At or under 767px: CHRYS holds large and spread through the read. */
+  phone: boolean;
 }
 
 /**
@@ -234,7 +254,32 @@ const hittable = (el: HTMLElement | null, opacity: number) => {
   el.style.pointerEvents = opacity < 0.05 ? 'none' : '';
 };
 
-const ZERO: Geometry = { spread: 0, tx: 0, ty: 0, scale: 0.133, width: 0, mastH: 0 };
+const ZERO: Geometry = {
+  spread: 0,
+  tx: 0,
+  ty: 0,
+  scale: 0.133,
+  width: 0,
+  mastH: 0,
+  phone: false,
+};
+
+/*
+ * Phone (hero v2, 2026-10-20). On a phone the desktop curve shrank CHRYS to
+ * a label above the text before anything could be read. There it settles
+ * at PHONE_MAST_SCALE of its stage A size, stays spread edge to edge through
+ * the read hold, and only docks while the body clears.
+ */
+const PHONE_MAX_WIDTH = 767;
+const PHONE_MAST_SCALE = 0.75;
+
+/** Like `stage()`, but holding the stage B value until the clear starts. */
+const phoneStage = (p: number, atB: number) =>
+  p <= HOLD_END
+    ? 0
+    : p <= STAGE_B_END
+      ? atB * ease(span(p, HOLD_END, STAGE_B_END))
+      : atB + (1 - atB) * ease(span(p, CLEAR_FROM, DOCK_END));
 
 /**
  * The second statement line, with its object underlined: "building | ERP and
@@ -311,6 +356,17 @@ export function MastheadHero({
 
   const geometry = useRef<Geometry>(ZERO);
   const [ready, setReady] = useState(false);
+
+  /*
+   * First-load hand-over: 'pending' until measured and the fonts are in,
+   * 'in' while the stage crossfades in and the letters rise, then 'ready'.
+   * `skelShown` says whether the skeleton ever became visible, so a fast
+   * load skips it rather than flashing it.
+   */
+  const [load, setLoad] = useState<'pending' | 'in' | 'ready'>('pending');
+  const [skelShown, setSkelShown] = useState(false);
+  const skelRef = useRef<HTMLDivElement>(null);
+  const glyphRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   /** Last written `data-revealed` / cue state, so paint() only touches the DOM on a change. */
   const flags = useRef({ revealed: false, cueGone: false });
@@ -413,6 +469,7 @@ export function MastheadHero({
       ty: l.top + l.height / 2 - (m.top + m.height / 2),
       width: masthead.clientWidth,
       mastH: masthead.offsetHeight,
+      phone: window.matchMedia(`(max-width: ${PHONE_MAX_WIDTH}px)`).matches,
     };
     setReady(true);
     paintRef.current(lastP.current); // restore what the reset above cleared
@@ -430,7 +487,13 @@ export function MastheadHero({
     lastP.current = p;
     const g = geometry.current;
 
-    const t = stage(p, T_B);
+    /*
+     * On a phone stage B ends at PHONE_MAST_SCALE rather than at T_B, and
+     * the stage B values hold until the clear (see phoneStage).
+     */
+    const tB = g.phone ? Math.min(1, Math.max(0, (1 - PHONE_MAST_SCALE) / (1 - g.scale))) : T_B;
+    const curve = g.phone ? phoneStage : stage;
+    const t = curve(p, tB);
 
     /*
      * Position is eased separately from scale. Sharing one curve sent the
@@ -438,9 +501,19 @@ export function MastheadHero({
      * clipped it against the top of the stage. docs/04-UIUX-BRIEF.md §5 wants
      * it at the stage's upper-left in B and docking into the header only in C.
      */
-    const tPos = stage(p, T_POS_B);
+    const tPos = curve(p, T_POS_B);
 
     const scale = 1 + (g.scale - 1) * t;
+
+    /*
+     * Phone: the letters stay spread edge to edge at the reduced size, and
+     * close to natural spacing only as the masthead docks. The gap is widened
+     * by the scale, so after scaling the word still spans the full width:
+     * s × (letters + (n − 1) × gap) = width.
+     */
+    const n = letterRefs.current.length;
+    const phoneOpen = g.phone ? 1 - ease(span(p, CLEAR_FROM, DOCK_END)) : 0;
+    const phoneGap = n > 1 ? g.spread + (g.width * (1 / scale - 1)) / (n - 1) : 0;
 
     /*
      * transform-origin is the left edge, which the dock maths needs, but that
@@ -449,8 +522,9 @@ export function MastheadHero({
      * visual centre fixed, so the name stays centred while the sequence plays
      * and only travels to the header logo as it docks.
      */
-    const centred = 1 - ease(span(p, STAGE_B_END, DOCK_END));
-    const centreShift = ((g.width * (1 - scale)) / 2) * centred;
+    const centred = 1 - ease(span(p, g.phone ? CLEAR_FROM : STAGE_B_END, DOCK_END));
+    // A phone's spread word already spans the width from the left edge.
+    const centreShift = ((g.width * (1 - scale)) / 2) * centred * (1 - phoneOpen);
 
     const handover = span(p, HANDOVER_FROM, HANDOVER_TO);
     if (mastheadRef.current) {
@@ -461,6 +535,10 @@ export function MastheadHero({
     // Letters close from edge-to-edge to natural spacing, each a beat apart.
     letterRefs.current.forEach((el, i) => {
       if (!el) return;
+      if (g.phone) {
+        el.style.transform = `translate3d(${phoneGap * i * phoneOpen}px, 0, 0)`;
+        return;
+      }
       const c = 1 - ease(span(p, HOLD_END + i * LETTER_STAGGER, STAGE_B_END));
       el.style.transform = `translate3d(${g.spread * i * c}px, 0, 0)`;
     });
@@ -557,9 +635,13 @@ export function MastheadHero({
     if (railRef.current)
       railRef.current.style.transform = `scaleY(${1 - ease(span(p, 0.02, 0.22))})`;
 
-    // Hand the masthead over to the real sticky header at the very end.
+    /*
+     * Hand over to the real sticky header only once the body has cleared.
+     * At `handover > 0.35` the header arrived over a half-faded intro and
+     * ledger (Chrys's screenshot, 2026-10-20); now it waits for CLEAR_TO.
+     */
     const root = document.documentElement;
-    root.dataset.heroHandoff = handover > 0.35 ? 'on' : 'off';
+    root.dataset.heroHandoff = p >= HANDOVER_TO ? 'on' : 'off';
     // The section pager's "Hero" / "Details" / "done" stop — see
     // DETAILS_START. Strictly less-than at the low end: the pager's
     // jump-to-Details lands exactly at DETAILS_START, and it has to read as
@@ -613,20 +695,179 @@ export function MastheadHero({
     paint(fromScroll(raw));
   }, [ready, reduced, paint, progress]);
 
+  /*
+   * Hand the skeleton over once the hero is measured and its fonts are in.
+   * The skeleton's own CSS animation tells how long it has been on screen:
+   * under the 120ms grace it never showed, so the reveal is immediate; once
+   * shown it stays at least SKEL_MIN_MS so it never reads as a flash.
+   */
+  useEffect(() => {
+    if (reduced || !ready || load !== 'pending') return;
+    let cancelled = false;
+    const timers: number[] = [];
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+
+    void fonts.then(() => {
+      if (cancelled) return;
+      const elapsed = Number(skelRef.current?.getAnimations?.()[0]?.currentTime ?? 0);
+      const visibleFor = elapsed - SKEL_GRACE_MS;
+      const shown = visibleFor > 0;
+      const wait = shown ? Math.max(0, SKEL_MIN_MS - visibleFor) : 0;
+      timers.push(
+        window.setTimeout(() => {
+          setSkelShown(shown);
+          setLoad('in');
+        }, wait),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      timers.forEach((id) => window.clearTimeout(id));
+    };
+  }, [ready, reduced, load]);
+
+  // Its own effect: the one above re-runs on `load` and would clear this timer.
+  useEffect(() => {
+    if (load !== 'in') return;
+    const id = window.setTimeout(() => setLoad('ready'), ENTRANCE_TOTAL_MS);
+    return () => window.clearTimeout(id);
+  }, [load]);
+
+  /*
+   * CHRYS leans toward a fine pointer while the hero is at rest (stage A):
+   * each letter lifts and tilts by proximity, the nearest takes the accent.
+   * Only the inner glyph span moves (--ly / --lr); paint() owns the outer.
+   * Letter boxes are read once per pointerenter and on resize, not per frame.
+   */
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (reduced || load !== 'ready' || !section) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const glyphs = glyphRefs.current.filter(Boolean) as HTMLSpanElement[];
+    const current = glyphs.map(() => ({ y: 0, r: 0 }));
+    let boxes: DOMRect[] = [];
+    let pointer: { x: number; y: number } | null = null;
+    let frame = 0;
+    let near = -1;
+
+    const readBoxes = () => {
+      boxes = letterRefs.current.map((el) => el?.getBoundingClientRect() ?? new DOMRect());
+    };
+
+    const tick = () => {
+      frame = 0;
+      const targets = leanTargets(pointer, boxes);
+      let moving = false;
+      glyphs.forEach((el, i) => {
+        const c = current[i];
+        const t = targets.letters[i] ?? { lift: 0, tilt: 0 };
+        c.y += (t.lift - c.y) * LEAN_LERP;
+        c.r += (t.tilt - c.r) * LEAN_LERP;
+        if (Math.abs(t.lift - c.y) > 0.05 || Math.abs(t.tilt - c.r) > 0.02) moving = true;
+        el.style.setProperty('--ly', `${c.y.toFixed(2)}px`);
+        el.style.setProperty('--lr', `${c.r.toFixed(2)}deg`);
+      });
+      if (targets.near !== near) {
+        glyphs[near]?.removeAttribute('data-near');
+        near = targets.near;
+        glyphs[near]?.setAttribute('data-near', '');
+      }
+      if (moving || pointer) frame = requestAnimationFrame(tick);
+    };
+    const kick = () => {
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    const atRest = () => lastP.current < HOLD_END && window.scrollY <= 4;
+    const onEnter = () => readBoxes();
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      if (!atRest()) return onLeave();
+      if (boxes.length === 0) readBoxes();
+      pointer = { x: event.clientX, y: event.clientY };
+      kick();
+    };
+    const onLeave = () => {
+      pointer = null;
+      kick();
+    };
+    const onScroll = () => {
+      if (pointer && !atRest()) onLeave();
+    };
+
+    section.addEventListener('pointerenter', onEnter);
+    section.addEventListener('pointermove', onMove);
+    section.addEventListener('pointerleave', onLeave);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', readBoxes);
+    return () => {
+      cancelAnimationFrame(frame);
+      section.removeEventListener('pointerenter', onEnter);
+      section.removeEventListener('pointermove', onMove);
+      section.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', readBoxes);
+      glyphs.forEach((el) => {
+        el.style.removeProperty('--ly');
+        el.style.removeProperty('--lr');
+        el.removeAttribute('data-near');
+      });
+    };
+  }, [reduced, load]);
+
   if (reduced) return null; // StaticIntro stays; nothing is pinned
 
   return (
-    <section ref={sectionRef} className="hero" id="top" data-section="Hero">
+    <section
+      ref={sectionRef}
+      className="hero"
+      id="top"
+      data-section="Hero"
+      data-load={load}
+      data-skel={skelShown ? '' : undefined}
+      aria-busy={load === 'pending'}
+    >
       {/*
         The useful number is the track height minus the viewport, not the
-        track height: 220svh gives 120svh of travel — svh, not vh, so a
-        phone's collapsing toolbar does not resize it. REVEAL_AT (0.6) spends
-        72svh of that on the reveal and 48svh on the dock and hand-over;
-        a phone's 190svh gives 54svh and 36svh. Change either height and
-        `--hero-pull` in globals.css has to be recomputed with it.
+        track height: 280svh gives 180svh of travel — svh, not vh, so a
+        phone's collapsing toolbar does not resize it. REVEAL_AT (0.45) spends
+        81svh on the reveal, the read hold (to READ_END 0.68) 41svh, and the
+        last 58svh the clear, dock and hand-over; a phone's 240svh gives 63,
+        32 and 45svh. Change either height and `--hero-pull` in globals.css
+        has to be recomputed with it.
       */}
-      <div ref={trackRef} className="h-[220svh] max-md:h-[190svh] relative">
-        <div className="sticky top-0 h-svh flex flex-col justify-center overflow-hidden">
+      <div ref={trackRef} className="h-[280svh] max-md:h-[240svh] relative">
+        {/*
+          Clipped sideways only. `overflow-hidden` also clipped the top edge,
+          and on a short laptop the docking name crosses it on its way to the
+          header: 1345×630 showed only the bottom of CHRYS (2026-10-19).
+          `justify-center-safe` (justify-content: safe center): content taller
+          than the stage starts at its top instead of spilling past it. The
+          stage already starts below the header (`.hero [class~='sticky']` in
+          globals.css), so the padding is only the mockup's clamp() gap.
+        */}
+        <div className="sticky top-0 h-svh flex flex-col justify-center-safe pt-[clamp(8px,3svh,32px)] overflow-x-clip">
+          {/*
+            The loading skeleton: eyebrow, five letter blocks, cue pill. CSS
+            shows it only after a 120ms grace, so a fast load never sees it;
+            the effect below holds it for at least 300ms once it is up.
+          */}
+          {load !== 'ready' ? (
+            <div ref={skelRef} className="hero-skel" aria-hidden="true">
+              <span className="sk sk-eyebrow" />
+              <div className="wrap">
+                <div className="masthead sk-mast">
+                  {LETTERS.map((_, i) => (
+                    <span key={i} className="sk" />
+                  ))}
+                </div>
+              </div>
+              <span className="sk sk-cue" />
+            </div>
+          ) : null}
+
           <p ref={eyebrowRef} className="hero__eyebrow">
             {profile.location}
           </p>
@@ -641,7 +882,15 @@ export function MastheadHero({
                     letterRefs.current[i] = el;
                   }}
                 >
-                  <span>{ch}</span>
+                  {/* Entrance and pointer lift live here; paint() owns the outer span. */}
+                  <span
+                    ref={(el) => {
+                      glyphRefs.current[i] = el;
+                    }}
+                    style={{ ['--i' as string]: i }}
+                  >
+                    {ch}
+                  </span>
                 </span>
               ))}
             </div>
@@ -721,9 +970,9 @@ export function MastheadHero({
                 rolls for fine pointers, a swipe up for touch. CSS picks one
                 by (pointer: fine|coarse). */}
             <span className="cue-mouse">
-              <svg viewBox="0 0 18 28" focusable="false">
-                <rect x="0.75" y="0.75" width="16.5" height="26.5" rx="8.25" />
-                <rect className="cue-wheel" x="8" y="6" width="2" height="5" rx="1" />
+              <svg viewBox="0 0 22 34" focusable="false">
+                <rect x="0.75" y="0.75" width="20.5" height="32.5" rx="10.25" />
+                <rect className="cue-wheel" x="9.5" y="7" width="3" height="6" rx="1.5" />
               </svg>
               Scroll to begin
             </span>

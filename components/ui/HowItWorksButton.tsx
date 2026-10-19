@@ -135,7 +135,12 @@ function HowItWorksDialog({
 
   return createPortal(
     <div className="hiw-layer" onKeyDown={onKeyDown}>
-      <div className="hiw-scrim" data-open={open ? '' : undefined} aria-hidden="true" onClick={close} />
+      <div
+        className="hiw-scrim"
+        data-open={open ? '' : undefined}
+        aria-hidden="true"
+        onClick={close}
+      />
       <div
         ref={panelRef}
         id={id}
@@ -151,7 +156,7 @@ function HowItWorksDialog({
             <path d="M2 2l8 8M10 2l-8 8" />
           </svg>
         </button>
-        <ArchitectureNote variant="dialog" headingId={titleId} />
+        <ArchitectureNote headingId={titleId} />
         <p className="hiw-dialog__foot">
           <span>Tap a step for the detail.</span>
           {/* Leaving for /about: no exit to wait for, and focus belongs to the new page. */}

@@ -43,6 +43,7 @@
 .tour-card {
   width: min(320px, calc(100vw - 32px));
   padding: 18px 18px 14px;
+  border-radius: var(--radius-lg, 14px);
   opacity: 0;
   transform: translate(var(--from-x, 0px), var(--from-y, 8px));
   visibility: hidden;
@@ -60,6 +61,21 @@
     opacity 260ms cubic-bezier(0.32, 0.72, 0, 1),
     transform 260ms cubic-bezier(0.32, 0.72, 0, 1),
     visibility 0s;
+}
+
+/* Above the scroll cue: an arrow down at the mouse, x set by the component. */
+.tour-card[data-arrow]::after {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: inherit;
+  border: solid var(--color-rule);
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
 }
 
 .tour-card__top {
@@ -187,6 +203,7 @@
   min-height: 44px;
   padding: 0 16px;
   border: 1px solid var(--color-ink);
+  border-radius: var(--radius-pill, 999px);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
@@ -228,20 +245,26 @@
   outline-offset: 3px;
 }
 
-/* ----- lag notice: centred, unchanged from v1 ----------------------------- */
+/* ----- lag notice: a pill bar at the top centre, slides down ------------- */
 .lag-notice {
+  top: 16px;
   left: 50%;
-  top: 50%;
-  width: min(380px, calc(100vw - 32px));
-  padding: 22px 22px 18px;
-  translate: -50% -50%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 20px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  translate: -50% 0;
   opacity: 0;
-  transform: translateY(10px) scale(0.985);
+  transform: translateY(-140%);
   visibility: hidden;
   transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    visibility 0s 160ms;
+    opacity 200ms ease,
+    transform 200ms ease,
+    visibility 0s 200ms;
 }
 
 .lag-notice[data-open] {
@@ -249,26 +272,60 @@
   transform: none;
   visibility: visible;
   transition:
-    opacity 280ms cubic-bezier(0.32, 0.72, 0, 1),
-    transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
     visibility 0s;
 }
 
+.lag-notice__title {
+  margin: 0;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
 .lag-notice__body {
-  margin-bottom: 18px;
+  margin: 0;
+  font-size: 0.8125rem;
 }
 
 .lag-notice__actions .tour-btn {
-  flex: 1;
+  min-height: 36px;
+  white-space: nowrap;
 }
 
 .lag-notice__done {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
+  min-height: 36px;
   margin: 0;
+  padding-right: 12px;
   font-size: 0.875rem;
+}
+
+/* Narrow or touch: the bar wraps into a card, buttons back to 44px. */
+@media (max-width: 859px), (pointer: coarse) {
+  .lag-notice__actions .tour-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 859px) {
+  .lag-notice {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: calc(100vw - 32px);
+    padding: 14px;
+    border-radius: var(--radius-lg, 14px);
+  }
+
+  .lag-notice__text {
+    flex-basis: 100%;
+  }
+
+  .lag-notice__title {
+    white-space: normal;
+  }
 }
 
 .lag-notice__done svg {

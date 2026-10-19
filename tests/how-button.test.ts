@@ -25,7 +25,9 @@ test('the header shows How? just before the theme toggle, on every route', () =>
 });
 
 test('How? is never hidden by the home hero hand-off', () => {
-  const hide = globals.match(/((?:\[data-motion='on'\]:has\(\.hero\) [^,{]+,?\s*)+)\{\s*opacity: 0;/);
+  const hide = globals.match(
+    /((?:\[data-motion='on'\]:has\(\.hero\) [^,{]+,?\s*)+)\{\s*opacity: 0;/,
+  );
   assert.ok(hide, 'pre-handoff hide rule exists');
   assert.doesNotMatch(hide[1], /how-btn|site-header__end/);
 });
@@ -39,7 +41,7 @@ test('the button names the dialog it opens', () => {
 
 test('the dialog is modal, labelled by its heading and portalled to body', () => {
   assert.match(button, /role="dialog"\s*aria-modal="true"\s*aria-labelledby=\{titleId\}/);
-  assert.match(button, /<ArchitectureNote variant="dialog" headingId=\{titleId\} \/>/);
+  assert.match(button, /<ArchitectureNote headingId=\{titleId\} \/>/);
   assert.match(button, /createPortal\(/);
   assert.match(button, /document\.body,\s*\)/);
 });
@@ -70,22 +72,40 @@ test('on a phone it is a bottom sheet; reduced motion is opacity only', () => {
   const phone = css.slice(css.indexOf('@media (max-width: 767px)'));
   assert.match(phone, /\.hiw-dialog \{[^}]*bottom: 0;[^}]*max-height: 88dvh;/);
   const reduce = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
-  assert.match(reduce, /\.hiw-dialog\[data-open\] \{\s*transform: none;\s*transition: opacity 200ms linear;/);
+  assert.match(
+    reduce,
+    /\.hiw-dialog\[data-open\] \{\s*transform: none;\s*transition: opacity 200ms linear;/,
+  );
   assert.match(reduce, /\.how-btn:active \.how-btn__pill \{\s*transform: none;/);
 });
 
 test('the pill has hover, open, press and focus states', () => {
-  assert.match(css, /\.how-btn:hover \.how-btn__pill \{\s*color: var\(--color-ink\);\s*border-color: var\(--color-accent\);/);
-  assert.match(css, /\.how-btn\[aria-expanded='true'\] \.how-btn__pill \{[^}]*border-color: var\(--color-ink\);/);
+  assert.match(
+    css,
+    /\.how-btn:hover \.how-btn__pill \{\s*color: var\(--color-ink\);\s*border-color: var\(--color-accent\);/,
+  );
+  assert.match(
+    css,
+    /\.how-btn\[aria-expanded='true'\] \.how-btn__pill \{[^}]*border-color: var\(--color-ink\);/,
+  );
   assert.match(css, /\.how-btn:active \.how-btn__pill \{\s*transform: scale\(0\.95\);/);
-  assert.match(css, /\.how-btn:focus-visible \.how-btn__pill \{\s*outline: 2px solid var\(--color-accent\);\s*outline-offset: 3px;/);
+  assert.match(
+    css,
+    /\.how-btn:focus-visible \.how-btn__pill \{\s*outline: 2px solid var\(--color-accent\);\s*outline-offset: 3px;/,
+  );
 });
 
 test('in the dialog the rail draws on a timer, once per open', () => {
-  assert.match(note, /animate\(timed, 1, \{ duration: DRAW_S, delay: DRAW_DELAY_S, ease: EASE_OUT_CUBIC \}\)/);
+  assert.match(
+    note,
+    /animate\(progress, 1, \{\s*duration: DRAW_S,\s*delay: DRAW_DELAY_S,\s*ease: EASE_OUT_CUBIC,?\s*\}\)/,
+  );
   assert.match(note, /DRAW_S = 0\.9/);
   assert.match(note, /DRAW_DELAY_S = 0\.12/);
-  assert.match(note, /const progress = dialog \? timed : scrolled;/);
+});
+
+test('the note is dialog-only: no scroll-linked section variants left', () => {
+  assert.doesNotMatch(note, /variant|useScroll|useSpring|arch--detail/);
 });
 
 test('the heading id is unique per instance, not hard-coded', () => {
@@ -93,7 +113,15 @@ test('the heading id is unique per instance, not hard-coded', () => {
   assert.match(note, /const titleId = headingId \?\? ownId;/);
 });
 
-test('home no longer has the inline section; /about keeps its detail version', () => {
-  assert.doesNotMatch(home, /<ArchitectureNote/);
-  assert.match(about, /<ArchitectureNote variant="detail" \/>/);
+test('neither home nor /about renders the How this works section', () => {
+  assert.doesNotMatch(home, /ArchitectureNote/);
+  assert.doesNotMatch(about, /ArchitectureNote/);
+});
+
+test('the header keeps its How? button', () => {
+  assert.match(header, /<HowItWorksButton \/>/);
+});
+
+test('the /about-only section styles are gone', () => {
+  assert.doesNotMatch(css, /\.arch--detail/);
 });

@@ -73,35 +73,43 @@ export const site = {
  */
 export type StackItem = { name: string; logo?: string; concept?: true };
 
+/** A filter on the stack section: `key` is stable, `short` is the chip label. */
+export type StackGroup = { key: string; label: string; short: string; items: readonly StackItem[] };
+
 /**
  * docs/07-SOURCE-CONTENT.md §3, from Chrys's resume (Technical Skills,
  * 2026-10-19). Shown in full on the home page's stack section and on About.
  * Order is fixed; do not rank by proficiency.
  */
-export const skillGroups: readonly { label: string; items: readonly StackItem[] }[] = [
+export const skillGroups: readonly StackGroup[] = [
   {
+    key: 'lang',
     label: 'Languages & frameworks',
+    short: 'Languages',
     items: [
       { name: 'PHP', logo: 'php' },
       { name: 'JavaScript', logo: 'javascript' },
       { name: 'Python', logo: 'python' },
       { name: 'Dart', logo: 'dart' },
-      { name: 'SQL' },
+      { name: 'SQL', logo: 'sql' },
       { name: 'HTML5', logo: 'html5' },
       { name: 'CSS3/SCSS', logo: 'css' },
-      { name: 'Laravel 7–12', logo: 'laravel' },
+      { name: 'Laravel', logo: 'laravel' },
       { name: 'Node.js', logo: 'nodedotjs' },
-      { name: 'Vue 3', logo: 'vuedotjs' },
+      { name: 'Vue', logo: 'vuedotjs' },
       { name: 'React', logo: 'react' },
-      { name: 'Angular 7–10', logo: 'angular' },
+      { name: 'Next.js', logo: 'nextdotjs' },
+      { name: 'Angular', logo: 'angular' },
       { name: '.NET Web API', logo: 'dotnet' },
       { name: 'Flutter', logo: 'flutter' },
-      { name: 'Ionic 5', logo: 'ionic' },
+      { name: 'Ionic', logo: 'ionic' },
       { name: 'Tauri', logo: 'tauri' },
     ],
   },
   {
+    key: 'db',
     label: 'Databases',
+    short: 'Databases',
     items: [
       { name: 'MySQL', logo: 'mysql' },
       { name: 'MariaDB', logo: 'mariadb' },
@@ -109,14 +117,17 @@ export const skillGroups: readonly { label: string; items: readonly StackItem[] 
       { name: 'MongoDB', logo: 'mongodb' },
       { name: 'Firebase Firestore', logo: 'firebase' },
       { name: 'SQLite', logo: 'sqlite' },
+      { name: 'Neon Postgres', logo: 'neon' },
     ],
   },
   {
+    key: 'ai',
     label: 'AI & agentic engineering',
+    short: 'AI & agentic',
     items: [
       { name: 'Claude Code', logo: 'claude' },
       { name: 'Model Context Protocol (MCP)', logo: 'modelcontextprotocol' },
-      { name: 'Groq' },
+      { name: 'Groq', logo: 'groq' },
       { name: 'AI-assisted software development', concept: true },
       { name: 'Agentic AI workflows', concept: true },
       { name: 'Reusable AI skills', concept: true },
@@ -126,7 +137,9 @@ export const skillGroups: readonly { label: string; items: readonly StackItem[] 
     ],
   },
   {
+    key: 'arch',
     label: 'Architecture & practices',
+    short: 'Architecture',
     items: [
       { name: 'SOLID principles', concept: true },
       { name: 'Clean code', concept: true },
@@ -142,70 +155,107 @@ export const skillGroups: readonly { label: string; items: readonly StackItem[] 
     ],
   },
   {
+    key: 'auth',
     label: 'Auth & security',
+    short: 'Auth & security',
     items: [
       { name: 'Laravel Sanctum', logo: 'laravel' },
       { name: 'Laravel Passport', logo: 'laravel' },
-      { name: 'OAuth 2.0' },
+      { name: 'OAuth 2.0', logo: 'oauth' },
       { name: 'JSON Web Tokens (JWT)', logo: 'jsonwebtokens' },
-      { name: 'Twilio OTP' },
+      { name: 'Twilio OTP', logo: 'twilio' },
       { name: 'Role-based authorization', concept: true },
     ],
   },
   {
+    key: 'pay',
     label: 'Payments & integrations',
+    short: 'Payments',
     items: [
-      { name: 'Tabby' },
-      { name: 'Tamara' },
-      { name: 'Etisalat' },
+      { name: 'Tabby', logo: 'tabby' },
+      { name: 'Tamara', logo: 'tamara' },
+      { name: 'Etisalat', logo: 'etisalat' },
       { name: 'Stripe', logo: 'stripe' },
       { name: 'REST API integrations', concept: true },
       { name: 'Mobile API integration', concept: true },
     ],
   },
   {
+    key: 'tools',
     label: 'Tools & platforms',
+    short: 'Tools',
     items: [
-      { name: 'Visual Studio Code' },
+      { name: 'Visual Studio Code', logo: 'vscode' },
       { name: 'PhpStorm', logo: 'phpstorm' },
       { name: 'Git', logo: 'git' },
       { name: 'GitHub', logo: 'github' },
       { name: 'GitLab', logo: 'gitlab' },
-      { name: 'Azure' },
-      { name: 'AWS' },
+      { name: 'Azure', logo: 'azure' },
+      { name: 'AWS', logo: 'aws' },
       { name: 'Firebase', logo: 'firebase' },
       { name: 'Docker', logo: 'docker' },
+      { name: 'Render', logo: 'render' },
+      { name: 'Cloudinary', logo: 'cloudinary' },
       { name: 'Composer', logo: 'composer' },
       { name: 'NPM', logo: 'npm' },
       { name: 'Vite', logo: 'vite' },
       { name: 'Webpack', logo: 'webpack' },
       { name: 'Postman', logo: 'postman' },
-      { name: 'Apidog' },
-      { name: 'DBngin' },
-      { name: 'TablePlus' },
+      { name: 'Apidog', logo: 'apidog' },
+      { name: 'DBngin', logo: 'dbngin' },
+      { name: 'TablePlus', logo: 'tableplus' },
       { name: 'JIRA', logo: 'jira' },
       { name: 'Figma', logo: 'figma' },
     ],
   },
   {
+    key: 'test',
     label: 'Testing & QA',
+    short: 'Testing',
     items: [
-      { name: 'PHPUnit' },
-      { name: 'Pest' },
+      { name: 'PHPUnit', logo: 'phpunit' },
+      { name: 'Pest', logo: 'pest' },
       { name: 'Firebase Emulator', logo: 'firebase' },
       { name: 'TDD', concept: true },
       { name: 'API testing', concept: true },
     ],
   },
   {
+    key: 'desk',
     label: 'Desktop apps',
+    short: 'Desktop',
     items: [
       { name: 'Tauri', logo: 'tauri' },
       { name: 'Rust/Cargo', logo: 'rust' },
-      { name: 'Orca' },
+      { name: 'Orca', logo: 'orca' },
     ],
   },
 ];
+
+/**
+ * Logos with no Simple Icons file, drawn by hand in public/logos/ in their
+ * own colours (asked for on 2026-10-19: "add the tamara, tabby, etisalat,
+ * make sure it has its logo"). Shown as images, not ink masks, and never
+ * fetched by scripts/generate-tech-icons.mjs.
+ */
+export const drawnLogos: ReadonlySet<string> = new Set([
+  'sql',
+  'groq',
+  'oauth',
+  'twilio',
+  'tabby',
+  'tamara',
+  'etisalat',
+  'vscode',
+  'azure',
+  'aws',
+  'apidog',
+  'dbngin',
+  'tableplus',
+  'phpunit',
+  'pest',
+  'orca',
+]);
 
 /**
  * Each logo's brand colour, used on hover only where it keeps 3:1 against
@@ -252,6 +302,10 @@ export const logoBrand: Readonly<Record<string, readonly [light: string | null, 
   jsonwebtokens: ['#000000', null],
   stripe: ['#635BFF', '#635BFF'],
   rust: ['#000000', null],
+  nextdotjs: ['#000000', null],
+  render: ['#000000', null],
+  cloudinary: ['#3448C5', null],
+  neon: [null, '#00E599'],
 };
 
 /**

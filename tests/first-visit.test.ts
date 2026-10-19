@@ -53,9 +53,9 @@ test('hidden-tab gaps are ignored, not counted as slow frames', () => {
 
 /* ----- placement ---------------------------------------------------------- */
 
-test('desktop: the card sits 16px above a "top" target, centred on it', () => {
+test('desktop: the card sits 24px above a "top" target, centred on it', () => {
   const at = placeCard({ left: 700, top: 800, right: 740, bottom: 860 }, 'top', card, desktop);
-  assert.equal(at.y, 800 - 200 - 16);
+  assert.equal(at.y, 800 - 200 - 24);
   assert.equal(at.x, 720 - 160);
   assert.equal(at.fromY, 8);
 });
@@ -138,6 +138,21 @@ test('picks and texture flips add a live line on their steps', () => {
   assert.match(guide, /'Texture off\. Flip it back any time\.'/);
 });
 
+test('a card above its target points down at it, never on a phone', () => {
+  assert.match(guide, /step\.side === 'top' && window\.innerWidth > PHONE_MAX/);
+  assert.match(guide, /toggleAttribute\('data-arrow', arrow\)/);
+  assert.match(css, /\.tour-card\[data-arrow\]::after \{[\s\S]*?left: var\(--arrow-x, 50%\)/);
+});
+
+test('the tour card uses --radius-lg', () => {
+  const card = css.slice(css.indexOf('\n.tour-card {'), css.indexOf('}', css.indexOf('\n.tour-card {')));
+  assert.match(card, /border-radius: var\(--radius-lg/);
+});
+
+test('a target that is not rendered drops its step', () => {
+  assert.match(guide, /getClientRects\(\)\.length \?\? 0\) > 0/);
+});
+
 test('the ring never takes a click and only fades', () => {
   const ring = css.slice(css.indexOf('.tour-ring {'), css.indexOf('}', css.indexOf('.tour-ring {')));
   assert.match(ring, /pointer-events: none/);
@@ -165,6 +180,27 @@ test('the lag notice shows once per visit with Keep it / Switch off texture', ()
   assert.match(guide, />\s*Keep it\s*</);
   assert.match(guide, />\s*Switch off texture\s*</);
   assert.match(guide, /setTexture\(false\);\n\s*setLag\('done'\)/);
+});
+
+test('the lag notice is a top-centre pill that slides down in 320ms', () => {
+  // The last top-level rule: the first is shared with .tour-card.
+  const at = css.lastIndexOf('\n.lag-notice {');
+  const bar = css.slice(at, css.indexOf('}', at));
+  assert.match(bar, /top: 16px/);
+  assert.match(bar, /border-radius: var\(--radius-pill/);
+  assert.match(bar, /backdrop-filter: blur\(8px\)/);
+  assert.match(bar, /transform: translateY\(-140%\)/);
+  assert.match(css, /\.lag-notice\[data-open\] \{[\s\S]*?opacity 320ms/);
+});
+
+test('narrow, the lag notice wraps into a --radius-lg card with 44px buttons', () => {
+  assert.match(css, /@media \(max-width: 859px\), \(pointer: coarse\) \{\s*\.lag-notice__actions \.tour-btn \{\s*min-height: 44px;/);
+  assert.match(css, /@media \(max-width: 859px\) \{\s*\.lag-notice \{[\s\S]*?border-radius: var\(--radius-lg/);
+});
+
+test('the tour and lag buttons are pills', () => {
+  const btn = css.slice(css.indexOf('\n.tour-btn {'), css.indexOf('}', css.indexOf('\n.tour-btn {')));
+  assert.match(btn, /border-radius: var\(--radius-pill/);
 });
 
 /* ----- wiring ------------------------------------------------------------- */

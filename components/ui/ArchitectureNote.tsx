@@ -19,15 +19,15 @@
  * `<ol>`, deliberately: the five steps are a real sequence, which is the only
  * thing that earns numbered markup.
  *
- * Motion (one orchestrated moment, scroll-linked, not on a timer): the rail is
- * an inline SVG drawn segment by segment as the section scrolls into view,
- * and each step lights up as the line reaches it. Opacity and transform only.
+ * Motion (one orchestrated moment): the rail is an inline SVG drawn segment
+ * by segment as the dialog opens, and each step lights up as the line
+ * reaches it. Opacity and transform only.
  * Reduced motion: the rail is drawn and every step lit from the start.
  * Before hydration the same is true, so a visitor without JS loses nothing
  * but the detail lines, which need the buttons.
  */
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   animate,
   type MotionStyle,
@@ -36,8 +36,6 @@ import {
   useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
-  useScroll,
-  useSpring,
   useTransform,
 } from 'framer-motion';
 import '@/app/how-it-works.css';
@@ -76,18 +74,12 @@ const STEPS = [
 const LAST = STEPS.length - 1;
 
 /**
- * Two placements, because the section is doing two different jobs.
+ * One placement: the header's How? dialog (HowItWorksButton), which supplies
+ * its own shell. The inline section on home and then on /about was removed
+ * (2026-10-19); the dialog is the only place this is shown now.
  *
- * `page` is the home route: a screen of its own between the work and the
- * contact band, with the rule above it as the boundary between the two.
- *
- * `detail` is /about, where it is one more entry in a column that already
- * reads Experience, Education, Languages, Availability — no rule, no
- * screenful of height, the same 64px above the heading as they have.
- *
- * `dialog` is the header's How? dialog (HowItWorksButton), which supplies its
- * own shell. There is no scroll inside it to draw the rail with, so the line
- * draws on a timer instead: once per open, 120ms after it, over 900ms.
+ * There is no scroll inside the dialog to draw the rail with, so the line
+ * draws on a timer: once per open, 120ms after it, over 900ms.
  */
 const DRAW_DELAY_S = 0.12;
 const DRAW_S = 0.9;
@@ -95,19 +87,13 @@ const DRAW_S = 0.9;
 const EASE_OUT_CUBIC = [0.33, 1, 0.68, 1] as const;
 
 export function ArchitectureNote({
-  variant = 'page',
   headingId,
 }: {
-  variant?: 'page' | 'detail' | 'dialog';
   /** The dialog labels itself by this heading, so it supplies the id. */
   headingId?: string;
 }) {
-  const detail = variant === 'detail';
-  const dialog = variant === 'dialog';
   const reduced = useReducedMotion();
-  const railRef = useRef<HTMLOListElement>(null);
-  // Unique per instance: /about's detail note and the header dialog can be
-  // on the page together.
+  // Unique per instance unless the dialog supplies one.
   const ownId = useId();
   const titleId = headingId ?? ownId;
 
@@ -119,29 +105,18 @@ export function ArchitectureNote({
   const [armed, setArmed] = useState(false);
   useEffect(() => setArmed(!reduced), [reduced]);
 
-  const { scrollYProgress } = useScroll({
-    target: railRef,
-    offset: ['start 0.85', 'end 0.55'],
-  });
-  // The site's scroll spring (WorkShowcase, MastheadHero): settles shortly
-  // after the wheel stops instead of stepping with it.
-  const scrolled = useSpring(scrollYProgress, {
-    stiffness: 260,
-    damping: 42,
-    mass: 0.6,
-    restDelta: 0.001,
-  });
-
-  // The dialog's timed draw-on. It mounts on every open, so it replays each time.
-  const timed = useMotionValue(0);
+  // The timed draw-on. The dialog mounts this on every open, so it replays each time.
+  const progress = useMotionValue(0);
   useEffect(() => {
-    if (!dialog || !armed) return;
-    timed.set(0);
-    const run = animate(timed, 1, { duration: DRAW_S, delay: DRAW_DELAY_S, ease: EASE_OUT_CUBIC });
+    if (!armed) return;
+    progress.set(0);
+    const run = animate(progress, 1, {
+      duration: DRAW_S,
+      delay: DRAW_DELAY_S,
+      ease: EASE_OUT_CUBIC,
+    });
     return () => run.stop();
-  }, [dialog, armed, timed]);
-
-  const progress = dialog ? timed : scrolled;
+  }, [armed, progress]);
 
   /* How many steps the line has reached. Stored as a count so React only
      re-renders when a step actually changes state, not on every frame. */
@@ -151,16 +126,15 @@ export function ArchitectureNote({
     setLit((prev) => (prev === next ? prev : next));
   });
 
-  const body = (
+  // The dialog's panel is the `.hiw` container and the landmark itself.
+  return (
     <>
-      <p className={variant === 'page' ? 'section-label' : 'hiw__eyebrow'}>
-        Engineering stack and architecture
-      </p>
+      <p className="hiw__eyebrow">Engineering stack and architecture</p>
       <h2 id={titleId} className="hiw__title">
         How this works?
       </h2>
 
-      <ol ref={railRef} className="hiw__rail" data-armed={armed ? '' : undefined}>
+      <ol className="hiw__rail" data-armed={armed ? '' : undefined}>
         {STEPS.map((step, i) => (
           <Step
             key={step.text}
@@ -173,28 +147,6 @@ export function ArchitectureNote({
         ))}
       </ol>
     </>
-  );
-
-  /*
-   * On /about the surrounding page already provides the `.wrap`, so this must
-   * not add a second one — nesting them would indent the content past the
-   * column every other entry sits in and cap its width twice.
-   */
-  // The dialog's panel is the `.hiw` container and the landmark itself.
-  if (dialog) return body;
-
-  if (detail) {
-    return (
-      <section className="detail-section arch arch--detail hiw" aria-labelledby={titleId}>
-        {body}
-      </section>
-    );
-  }
-
-  return (
-    <section className="arch hiw" aria-labelledby={titleId}>
-      <div className="wrap arch__inner">{body}</div>
-    </section>
   );
 }
 
@@ -252,10 +204,20 @@ function Segment({ index, progress }: { index: number; progress: MotionValue<num
   return <AnimatedSegment index={index} progress={progress} />;
 }
 
-function AnimatedSegment({ index, progress }: { index: number; progress: MotionValue<number> }) {
+function AnimatedSegment({
+  index,
+  progress,
+}: {
+  index: number;
+  progress: MotionValue<number>;
+}) {
   const draw = useTransform(progress, (p) => Math.min(1, Math.max(0, p * LAST - index)));
   return (
-    <motion.span className="hiw__seg" aria-hidden="true" style={{ '--draw': draw } as MotionStyle}>
+    <motion.span
+      className="hiw__seg"
+      aria-hidden="true"
+      style={{ '--draw': draw } as MotionStyle}
+    >
       <SegmentSvg bare />
     </motion.span>
   );
