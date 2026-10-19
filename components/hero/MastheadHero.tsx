@@ -72,29 +72,45 @@ const CLEAR_FROM = 0.83;
 const CLEAR_TO = 0.9;
 
 /*
- * The opening is a gate, not a scroll.
+ * The opening is scroll, and nothing else.
  *
- * Three attempts, and the third is Chrys's: the original made the whole
- * sequence scroll-driven, which meant 400px of scrolling before the first
- * line was legible and 700px before the ledger — and the body overhung the
- * stage by 284px at 1735x950 and was clipped. The second played the sequence
- * automatically on load, which fixed the reading but threw away the masthead
- * moment he wanted kept.
+ * Four attempts. The first was scroll-driven on a linear map, which meant
+ * 400px before the first line was legible. The second played on load and
+ * lost the masthead moment. The third was a gate: the page refused to scroll
+ * until a Begin button was pressed. Chrys dropped the gate on 2026-10-19 —
+ * the masthead holds on arrival, and ordinary scrolling (wheel, touch, keys,
+ * the pager) plays the reveal forwards and, scrolling up, backwards. Nothing
+ * listens to wheel or touch, so nothing can trap a visitor.
  *
- * So: the masthead holds on arrival, exactly as it was designed to, and
- * scrolling does nothing while it does. One button plays the sequence through
- * to SETTLE, and from there scrolling behaves normally — the dock, the
- * hand-over, then the work. Nobody can be stranded: a wheel, a swipe, an
- * arrow key or a programmatic jump all open the gate too, they simply do not
- * scroll the page while it is shut.
+ * Raw scroll is mapped to the timeline in three linear pieces so the reveal
+ * is not slow to start the way the first attempt was:
+ *  - 0 → LIFT_AT carries the stage A hold (0 → HOLD_END) in a few pixels,
+ *    so the very first scroll starts the letters moving and clears the cue;
+ *  - LIFT_AT → REVEAL_AT plays the whole reveal, up to SETTLE;
+ *  - REVEAL_AT → 1 is the dock, the hand-over and the work arriving.
  *
  * SETTLE is one beat past the CTA's reveal, so everything in the body is
  * fully in and nothing has begun to clear.
  */
 const SETTLE = CTA_START + WIPE_SPAN;
+const LIFT_AT = 0.03;
+const REVEAL_AT = 0.6;
 
-/** Long enough to read as one move, short enough to feel like a response. */
-const ENTRANCE_MS = 1400;
+/** Raw scroll progress through the track → timeline position. */
+const fromScroll = (raw: number) =>
+  raw <= LIFT_AT
+    ? HOLD_END * (raw / LIFT_AT)
+    : raw <= REVEAL_AT
+      ? HOLD_END + (SETTLE - HOLD_END) * ((raw - LIFT_AT) / (REVEAL_AT - LIFT_AT))
+      : SETTLE + (1 - SETTLE) * ((raw - REVEAL_AT) / (1 - REVEAL_AT));
+
+/** The inverse, for turning a timeline position into a scroll offset. */
+const toScroll = (p: number) =>
+  p <= HOLD_END
+    ? LIFT_AT * (p / HOLD_END)
+    : p <= SETTLE
+      ? LIFT_AT + (REVEAL_AT - LIFT_AT) * ((p - HOLD_END) / (SETTLE - HOLD_END))
+      : REVEAL_AT + (1 - REVEAL_AT) * ((p - SETTLE) / (1 - SETTLE));
 
 /*
  * The logo the masthead docks into lives in the header, above the stage, and
@@ -206,11 +222,9 @@ const wipe = (el: HTMLElement | null, reveal: number, out: number, floor: number
  * Faded out means out of the way, not merely invisible.
  *
  * `opacity: 0` still takes clicks, and everything in this stage is stacked
- * in the same corners: the gate's `Begin` button sits exactly where "View my
- * work" appears, so once the gate had faded it was still the topmost element
- * under the pointer and swallowed every click on the CTA. The button looked
- * ignored — measured with `elementsFromPoint`, which named the faded gate
- * first and the CTA fourth.
+ * in the same corners: the old Begin button sat exactly where "View my work"
+ * appears, and once faded it still swallowed every click on the CTA —
+ * measured with `elementsFromPoint`, which named the faded button first.
  *
  * 0.05 rather than 0: below that nothing is legible, and a control nobody
  * can see should not be clickable either.
@@ -218,18 +232,6 @@ const wipe = (el: HTMLElement | null, reveal: number, out: number, floor: number
 const hittable = (el: HTMLElement | null, opacity: number) => {
   if (!el) return;
   el.style.pointerEvents = opacity < 0.05 ? 'none' : '';
-};
-
-/**
- * The held masthead stands on plain ground; the facet mesh arrives with the
- * reveal. `data-gate` is first set by the head script in app/layout.tsx so
- * the mesh is never painted on arrival, and from hydration on it follows the
- * gate exactly — including shutting again back at the top.
- */
-const shutGate = (shut: boolean) => {
-  const data = document.documentElement.dataset;
-  if (shut) data.gate = 'shut';
-  else delete data.gate;
 };
 
 const ZERO: Geometry = { spread: 0, tx: 0, ty: 0, scale: 0.133, width: 0, mastH: 0 };
@@ -302,22 +304,16 @@ export function MastheadHero({
   const ctaRef = useRef<HTMLDivElement | null>(null);
   const eyebrowRef = useRef<HTMLParagraphElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
-  const gateRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const cueRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const geometry = useRef<Geometry>(ZERO);
   const [ready, setReady] = useState(false);
 
-  /** The gate: whether it is opening, whether it has been opened. */
-  const entranceRef = useRef({ running: false, done: false, frame: 0 });
-
-  /**
-   * Only for the button's own label and disabled state — the animation is
-   * driven imperatively, so this is deliberately the one piece of it that
-   * React knows about.
-   */
-  const [opened, setOpened] = useState(false);
+  /** Last written `data-revealed` / cue state, so paint() only touches the DOM on a change. */
+  const flags = useRef({ revealed: false, cueGone: false });
 
   /**
    * measure() resets every transform so it can read natural positions, so any
@@ -385,7 +381,7 @@ export function MastheadHero({
     const scrollable = track.offsetHeight - window.innerHeight;
     document.documentElement.style.setProperty(
       '--hero-details-y',
-      String(Math.round(trackTop + (DETAILS_START + 0.06) * scrollable)),
+      String(Math.round(trackTop + toScroll(DETAILS_START + 0.02) * scrollable)),
     );
 
     /*
@@ -533,14 +529,30 @@ export function MastheadHero({
       hittable(footRef.current, footOpacity);
     }
     /*
-     * The gate's button sits under the name, which is exactly where the first
-     * statement line wipes in at LINE_STARTS[0] — so it is gone before then,
-     * within the stage A hold, rather than on the foot's slower schedule.
+     * The scroll cue has done its job the moment scrolling starts: it is gone
+     * inside the stage A piece of the map (the first few dozen pixels), well
+     * before the first statement line, and back as the page returns to the top.
      */
-    if (gateRef.current) {
-      const gateOpacity = 1 - span(p, 0.01, HOLD_END);
-      gateRef.current.style.opacity = String(gateOpacity);
-      hittable(gateRef.current, gateOpacity);
+    if (cueRef.current) {
+      const cueOpacity = 1 - span(p, 0, HOLD_END * 0.75);
+      cueRef.current.style.opacity = String(cueOpacity);
+      const gone = cueOpacity < 0.02;
+      if (gone !== flags.current.cueGone) {
+        flags.current.cueGone = gone;
+        cueRef.current.toggleAttribute('data-gone', gone);
+      }
+    }
+
+    /*
+     * Every row fully in and none clearing yet: only then may the texture's
+     * hover cards light in the hero (see globals.css). Mid-wipe, a card's
+     * `overflow: visible` would undo the wipe's clip, and at p = 0 it lit a
+     * card over the spread masthead.
+     */
+    const revealed = p >= SETTLE - 0.002 && p < CLEAR_FROM;
+    if (revealed !== flags.current.revealed && sectionRef.current) {
+      flags.current.revealed = revealed;
+      sectionRef.current.toggleAttribute('data-revealed', revealed);
     }
     if (railRef.current)
       railRef.current.style.transform = `scaleY(${1 - ease(span(p, 0.02, 0.22))})`;
@@ -568,220 +580,52 @@ export function MastheadHero({
 
   paintRef.current = paint;
 
-  /**
-   * Scroll drives the part of the timeline the gate has already played: raw
-   * progress 0 lands at SETTLE, raw progress 1 at the end.
-   *
-   * Without the remap the first 74% of the track would be dead scroll, and
-   * the dock would not begin until two thirds of the way down the section.
-   * The track's height came down to match (see the element below).
+  /*
+   * Scroll drives the whole timeline, through the piecewise map at the top of
+   * the file. Painting is a pure function of p, so scrolling back up plays the
+   * reveal in reverse with no state to unwind.
    */
-  const fromScroll = useCallback((raw: number) => SETTLE + (1 - SETTLE) * raw, []);
-
   useMotionValueEvent(progress, 'change', (raw) => {
-    const state = entranceRef.current;
-    // While the gate is shut the masthead holds at p = 0, and while it is
-    // opening the animation owns the frame. Letting scroll write in either
-    // case would fight over the same transforms.
-    if (!state.done || state.running) return;
+    if (!ready) return;
     paint(fromScroll(raw));
   });
-
-  /**
-   * Open the gate: play 0 → SETTLE, then hand the timeline to scroll.
-   *
-   * Idempotent, because every input that can reach it — the button, a wheel, a
-   * swipe, a key, the section pager's own jump — calls the same function.
-   */
-  const open = useCallback(() => {
-    const state = entranceRef.current;
-    if (state.running || state.done) return;
-
-    state.running = true;
-    setOpened(true);
-    shutGate(false);
-    const started = performance.now();
-
-    /** Cubic ease-out: fast at the start, so the content arrives early. */
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    const step = () => {
-      if (!state.running) return;
-
-      const t = Math.min(1, (performance.now() - started) / ENTRANCE_MS);
-      paint(SETTLE * easeOut(t));
-
-      if (t < 1) {
-        state.frame = requestAnimationFrame(step);
-        return;
-      }
-
-      state.running = false;
-      state.done = true;
-      // Hand over at exactly the value scroll reports, which at the top of the
-      // page is SETTLE — so the first wheel tick continues the move rather
-      // than jumping.
-      paint(fromScroll(progress.get()));
-    };
-
-    state.frame = requestAnimationFrame(step);
-  }, [paint, progress, fromScroll]);
 
   useEffect(() => {
     if (reduced || !ready) return;
 
-    const state = entranceRef.current;
-
     /*
      * Arrive at the scroll position without playing the way there.
      *
-     * The spring was left wherever this page last had it — SETTLE, for a
-     * fresh mount — so painting from it after a restored Back animated the
-     * ledger and the masthead out over the showcase for half a second. Read
-     * the real progress off the track, which is current even when the
-     * spring's source has not caught up yet, and jump the spring to it.
+     * The spring was left wherever this page last had it, so painting from it
+     * after a restored Back animated the ledger and the masthead out over the
+     * showcase for half a second. Read the real progress off the track, which
+     * is current even when the spring's source has not caught up yet, and
+     * jump the spring to it.
      */
-    const settleNow = () => {
-      const track = trackRef.current;
-      let raw = progress.get();
-      if (track) {
-        const top = track.getBoundingClientRect().top + window.scrollY;
-        const scrollable = track.offsetHeight - window.innerHeight;
-        raw = scrollable > 0 ? clamp((window.scrollY - top) / scrollable) : 0;
-      }
-      progress.jump(raw);
-      paint(fromScroll(raw));
-    };
-
-    /*
-     * A refresh half way down the page, or a Back that restored a position:
-     * there is no gate to shut, and shutting it would trap a visitor who is
-     * already reading. ScrollMemory's restore lands here.
-     */
-    if (state.done || window.scrollY > 4) {
-      state.done = true;
-      state.running = false;
-      shutGate(false);
-      settleNow();
-      return;
+    const track = trackRef.current;
+    let raw = progress.get();
+    if (track) {
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      const scrollable = track.offsetHeight - window.innerHeight;
+      raw = scrollable > 0 ? clamp((window.scrollY - top) / scrollable) : 0;
     }
-
-    // The held state. Painted explicitly rather than left to the CSS
-    // defaults, so the letters are spread and the body is out of the way.
-    paint(0);
-    shutGate(true);
-
-    /*
-     * Scroll input is refused while the gate is shut, and refusing is all it
-     * does: the button is what opens the gate. Chrys was explicit about this
-     * on 2026-09-22 — a wheel that both refuses to scroll *and* triggers the
-     * reveal made the button decorative.
-     *
-     * `passive: false`, or preventDefault is ignored and the page scrolls
-     * behind the held masthead.
-     *
-     * The `done` guard matters more than it looks: the listener is attached
-     * once and does not re-run when the gate opens, so without it every wheel
-     * event is swallowed forever. Measured — two 500px wheels after opening
-     * left scrollY at 0, and the page could never be scrolled again.
-     */
-    const swallow = (event: Event) => {
-      if (state.done) return;
-      event.preventDefault();
-    };
-
-    /*
-     * The keyboard is the exception, and has to be: a visitor who cannot use
-     * a pointer needs a way past the gate, and Tab-to-the-button then Enter
-     * is already that. Space and the arrows are accepted as well because they
-     * are what a keyboard user presses to scroll, and silently eating them
-     * would be the trap this whole change is avoiding.
-     */
-    const onKey = (event: KeyboardEvent) => {
-      if (state.done) return;
-      const keys = ['ArrowDown', 'ArrowRight', 'PageDown', ' ', 'Spacebar', 'End'];
-      if (!keys.includes(event.key)) return;
-      event.preventDefault();
-      open();
-    };
-
-    /*
-     * The gate shuts again at the top of the page.
-     *
-     * Asked for on 2026-09-22: scrolling back up is allowed all the way to
-     * the held masthead, and once there it is refused again until Begin is
-     * pressed. So the opening is not a one-time toll — it is the state of
-     * being at the top of this page, and returning restores it.
-     *
-     * Two pixels of tolerance, not zero: a trackpad settling at the top can
-     * report 1px, and re-arming has to be reliable enough that the masthead
-     * does not sometimes stay docked over an empty stage.
-     */
-    const onScroll = () => {
-      const y = window.scrollY;
-
-      if (state.done) {
-        if (y > 2 || state.running) return;
-
-        state.done = false;
-        setOpened(false);
-        shutGate(true);
-        paint(0);
-        return;
-      }
-
-      /*
-       * Moved without the wheel — the section pager, an in-page anchor, a
-       * restored position. The gesture blockers cannot see those, and leaving
-       * the gate shut would hold the masthead spread while the page scrolled
-       * out from under it. Snapped open rather than played: the visitor is
-       * already somewhere else, and an entrance animation behind them is
-       * motion nobody asked for.
-       */
-      if (y > 4) {
-        cancelAnimationFrame(state.frame);
-        state.running = false;
-        state.done = true;
-        setOpened(true);
-        shutGate(false);
-        settleNow();
-      }
-    };
-
-    window.addEventListener('wheel', swallow, { passive: false });
-    window.addEventListener('touchmove', swallow, { passive: false });
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(state.frame);
-      state.running = false;
-      shutGate(false);
-      window.removeEventListener('wheel', swallow);
-      window.removeEventListener('touchmove', swallow);
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, [ready, reduced, paint, progress, fromScroll, open]);
+    progress.jump(raw);
+    paint(fromScroll(raw));
+  }, [ready, reduced, paint, progress]);
 
   if (reduced) return null; // StaticIntro stays; nothing is pinned
 
   return (
-    <section className="hero" id="top" data-section="Hero">
+    <section ref={sectionRef} className="hero" id="top" data-section="Hero">
       {/*
-        180vh bought the full timeline at a scroll. The entrance plays
-        everything up to SETTLE on load now, so the track only has to carry
-        the dock and the hand-over.
-
-        The useful number is the track height minus the sticky child, not the
-        track height: the stage is 100svh, so 150svh gives 50svh of travel —
-        svh, not vh, so a phone's collapsing toolbar does not resize it. The
-        first attempt at 110vh gave 10vh, and the whole hero cleared inside
-        200px of scrolling — measured, which is the only reason it was caught.
-        50vh puts the fade between roughly 170px and 290px, and the showcase
-        immediately after.
+        The useful number is the track height minus the viewport, not the
+        track height: 220svh gives 120svh of travel — svh, not vh, so a
+        phone's collapsing toolbar does not resize it. REVEAL_AT (0.6) spends
+        72svh of that on the reveal and 48svh on the dock and hand-over;
+        a phone's 190svh gives 54svh and 36svh. Change either height and
+        `--hero-pull` in globals.css has to be recomputed with it.
       */}
-      <div ref={trackRef} className="h-[150svh] max-md:h-[130svh] relative">
+      <div ref={trackRef} className="h-[220svh] max-md:h-[190svh] relative">
         <div className="sticky top-0 h-svh flex flex-col justify-center overflow-hidden">
           <p ref={eyebrowRef} className="hero__eyebrow">
             {profile.location}
@@ -803,8 +647,8 @@ export function MastheadHero({
             </div>
 
             {/* No `data-section` any more: see heroSubIndex() in SectionPager —
-                the details and the hero are one stop now that the gate plays
-                the reveal before any scrolling. */}
+                the details and the hero are one stop of the scroll-driven
+                reveal. */}
             <div className="hero__body" ref={bodyRef}>
               <div className="intro">
                 {profile.intro.map((line, i) => (
@@ -853,40 +697,6 @@ export function MastheadHero({
                 <HeroActions cv={profile.cv} />
               </div>
             </div>
-
-            {/*
-              A button, because scrolling is refused until it is pressed.
-              "Scroll to begin" was an instruction the page then ignored.
-
-              Under the name, centred, and larger than the page's other
-              buttons: it was a small pill in the bottom-left corner, and
-              with the scroll locked a visitor who missed it had nowhere to
-              go. The eye lands on the name first, so the way forward sits
-              directly beneath it. Asked for on 2026-09-23.
-
-              Inside the wrap because the wrap is the masthead's unscaled
-              box, so `top: 100%` is the bottom of the letters at every
-              viewport without restating the masthead's font size.
-            */}
-            <div ref={gateRef} className="hero__gate">
-              <button
-                type="button"
-                className="button button--solid cue--gate"
-                onClick={open}
-                aria-label="Begin — reveal the introduction"
-              >
-                {opened ? 'Beginning' : 'Begin'}
-                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                  <path
-                    d="M8 3v10M3.5 8.5 8 13l4.5-4.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="square"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
 
           {/* Hanging identity badge. Nothing beyond docs/07-SOURCE-CONTENT.md §1,
@@ -899,6 +709,31 @@ export function MastheadHero({
             <div className="cue-group">
               <span ref={railRef} className="hero__rail" aria-hidden="true" />
             </div>
+          </div>
+
+          {/* Says which way, then gets out of the way: paint() fades it over the
+              first few dozen pixels of scroll. Decorative to a screen reader —
+              the page scrolls the ordinary way and nothing is withheld. A div,
+              not a p: the texture hover-card rule sets `position: relative` on
+              hero paragraphs, which would drop this into the stage's flow. */}
+          <div ref={cueRef} className="hero__cue" aria-hidden="true">
+            {/* Shows the gesture rather than naming it: a mouse whose wheel
+                rolls for fine pointers, a swipe up for touch. CSS picks one
+                by (pointer: fine|coarse). */}
+            <span className="cue-mouse">
+              <svg viewBox="0 0 18 28" focusable="false">
+                <rect x="0.75" y="0.75" width="16.5" height="26.5" rx="8.25" />
+                <rect className="cue-wheel" x="8" y="6" width="2" height="5" rx="1" />
+              </svg>
+              Scroll to begin
+            </span>
+            <span className="cue-touch">
+              <svg viewBox="0 0 18 20" focusable="false">
+                <path className="cue-chev" d="M3 9l6-6 6 6" />
+                <path className="cue-chev cue-chev--2" d="M3 16l6-6 6 6" />
+              </svg>
+              Swipe up to begin
+            </span>
           </div>
         </div>
       </div>

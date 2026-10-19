@@ -22,8 +22,31 @@ import { useEffect } from 'react';
 const MIN_HOLD = 420;
 const MAX_HOLD = 2600;
 
+/** Read by the head script in app/layout.tsx: the hold shows once per session. */
+export const SPLASH_KEY = 'splash-seen';
+
+function rememberSplash() {
+  try {
+    sessionStorage.setItem(SPLASH_KEY, '1');
+  } catch {
+    // Storage blocked: the hold simply shows again next load.
+  }
+}
+
 export function SplashDismiss() {
   useEffect(() => {
+    const root = document.documentElement;
+
+    // Seen this session: the head script hid the hold before paint. Ready is
+    // set again here because a remount's cleanup below removes it.
+    if (root.dataset.splash === 'seen') {
+      if (!window.location.hash) window.scrollTo(0, 0);
+      root.dataset.ready = 'true';
+      return () => {
+        delete root.dataset.ready;
+      };
+    }
+
     const started = performance.now();
     let done = false;
 
@@ -38,7 +61,8 @@ export function SplashDismiss() {
        * fragment is the one case where the visitor did ask for a position.
        */
       if (!window.location.hash) window.scrollTo(0, 0);
-      document.documentElement.dataset.ready = 'true';
+      root.dataset.ready = 'true';
+      rememberSplash();
     };
 
     const release = () => {
@@ -61,7 +85,7 @@ export function SplashDismiss() {
 
     return () => {
       window.clearTimeout(ceiling);
-      delete document.documentElement.dataset.ready;
+      delete root.dataset.ready;
     };
   }, []);
 

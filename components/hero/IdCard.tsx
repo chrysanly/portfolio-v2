@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Profile } from '@/lib/profile';
+import { PhotoLightbox } from './PhotoLightbox';
 
 /**
  * The identity badge, hung from a real lanyard.
@@ -127,6 +128,15 @@ const ANCHOR_INSET = 190;
 const UPRIGHT = 0.075;
 const TAPE_W = 17; // webbing width
 
+/*
+ * A press on the photo that stays within TAP_SLOP px and lifts within TAP_MS
+ * is a tap and opens the photo; anything longer or further is the lanyard
+ * drag it always was. The card captures the pointer on press, so the browser's
+ * own click never reaches the photo button — the tap is decided here instead.
+ */
+const TAP_SLOP = 6;
+const TAP_MS = 300;
+
 interface P {
   x: number;
   y: number;
@@ -146,6 +156,21 @@ export function IdCard({ profile }: { profile: Profile }) {
   const spineRef = useRef<SVGPathElement>(null);
   const clipRef = useRef<SVGGElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const photoRef = useRef<HTMLButtonElement>(null);
+
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const openPhoto = useCallback(() => setPhotoOpen(true), []);
+  const closePhoto = useCallback(() => setPhotoOpen(false), []);
+  const openRef = useRef(openPhoto);
+  openRef.current = openPhoto;
+  /** Set when the solver's pointer handling decided the last press itself. */
+  const pointerOwned = useRef(false);
+
+  /** The card's in-plane angle, read off the transform the solver writes. */
+  const getTilt = useCallback(() => {
+    const match = cardRef.current?.style.transform.match(/rotate\((-?[\d.]+)deg\)/);
+    return match ? Number(match[1]) : 0;
+  }, []);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -233,6 +258,10 @@ export function IdCard({ profile }: { profile: Profile }) {
     let grabY = 0;
     let running = false;
     let frame = 0;
+    let tapX = 0;
+    let tapY = 0;
+    let tapAt = 0;
+    let tapCandidate = false;
     const born = performance.now();
 
     /**
@@ -407,8 +436,15 @@ export function IdCard({ profile }: { profile: Profile }) {
     };
 
     const onDown = (event: PointerEvent) => {
+      pointerOwned.current = false;
       if (still.matches || pts.length === 0) return;
+      pointerOwned.current = true;
       held = true;
+      tapX = event.clientX;
+      tapY = event.clientY;
+      tapAt = performance.now();
+      tapCandidate =
+        event.button === 0 && !!photoRef.current?.contains(event.target as Node);
       pointerId = event.pointerId;
       card.setPointerCapture(pointerId);
       card.dataset.held = 'true';
@@ -422,6 +458,9 @@ export function IdCard({ profile }: { profile: Profile }) {
 
     const onMove = (event: PointerEvent) => {
       if (!held) return;
+      if (tapCandidate && Math.hypot(event.clientX - tapX, event.clientY - tapY) >= TAP_SLOP) {
+        tapCandidate = false;
+      }
       const box = stage.getBoundingClientRect();
       /*
        * The raw pointer, unclamped.
@@ -440,9 +479,16 @@ export function IdCard({ profile }: { profile: Profile }) {
       grabY = event.clientY - box.top;
     };
 
-    const onUp = () => {
+    const onUp = (event: PointerEvent) => {
       if (!held) return;
       held = false;
+      const tapped =
+        tapCandidate &&
+        event.type === 'pointerup' &&
+        performance.now() - tapAt < TAP_MS &&
+        Math.hypot(event.clientX - tapX, event.clientY - tapY) < TAP_SLOP;
+      tapCandidate = false;
+      if (tapped) openRef.current();
       delete card.dataset.held;
       try {
         card.releasePointerCapture(pointerId);
@@ -542,16 +588,33 @@ export function IdCard({ profile }: { profile: Profile }) {
 
         <div className="lanyard__body">
           <div className="lanyard__id">
-            <div className="lanyard__photo">
+            <button
+              ref={photoRef}
+              type="button"
+              className="lanyard__photo photo-trigger"
+              aria-label={`View ${profile.name}'s photo larger`}
+              aria-haspopup="dialog"
+              aria-expanded={photoOpen}
+              /*
+               * Keyboard activation (detail 0) always opens. A pointer click
+               * only reaches here when the solver is not handling the press —
+               * reduced motion, or before it has started — since otherwise the
+               * card holds pointer capture and the tap is decided in onUp.
+               */
+              onClick={(event) => {
+                if (event.detail !== 0 && pointerOwned.current) return;
+                openPhoto();
+              }}
+            >
               {profile.portrait ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.portrait} alt={profile.fullName} />
+                <img src={profile.portrait} alt="" draggable={false} />
               ) : (
                 <span className="lanyard__monogram" aria-hidden="true">
                   {initials}
                 </span>
               )}
-            </div>
+            </button>
             <div>
               <p className="lanyard__name">{profile.fullName}</p>
               <p className="lanyard__role">{profile.role}</p>
@@ -578,6 +641,17 @@ export function IdCard({ profile }: { profile: Profile }) {
           )}
         </div>
       </div>
+
+      <PhotoLightbox
+        open={photoOpen}
+        onClose={closePhoto}
+        sourceRef={photoRef}
+        getTilt={getTilt}
+        fullName={profile.fullName}
+        role={profile.role}
+        portrait={profile.portrait}
+        initials={initials}
+      />
     </div>
   );
 }

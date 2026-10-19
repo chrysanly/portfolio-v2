@@ -3,7 +3,10 @@ import { site } from '@/content/site';
 const LETTERS = site.name.toUpperCase().split('');
 
 /**
- * Opening hold — one second, every load.
+ * Opening hold — the first load of a browser session only. After that the
+ * head script in app/layout.tsx marks the page `data-splash="seen"` before
+ * its first paint and globals.css never draws this (SplashDismiss keeps the
+ * sessionStorage key).
  *
  * Server-rendered and dismissed by a pure CSS animation rather than by a timer
  * in JavaScript. That matters twice over: a client-rendered splash would appear

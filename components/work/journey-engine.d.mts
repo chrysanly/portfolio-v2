@@ -28,9 +28,18 @@ export interface JourneyOptions {
   navigate: (href: string) => void;
   /** Light-DOM markers the section pager reads `data-substep-y` from. */
   markers?: HTMLElement[];
+  /**
+   * A card's View more was pressed: open the details for stop `index`.
+   * `opener` is the button, inside the shadow root; focus returns to it.
+   */
+  onMore?: (index: number, opener: HTMLElement) => void;
 }
 
-/** Draws the ladder into a shadow root on `host`; returns the cleanup. */
+/**
+ * Draws the journey into a shadow root on `host` — the ladder scene from
+ * 1024 up, one stop at a time below it and in short landscape — and returns
+ * the cleanup.
+ */
 export function mountJourney(
   host: HTMLElement,
   chapters: JourneyChapter[],

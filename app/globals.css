@@ -57,23 +57,102 @@
  * The grain is inverted here: a dark noise over a dark ground is invisible, so
  * it screens instead of multiplying.
  */
-/* The palette swap, crossfaded. ThemeToggle drives this through the View
-   Transition API; these rules only set its pace. The default root transition is
-   already a crossfade of the old and new frames, so nothing needs naming — it
-   just needs to be quicker than the 500ms default and to use the site's curve.
-   Unlayered on purpose: pseudo-elements this specific must not be reordered
-   under a Tailwind layer. */
+/* The palette swap, as a ripple. ThemeToggle runs it as a view transition and
+   animates the new snapshot's clip-path itself: a wavy-edged disc spreading
+   from the toggle. These rules switch the default crossfade off and draw the
+   new frame over the old one, so the ripple reveals the new theme cleanly in
+   both directions. Unlayered on purpose: pseudo-elements this specific must
+   not be reordered under a Tailwind layer. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 260ms;
-  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Reduced motion: only the new snapshot fades in, over an opaque old one.
+   Fading both would dip the page through transparency. */
+@keyframes theme-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation: none;
+    animation: theme-in 180ms cubic-bezier(0.32, 0.72, 0, 1) both;
   }
+}
+
+/* The fallback where View Transitions are missing: a tide. ThemeToggle drops
+   a full-screen sheet in the target theme's ground, with one rolling wave
+   crest on its leading edge, and washes it down the screen. The palette swaps
+   under full cover, then the sheet dissolves. ThemeToggle moves it with WAAPI
+   (transform and opacity only); these rules only draw it. */
+.tide {
+  --tide-crest: clamp(40px, 7vh, 72px);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tide[data-to='light'] {
+  --tide-ground: #f7f6f2;
+}
+
+.tide[data-to='dark'] {
+  --tide-ground: #14130f;
+}
+
+.tide__sheet {
+  position: absolute;
+  inset: 0 0 auto;
+  height: calc(100% + var(--tide-crest));
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-100%);
+  will-change: transform, opacity;
+}
+
+.tide__fill {
+  flex: 1;
+  background: var(--tide-ground);
+}
+
+/* Twice the screen wide, so rolling it by half loops seamlessly. */
+.tide__crest {
+  display: block;
+  width: 200%;
+  height: var(--tide-crest);
+  flex: none;
+  /* Overlaps the fill by a pixel, or a sub-pixel seam shows at the joint. */
+  margin-top: -1px;
+  fill: var(--tide-ground);
+  will-change: transform;
+}
+
+/* While the ripple or the tide runs, the page's own colour transitions (body, header,
+   cards: 120-320ms) are switched off: the palette must be finished when the
+   sheet dissolves, or it uncovers a half-swapped, muddy page. !important
+   because this must beat every component's own transition, for that
+   second only. */
+:root[data-theme-swap] *,
+:root[data-theme-swap] *::before,
+:root[data-theme-swap] *::after {
+  transition: none !important;
 }
 
 :root[data-theme='dark'] {
@@ -103,7 +182,7 @@
     --header-h: 72px;
     /* How far the work index is pulled up under the hero — see
        `.hero + main` near the end of this file. */
-    --hero-pull: -103.8svh;
+    --hero-pull: -103.7svh;
     /* One material for all three devices in the showcase rig. */
     --device: #232220;
     --device-edge: rgb(255 255 255 / 0.07);
@@ -197,7 +276,7 @@
     :root {
       --page-x: 20px;
       --header-h: 60px;
-      --hero-pull: -102.3svh;
+      --hero-pull: -102.8svh;
     }
   }
 
@@ -291,17 +370,6 @@
 
   :root[data-texture='off'] body::after,
   :root[data-texture='off'] .bg-spot {
-    opacity: 0;
-  }
-
-  /*
-   * And while the home page's gate is shut: the held masthead stands on
-   * plain ground, and the mesh fades in with the reveal when Begin is
-   * pressed — or stays off, if the switch above says so. Set by the head
-   * script and kept by MastheadHero, which re-shuts it back at the top.
-   */
-  :root[data-gate='shut'] body::after,
-  :root[data-gate='shut'] .bg-spot {
     opacity: 0;
   }
 
@@ -587,7 +655,7 @@
      * Full width, against `.wrap`'s own 1400px cap.
      *
      * The hero's furniture is pinned to the page gutter — the location line at
-     * `left: var(--page-x)`, the Begin control and the rail likewise — while
+     * `left: var(--page-x)`, the rail likewise — while
      * the header was centred inside 1400px. At 1920 that put "Light" 260px
      * short of the edge the location line sits on, which is what Chrys
      * spotted: the two ends of the same bar were measured from different
@@ -641,6 +709,40 @@
 
   .theme-toggle:hover {
     color: var(--color-accent);
+  }
+
+  .theme-toggle:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  /* Mid-wave the press is ignored (ThemeToggle), so the cursor says so. */
+  .theme-toggle[aria-busy='true'] {
+    cursor: progress;
+  }
+
+  /* The press: the glyph gives a little under the finger. */
+  .theme-toggle__glyphs {
+    transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .theme-toggle:active .theme-toggle__glyphs {
+    transform: scale(0.88);
+  }
+
+  /* Reduced motion: no turn or scale, a short opacity change only. */
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle__glyphs svg {
+      transition: opacity 120ms ease;
+    }
+
+    .theme-toggle[data-theme-next] .theme-toggle__glyphs svg {
+      transform: none;
+    }
+
+    .theme-toggle:active .theme-toggle__glyphs {
+      transform: none;
+    }
   }
 
   /*
@@ -915,6 +1017,23 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     opacity: 0.62;
+  }
+
+  /* On a phone the label, the arrow and the stamp in one line came to 359px,
+     wider than a 320px screen's column, and the hero clipped the button's
+     end. The stamp takes its own line inside the button instead. */
+  @media (max-width: 479px) {
+    .hero-actions .button--cv {
+      flex-wrap: wrap;
+      max-width: 100%;
+      row-gap: 2px;
+      white-space: normal;
+    }
+
+    .hero-actions .button--cv .hero-actions__stamp {
+      flex-basis: 100%;
+      text-align: center;
+    }
   }
 
   .button:disabled {
@@ -2497,43 +2616,129 @@
   }
 
   /*
-   * Directly under the name, centred on the page. `.hero .wrap` is the
-   * masthead's unscaled box, so `top: 100%` is the foot of the letters at
-   * every viewport and under the short-window masthead size too.
+   * The scroll cue. It replaced the Begin button (Chrys, 2026-10-19): the
+   * page scrolls from the first frame and scrolling plays the reveal, so the
+   * cue only has to say which way. Centred at the foot of the stage, clear of
+   * the pager (left edge) and the accent picker (bottom right), and above the
+   * home indicator. MastheadHero fades it out over the first few pixels of
+   * scroll through inline `opacity`, so nothing here sets opacity.
    */
-  .hero__gate {
+  .hero__cue {
     position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-top: clamp(28px, 5vh, 56px);
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    bottom: calc(clamp(14px, 4svh, 40px) + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    font-size: var(--text-small);
+    letter-spacing: 0.04em;
+    color: var(--color-faint);
+    pointer-events: none;
+    user-select: none;
     will-change: opacity;
   }
 
-  /*
-   * The gate's control, on top of `.button`: the same control as "View my
-   * work" and "Send a message", because it does the same kind of thing. It
-   * was a text cue, then a quiet pill in the corner, and neither read as
-   * the only way forward on a page where scrolling has been refused — so it
-   * is the one control on the page drawn a size up.
-   */
-  .cue--gate {
-    min-height: 60px;
-    padding: 16px 38px;
-    gap: 14px;
-    font-size: var(--text-body-lg);
-    letter-spacing: 0.04em;
+  .hero__cue svg {
+    display: block;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
   }
 
-  .cue--gate svg {
+  /* One gesture per device: the mouse by default and on fine pointers
+     (desktop, laptop trackpad, iPad with a trackpad), the swipe on touch. */
+  .cue-mouse,
+  .cue-touch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cue-touch {
+    display: none;
+  }
+
+  @media (pointer: coarse) {
+    .cue-mouse {
+      display: none;
+    }
+    .cue-touch {
+      display: flex;
+    }
+  }
+
+  .cue-mouse svg {
     width: 18px;
-    height: 18px;
-    animation: cue-bounce 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    height: 28px;
   }
 
-  /* A drop and a smaller rebound, then a rest: it says "down" by moving
-     down, which a static arrow on a locked page was not saying loudly
-     enough. Transform only, so it never costs a layout. */
+  .cue-touch svg {
+    width: 18px;
+    height: 20px;
+    stroke-linecap: square;
+  }
+
+  /* The wheel dot rolls down the mouse and fades, as a scroll would move it. */
+  .cue-wheel {
+    fill: currentColor;
+    stroke: none;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: cue-wheel 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  /* Two chevrons rise in turn: the direction of the finger. */
+  .cue-chev {
+    transform-box: fill-box;
+    animation: cue-chev 1600ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .cue-chev--2 {
+    animation-delay: 200ms;
+  }
+
+  /* Faded out: the loop has nobody to talk to, so it stops. */
+  .hero__cue[data-gone] .cue-wheel,
+  .hero__cue[data-gone] .cue-chev {
+    animation: none;
+  }
+
+  @keyframes cue-wheel {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    60%,
+    100% {
+      transform: translateY(7px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes cue-chev {
+    0% {
+      transform: translateY(4px);
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    70%,
+    100% {
+      transform: translateY(-3px);
+      opacity: 0;
+    }
+  }
+
+  /* The work hint's nudge (.hint svg): a drop and a smaller rebound, then a
+     rest. Transform only, so it never costs a layout. */
   @keyframes cue-bounce {
     0%,
     55%,
@@ -2551,18 +2756,14 @@
     }
   }
 
-  /* The nudge stops under the pointer — by then it has made its point — and
-     never starts at all for a visitor who asked for less motion. */
-  @media (hover: hover) and (pointer: fine) {
-    .cue--gate:hover svg {
-      animation: none;
-      transform: translateY(2px);
-    }
-  }
-
+  /* Reduced motion: the gesture drawn still, dot and chevrons at rest.
+     The fade on first scroll (inline opacity) stays. */
   @media (prefers-reduced-motion: reduce) {
-    .cue--gate svg {
+    .cue-wheel,
+    .cue-chev {
       animation: none;
+      opacity: 1;
+      transform: none;
     }
   }
 
@@ -3444,29 +3645,6 @@
       transform 280ms ease;
   }
 
-  /*
-   * Stood down while the home page's gate is shut. It used to stand down
-   * over the journey too, because the journey had arrows of its own; those
-   * were removed on 2026-09-23, so the pager is the way to step through it.
-   */
-  :root[data-gate='shut'] .pager {
-    opacity: 0;
-    transform: translateY(-50%) translateX(-14px);
-    pointer-events: none;
-  }
-
-  /*
-   * And while the home page's gate is shut (Chrys, 2026-09-23). The held
-   * masthead has one way forward, Begin, and a pager beside it offered a
-   * second that skipped the reveal. `visibility` as well, so Tab goes
-   * straight to Begin rather than to a control nobody can see. The base
-   * rule does not transition `visibility`, so it returns at once when the
-   * gate opens and the opacity fades it in.
-   */
-  :root[data-gate='shut'] .pager {
-    visibility: hidden;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .pager {
       transition: none;
@@ -4288,6 +4466,14 @@
     visibility: hidden;
   }
 
+  /* Once per browser session: after the first load the head script in
+     app/layout.tsx marks the page before its first paint, and the hold is
+     never drawn. A reload or a return visit in the same tab opens straight
+     onto the cached page; a new tab or window gets the hold again. */
+  :root[data-splash='seen'] .splash {
+    display: none;
+  }
+
   .splash__mark {
     display: flex;
     gap: 0.09em;
@@ -5009,9 +5195,11 @@
    * their own hover, and it says "press this", which a paragraph must not.
    * The ID card is already a card.
    *
-   * Nothing while the home page's gate is shut: the statement waits there
-   * at a quarter opacity, still under the pointer, and hovering it lit a
-   * card over the held masthead (Chrys, 2026-09-23).
+   * Nothing in the hero until its scroll-driven reveal has finished: the
+   * statement waits at a quarter opacity under the spread masthead, and
+   * hovering it lit a card over the name (Chrys, 2026-09-23); mid-wipe the
+   * card's `overflow: visible` would also undo the wipe's clip. MastheadHero
+   * sets `data-revealed` on `.hero` only while every row is fully in.
    *
    * Nor anything positioned on its own: the rule sets `position: relative`
    * to anchor the card, which pulled the fixed "Dubai, UAE" eyebrow into
@@ -5031,8 +5219,8 @@
    * specificity, and the colour rules this overrides live here.
    */
   @media (hover: hover) and (pointer: fine) {
-    :root:not([data-texture='off']):not([data-gate='shut'])
-      :is(main, .hero)
+    :root:not([data-texture='off'])
+      :is(main, .hero[data-revealed])
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
         button,
@@ -5046,7 +5234,7 @@
         .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ),
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row {
       position: relative;
       z-index: 0;
       /*
@@ -5071,7 +5259,7 @@
        leading is its: reaching past either covered the neighbouring text —
        the next ledger row in the tight short-window layout, and the lines
        above and below in the statement, which are set close. */
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row {
       --card-inset: 0 -14px;
       --card-radius: var(--radius);
     }
@@ -5079,13 +5267,13 @@
     /* The statement is set close — at 1.2 in a short window the lines all
        but touch — so the card starts 3px inside the line: after the 3px
        lift its top edge sits exactly where the line began. */
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .intro__line {
+    :root:not([data-texture='off']) .hero[data-revealed] .intro__line {
       --card-inset: 3px -14px 0;
       --card-radius: var(--radius);
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut'])
-      :is(main, .hero)
+    :root:not([data-texture='off'])
+      :is(main, .hero[data-revealed])
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
         button,
@@ -5099,7 +5287,7 @@
         .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       )::before,
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row::before {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row::before {
       content: '';
       position: absolute;
       /* The fallback lives here, not as a default on the element: set there,
@@ -5117,8 +5305,8 @@
       transition: opacity 200ms ease;
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut'])
-      :is(main, .hero)
+    :root:not([data-texture='off'])
+      :is(main, .hero[data-revealed])
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
         button,
@@ -5132,7 +5320,7 @@
         .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover,
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover {
       z-index: 3;
       overflow: visible;
       will-change: auto;
@@ -5140,8 +5328,8 @@
       color: var(--card-text);
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut'])
-      :is(main, .hero)
+    :root:not([data-texture='off'])
+      :is(main, .hero[data-revealed])
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
         button,
@@ -5155,7 +5343,7 @@
         .journey__hint *,
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover::before,
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover::before {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover::before {
       opacity: 1;
       /* On hover only: a backdrop filter on every text block, even an
          invisible one, is a cost paid for nothing. */
@@ -5166,8 +5354,8 @@
     /* Everything inside inherits the card's colour. Blocks colour inner
        spans (the intro lines and notes wrap their text for the wipe), and
        anything carrying the page's own ink would vanish on an inverted card. */
-    :root:not([data-texture='off']):not([data-gate='shut'])
-      :is(main, .hero)
+    :root:not([data-texture='off'])
+      :is(main, .hero[data-revealed])
       :is(p, li, dd, h1, h2, h3, h4, blockquote, figcaption, .intro__line):not(
         a,
         button,
@@ -5182,22 +5370,22 @@
         :has(a, button, p, li, dd, h1, h2, h3, h4, blockquote, figcaption)
       ):hover
       *,
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dd,
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dd * {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover > dd,
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover > dd * {
       color: var(--card-text);
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover > dt {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover > dt {
       color: var(--card-label);
     }
 
-    :root:not([data-texture='off']):not([data-gate='shut']) .hero .facts__row:hover {
+    :root:not([data-texture='off']) .hero[data-revealed] .facts__row:hover {
       border-bottom-color: transparent;
     }
 
     /* Single-line blocks — list items, labels, the facts beside them — take
        a tighter card: at the full 14px radius one line reads as a pill. */
-    :root:not([data-texture='off']):not([data-gate='shut'])
+    :root:not([data-texture='off'])
       main
       :is(.did li, .story__label, .story__n, .facts-inline dd) {
       --card-radius: 10px;
@@ -5206,7 +5394,7 @@
 
     /* The accent dash would vanish on the light card; it takes the card's
        text colour with the words beside it. */
-    :root:not([data-texture='off']):not([data-gate='shut']) main .did li:hover::after {
+    :root:not([data-texture='off']) main .did li:hover::after {
       background: var(--card-text);
     }
   }
@@ -5279,9 +5467,11 @@
  * and the document keeps its natural flow.
  */
 /*
- * How far the work index is pulled up: `--hero-pull`, -103.8svh, and
- * -102.3svh below 768px. Each is `track - WORK_IN_TO * (track - 100)` for the
- * hero's 150svh desktop and 130svh phone tracks, which puts the showcase's
+ * How far the work index is pulled up: `--hero-pull`, -103.7svh, and
+ * -102.8svh below 768px. Each is `track - raw * (track - 100)`, where raw is
+ * the scroll progress at which MastheadHero's timeline reaches WORK_IN_TO
+ * (0.9692, through its piecewise map), for the hero's 220svh desktop and
+ * 190svh phone tracks. That puts the showcase's
  * top exactly where `--work-in` reaches 1 — no dead scroll between the hero
  * clearing and the first project. The earlier single -101.5svh was worked
  * out for 180vh/140vh tracks and left a gap once the tracks were shortened.

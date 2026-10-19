@@ -65,74 +65,194 @@ export const site = {
     'Senior full-stack developer with 5+ years building scalable web applications, REST APIs and enterprise ERP systems. Laravel, Node.js and modern JavaScript frameworks. Strongest in role-based access control, service-repository architecture, database optimisation and real-time system integration. Leads development teams, mentors engineers, and uses AI-assisted workflows to accelerate delivery without loosening code quality.',
 } as const;
 
-/** docs/07-SOURCE-CONTENT.md §3. Order is fixed; do not rank by proficiency. */
-export const skillGroups = [
+/**
+ * One item in a stack group. `logo` is a Simple Icons slug with a file in
+ * public/logos/ (simple-icons 16.35.0, CC0). A tool without a published logo
+ * has none and is drawn as a lettered tile; an engineering practice is
+ * `concept` and is shown as words, never given a made-up mark.
+ */
+export type StackItem = { name: string; logo?: string; concept?: true };
+
+/**
+ * docs/07-SOURCE-CONTENT.md §3, from Chrys's resume (Technical Skills,
+ * 2026-10-19). Shown in full on the home page's stack section and on About.
+ * Order is fixed; do not rank by proficiency.
+ */
+export const skillGroups: readonly { label: string; items: readonly StackItem[] }[] = [
   {
     label: 'Languages & frameworks',
     items: [
-      'PHP',
-      'JavaScript',
-      'Dart',
-      'SQL',
-      'HTML',
-      'CSS/SCSS',
-      'Laravel 7–12',
-      'Node.js',
-      'Vue 3',
-      'React',
-      'Angular 7–10',
-      '.NET Web API',
-      'Flutter',
-      'Ionic 5',
+      { name: 'PHP', logo: 'php' },
+      { name: 'JavaScript', logo: 'javascript' },
+      { name: 'Python', logo: 'python' },
+      { name: 'Dart', logo: 'dart' },
+      { name: 'SQL' },
+      { name: 'HTML5', logo: 'html5' },
+      { name: 'CSS3/SCSS', logo: 'css' },
+      { name: 'Laravel 7–12', logo: 'laravel' },
+      { name: 'Node.js', logo: 'nodedotjs' },
+      { name: 'Vue 3', logo: 'vuedotjs' },
+      { name: 'React', logo: 'react' },
+      { name: 'Angular 7–10', logo: 'angular' },
+      { name: '.NET Web API', logo: 'dotnet' },
+      { name: 'Flutter', logo: 'flutter' },
+      { name: 'Ionic 5', logo: 'ionic' },
+      { name: 'Tauri', logo: 'tauri' },
     ],
   },
   {
     label: 'Databases',
-    items: ['MySQL', 'MariaDB', 'PostgreSQL', 'MongoDB', 'Firebase Firestore'],
+    items: [
+      { name: 'MySQL', logo: 'mysql' },
+      { name: 'MariaDB', logo: 'mariadb' },
+      { name: 'PostgreSQL', logo: 'postgresql' },
+      { name: 'MongoDB', logo: 'mongodb' },
+      { name: 'Firebase Firestore', logo: 'firebase' },
+      { name: 'SQLite', logo: 'sqlite' },
+    ],
+  },
+  {
+    label: 'AI & agentic engineering',
+    items: [
+      { name: 'Claude Code', logo: 'claude' },
+      { name: 'Model Context Protocol (MCP)', logo: 'modelcontextprotocol' },
+      { name: 'Groq' },
+      { name: 'AI-assisted software development', concept: true },
+      { name: 'Agentic AI workflows', concept: true },
+      { name: 'Reusable AI skills', concept: true },
+      { name: 'AI API integration', concept: true },
+      { name: 'AI-powered application features', concept: true },
+      { name: 'AI-assisted code analysis and refactoring', concept: true },
+    ],
   },
   {
     label: 'Architecture & practices',
     items: [
-      'SOLID',
-      'Repository pattern',
-      'Service Layer pattern',
-      'RESTful API design',
-      'RBAC',
-      'TDD',
-      'Clean code',
-      'Conventional commits',
-      'Agile/Scrum',
+      { name: 'SOLID principles', concept: true },
+      { name: 'Clean code', concept: true },
+      { name: 'Service Layer pattern', concept: true },
+      { name: 'Repository pattern', concept: true },
+      { name: 'RESTful API design', concept: true },
+      { name: 'RBAC', concept: true },
+      { name: 'Database query optimisation', concept: true },
+      { name: 'N+1 query prevention', concept: true },
+      { name: 'TDD', concept: true },
+      { name: 'Agile/Scrum', concept: true },
+      { name: 'Conventional Commits', concept: true },
     ],
   },
   {
     label: 'Auth & security',
-    items: ['Laravel Sanctum', 'Laravel Passport OAuth', 'Twilio OTP', 'JWT'],
+    items: [
+      { name: 'Laravel Sanctum', logo: 'laravel' },
+      { name: 'Laravel Passport', logo: 'laravel' },
+      { name: 'OAuth 2.0' },
+      { name: 'JSON Web Tokens (JWT)', logo: 'jsonwebtokens' },
+      { name: 'Twilio OTP' },
+      { name: 'Role-based authorization', concept: true },
+    ],
+  },
+  {
+    label: 'Payments & integrations',
+    items: [
+      { name: 'Tabby' },
+      { name: 'Tamara' },
+      { name: 'Etisalat' },
+      { name: 'Stripe', logo: 'stripe' },
+      { name: 'REST API integrations', concept: true },
+      { name: 'Mobile API integration', concept: true },
+    ],
   },
   {
     label: 'Tools & platforms',
     items: [
-      'Git',
-      'GitHub',
-      'GitLab',
-      'Azure',
-      'AWS',
-      'Firebase',
-      'Docker',
-      'Postman',
-      'JIRA',
-      'Figma',
-      'Composer',
-      'NPM',
-      'Vite',
-      'Webpack',
+      { name: 'Visual Studio Code' },
+      { name: 'PhpStorm', logo: 'phpstorm' },
+      { name: 'Git', logo: 'git' },
+      { name: 'GitHub', logo: 'github' },
+      { name: 'GitLab', logo: 'gitlab' },
+      { name: 'Azure' },
+      { name: 'AWS' },
+      { name: 'Firebase', logo: 'firebase' },
+      { name: 'Docker', logo: 'docker' },
+      { name: 'Composer', logo: 'composer' },
+      { name: 'NPM', logo: 'npm' },
+      { name: 'Vite', logo: 'vite' },
+      { name: 'Webpack', logo: 'webpack' },
+      { name: 'Postman', logo: 'postman' },
+      { name: 'Apidog' },
+      { name: 'DBngin' },
+      { name: 'TablePlus' },
+      { name: 'JIRA', logo: 'jira' },
+      { name: 'Figma', logo: 'figma' },
     ],
   },
-  { label: 'Testing', items: ['PHPUnit', 'Pest', 'Firebase Emulator'] },
   {
-    label: 'AI-assisted development',
-    items: ['Code integration', 'Optimisation', 'Workflow automation'],
+    label: 'Testing & QA',
+    items: [
+      { name: 'PHPUnit' },
+      { name: 'Pest' },
+      { name: 'Firebase Emulator', logo: 'firebase' },
+      { name: 'TDD', concept: true },
+      { name: 'API testing', concept: true },
+    ],
   },
-] as const;
+  {
+    label: 'Desktop apps',
+    items: [
+      { name: 'Tauri', logo: 'tauri' },
+      { name: 'Rust/Cargo', logo: 'rust' },
+      { name: 'Orca' },
+    ],
+  },
+];
+
+/**
+ * Each logo's brand colour, used on hover only where it keeps 3:1 against
+ * that theme's ground (#f7f6f2 light, #14130f dark); `null` keeps the ink.
+ * Computed from simple-icons 16.35.0 when the logos were added.
+ */
+export const logoBrand: Readonly<Record<string, readonly [light: string | null, dark: string | null]>> = {
+  php: ['#777BB4', '#777BB4'],
+  javascript: [null, '#F7DF1E'],
+  python: ['#3776AB', '#3776AB'],
+  dart: ['#0175C2', '#0175C2'],
+  html5: ['#E34F26', '#E34F26'],
+  css: ['#663399', null],
+  sass: ['#CC6699', '#CC6699'],
+  laravel: ['#FF2D20', '#FF2D20'],
+  nodedotjs: [null, '#5FA04E'],
+  vuedotjs: [null, '#4FC08D'],
+  react: [null, '#61DAFB'],
+  angular: ['#0F0F11', null],
+  dotnet: ['#512BD4', null],
+  flutter: ['#02569B', null],
+  ionic: ['#3880FF', '#3880FF'],
+  tauri: [null, '#24C8D8'],
+  mysql: ['#4479A1', '#4479A1'],
+  mariadb: ['#003545', null],
+  postgresql: ['#4169E1', '#4169E1'],
+  mongodb: [null, '#47A248'],
+  firebase: ['#DD2C00', '#DD2C00'],
+  sqlite: ['#003B57', null],
+  claude: [null, '#D97757'],
+  modelcontextprotocol: ['#000000', null],
+  phpstorm: ['#000000', null],
+  git: ['#F03C2E', '#F03C2E'],
+  github: ['#181717', null],
+  gitlab: [null, '#FC6D26'],
+  docker: [null, '#2496ED'],
+  composer: ['#885630', '#885630'],
+  npm: ['#CB3837', '#CB3837'],
+  vite: ['#9135FF', '#9135FF'],
+  webpack: [null, '#8DD6F9'],
+  postman: [null, '#FF6C37'],
+  jira: ['#0052CC', null],
+  figma: ['#F24E1E', '#F24E1E'],
+  jsonwebtokens: ['#000000', null],
+  stripe: ['#635BFF', '#635BFF'],
+  rust: ['#000000', null],
+};
 
 /**
  * docs/07-SOURCE-CONTENT.md §4, newest first.

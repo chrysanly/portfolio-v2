@@ -117,7 +117,7 @@ export default async function AboutPage() {
                       lineHeight: 1.6,
                     }}
                   >
-                    {group.items.join(', ')}
+                    {group.items.map((item) => item.name).join(', ')}
                   </dd>
                 </div>
               ))}

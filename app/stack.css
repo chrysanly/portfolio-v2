@@ -1,0 +1,169 @@
+/* ---------------------------------------------------------------------------
+   "What I build with" — components/ui/StackSection.tsx.
+
+   An index, not a wall of cards: each group is a row under a hairline, its
+   label on the left and its tools flowing on the right, the way About and
+   the work list read. Tiles are quiet (ink logos, one rule border); the
+   brand colour is a hover reward, never the resting state, so sixty logos
+   do not turn the page into a sticker sheet.
+
+   Unlayered, like the site's other feature files, so it is never reordered
+   under a Tailwind layer.
+--------------------------------------------------------------------------- */
+
+.stack {
+  padding-block: clamp(72px, 12vh, 140px);
+  border-top: 1px solid var(--color-rule);
+}
+
+.stack__title {
+  max-width: 18em;
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.4vw, 3rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.stack__lede {
+  max-width: 34em;
+  margin-top: 14px;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.stack__groups {
+  display: grid;
+  margin-top: clamp(36px, 6vh, 64px);
+}
+
+.stack__group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding-block: 22px;
+  border-top: 1px solid var(--color-rule);
+}
+
+@media (min-width: 768px) {
+  .stack__group {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 32px;
+  }
+}
+
+.stack__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+@media (min-width: 768px) {
+  .stack__label {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+}
+
+.stack__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.08em;
+  color: var(--color-faint);
+}
+
+.stack__body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stack__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack__tile {
+  /* The brand colour this theme can carry; currentColor when it cannot. */
+  --brand: var(--brand-light, currentColor);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 13px 0 11px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  font-size: var(--text-small);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--color-ink);
+  transition: border-color 160ms ease;
+}
+
+:root[data-theme='dark'] .stack__tile {
+  --brand: var(--brand-dark, currentColor);
+}
+
+.stack__logo {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: var(--logo) center / contain no-repeat;
+  mask: var(--logo) center / contain no-repeat;
+  transition: background-color 160ms ease;
+}
+
+.stack__mono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--color-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stack__tile:hover {
+    border-color: var(--color-ink);
+  }
+
+  .stack__tile:hover .stack__logo {
+    background-color: var(--brand);
+  }
+}
+
+.stack__concepts {
+  max-width: 52em;
+  font-size: var(--text-small);
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+
+/* Windows high contrast: the mask paints in the system text colour. */
+@media (forced-colors: active) {
+  .stack__logo {
+    background-color: CanvasText;
+  }
+}

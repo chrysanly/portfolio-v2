@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { showVeil } from '@/components/ui/RouteVeil';
 import { type JourneyChapter, mountJourney } from './journey-engine.mjs';
+import { JourneyStopModal } from './JourneyStopModal';
+import '@/app/journey.css';
 
 export type { JourneyChapter };
 
@@ -13,6 +15,12 @@ export type { JourneyChapter };
  * right half. Scroll, Previous/Next or the arrow keys move him: he walks in,
  * says hello, steps onto the ladder and climbs, pausing at each stop to wave
  * and say where he is. Past the last stop he keeps climbing into the dark.
+ *
+ * Below 1024 wide, and in landscape no taller than 540, the engine draws
+ * Sinag's one-stop-at-a-time stage instead: the ladder rail on the left and a
+ * single card on the right, swapped as he climbs. Every card shows the
+ * headline facts and the first three things done; View more opens
+ * JourneyStopModal with the rest. Only the page scrolls, at every size.
  *
  * The scene is Bahaghari's design (side-on ladder), drawn in vector. It lives
  * in a shadow root (journey-engine.mjs), so its many generic class names
@@ -27,6 +35,16 @@ export type { JourneyChapter };
 export function JourneyTimeline({ chapters }: { chapters: JourneyChapter[] }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [details, setDetails] = useState<{ index: number; opener: HTMLElement } | null>(null);
+
+  const navigate = useCallback(
+    (href: string) => {
+      showVeil();
+      router.push(href);
+    },
+    [router],
+  );
+  const closeDetails = useCallback(() => setDetails(null), []);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -36,12 +54,12 @@ export function JourneyTimeline({ chapters }: { chapters: JourneyChapter[] }) {
 
     return mountJourney(host, chapters, {
       markers,
-      navigate: (href) => {
-        showVeil();
-        router.push(href);
-      },
+      navigate,
+      onMore: (index, opener) => setDetails({ index, opener }),
     });
-  }, [chapters, router]);
+  }, [chapters, navigate]);
+
+  const open = details ? chapters[details.index] : undefined;
 
   return (
     <div ref={hostRef} className="jw-host">
@@ -68,6 +86,14 @@ export function JourneyTimeline({ chapters }: { chapters: JourneyChapter[] }) {
           </li>
         ))}
       </ol>
+      {open && details ? (
+        <JourneyStopModal
+          chapter={open}
+          opener={details.opener}
+          onClose={closeDetails}
+          onNavigate={navigate}
+        />
+      ) : null}
     </div>
   );
 }

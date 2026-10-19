@@ -16,6 +16,12 @@
  *
  * Nothing on the stage reports progress: no counters, no filling bars. The
  * year plate on the wall is a static marker for the card on screen.
+ *
+ * Below 1024 wide, and in landscape no taller than 540, mountCompact draws
+ * the journey one stop at a time instead; mountJourney swaps between the two.
+ * Neither scrolls inside itself and neither places a scroll-snap point: only
+ * the page scrolls. View more on a card calls options.onMore, which opens
+ * JourneyStopModal in the light DOM.
  */
 
 const CSS = `
@@ -27,12 +33,11 @@ button{font:inherit}
 a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .track{position:relative}
-.snap{position:absolute;left:0;width:1px;height:1px;scroll-snap-align:start;pointer-events:none}
 .stage{position:sticky;top:var(--header-h,72px);height:calc(100svh - var(--header-h,72px));min-height:540px;display:grid;grid-template-columns:1fr 1fr;background:var(--stage-bg);overflow:hidden;color:#f2f0ea}
 .scene{position:relative;min-height:0}
 .scene svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .t-mono{font-family:var(--mono)}.t-display{font-family:var(--display)}.t-body{font-family:var(--body)}
-.side{display:grid;place-items:center;min-height:0;padding:32px var(--page-x,64px);overflow:auto}
+.side{display:grid;place-items:center;min-height:0;padding:32px var(--page-x,64px)}
 .breath{transform-box:fill-box;transform-origin:50% 100%;animation:breathe 3.6s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:none}50%{transform:scale(1.012,1.018)}}
 #figS,#figF{transition:opacity 200ms ease}
@@ -57,21 +62,15 @@ a{color:inherit;text-decoration:none}
 .val{margin-top:6px;font-size:.875rem;font-weight:500;color:var(--ink)}
 .val--mono{font:600 .8125rem/1.3 var(--mono)}
 .short{margin-top:16px;font-size:1rem;line-height:1.5;color:#e4e1da}
+.clamp3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .sec{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .did{list-style:none;display:grid;gap:6px;margin-top:10px}
 .did li{position:relative;padding-left:16px;font-size:.875rem;line-height:1.4;color:#d9d5cc}
 .did li::before{content:'';position:absolute;left:0;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.tools span{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border:1px solid var(--rule);border-radius:999px;font:500 .6875rem var(--mono);color:var(--muted)}
-.learned{margin-top:8px;font-size:.9375rem;line-height:1.55;color:#e4e1da}
-.learned>*+*{margin-top:.6em}
-.learned ul,.learned ol{padding-left:1.2em}
-.learned a{text-decoration:underline;text-underline-offset:3px}
-.ph{margin-top:8px;font:500 .8125rem/1.4 var(--mono);color:var(--faint)}
-.empty{margin-top:8px;font-size:.8125rem;color:var(--muted)}
-.built{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.built a{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--rule);border-radius:999px;color:var(--ink);font-size:.8125rem;font-weight:500;transition:border-color 160ms ease,transform 160ms ease}
-.built a svg{width:12px;height:12px;transition:transform 200ms var(--ease-out)}
+.did--short li{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.more{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-height:44px;margin-top:4px;padding:0 2px;background:none;border:0;cursor:pointer;color:#f2f0ea;font-size:.875rem;font-weight:600;text-align:left;text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:6px;transition:text-decoration-color 160ms ease,transform 160ms ease;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.more span{display:inline-block;font-weight:500;color:var(--faint)}
+.more svg{width:12px;height:12px;color:var(--accent);transition:transform 200ms var(--ease-out)}
 .close{margin-top:12px;font-size:1.0625rem;line-height:1.55;color:#cfcac0}
 .nav{display:flex;align-items:center;gap:8px;margin-top:28px}
 .nav[hidden]{display:none}
@@ -83,10 +82,9 @@ a{color:inherit;text-decoration:none}
 .hint kbd{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--rule);border-radius:4px;font:500 .625rem var(--mono)}
 @media (hover:hover) and (pointer:fine){
   .pill:hover:not(:disabled){border-color:var(--accent);color:#fff}
-  .built a:hover{border-color:var(--accent)}
-  .built a:hover svg{transform:translateX(2px)}
+  .more:hover{text-decoration-color:#f2f0ea}.more:hover svg{transform:translate(1px,-1px)}
 }
-.pill:active:not(:disabled),.built a:active{transform:scale(.97)}
+.pill:active:not(:disabled),.more:active{transform:scale(.97)}
 
 .kick{display:flex;align-items:center;gap:10px;font-size:.6875rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 .kick::before{content:'';width:22px;height:2px;background:currentColor}
@@ -99,37 +97,22 @@ a{color:inherit;text-decoration:none}
 .cue svg{width:12px;height:12px}
 .skip{margin-top:48px}
 
-@media (max-width:767px){
-  .stage{grid-template-columns:1fr;grid-template-rows:42% 58%;min-height:0}
-  .side{place-items:start center;padding:4px var(--page-x,20px) 16px}
-  .card h3{font-size:1.5rem;margin-top:10px}
-  .facts{grid-auto-flow:row;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:14px;padding-top:12px}
-  .short{font-size:.9375rem}.sec{margin-top:14px;padding-top:12px}
-  .nav{margin-top:20px}.nav .pill{flex:1}.hint{display:none}
-  .intro-t{font-size:2rem}.skip{margin-top:20px}
-}
-
-/* A phone on its side: too short to stack, so the scene and the card sit
-   side by side again, the card scrolls within its half and Previous/Next
-   stay pinned at its foot. */
-@media (max-width:1023px) and (orientation:landscape) and (max-height:540px){
-  .stage{grid-template-columns:2fr 3fr;grid-template-rows:none;min-height:0}
-  .side{place-items:start stretch;padding:12px var(--page-x,20px) 0;overflow:auto}
-  .card{width:100%}
-  .card h3{font-size:1.25rem;margin-top:8px}
-  .org{font-size:.875rem}
-  .facts{grid-auto-flow:column;grid-template-columns:none;margin-top:10px;padding-top:10px}
-  .short{font-size:.875rem;margin-top:10px}
-  .sec{margin-top:10px;padding-top:10px}
-  .nav{position:sticky;bottom:0;margin-top:12px;padding:8px 128px calc(8px + env(safe-area-inset-bottom,0px)) 0;background:var(--stage-bg)}
-  .nav .pill{flex:1}.hint{display:none}
-  .intro-t{font-size:1.75rem}.intro-how,.cue{display:none}.skip{margin-top:12px}
+/* Below 1024 wide, and in short landscape, mountCompact draws the journey
+   instead, so this layout only meets laptop and desktop heights. The card
+   never scrolls inside itself: on a short screen it tightens instead. */
+@media (max-height:820px){
+  .side{padding:24px var(--page-x,64px)}
+  .card h3{margin-top:10px}
+  .facts{margin-top:14px;padding-top:12px}
+  .short{margin-top:12px}.clamp3{-webkit-line-clamp:2}
+  .sec{margin-top:12px;padding-top:12px}
+  .did--short li{-webkit-line-clamp:1}
+  .nav{margin-top:20px}
 }
 :host([data-reduce=true]) .track{height:auto!important}
 :host([data-reduce=true]) .stage{position:relative;top:0;height:min(92svh,820px)}
 :host([data-reduce=true]) .breath,:host([data-reduce=true]) .mouth{animation:none!important}
-:host([data-reduce=true]) .card__body,:host([data-reduce=true]) .intro-l span,:host([data-reduce=true]) #figS,:host([data-reduce=true]) #figF,:host([data-reduce=true]) #bub,:host([data-reduce=true]) #rbub,:host([data-reduce=true]) .plq .hi,:host([data-reduce=true]) .pill,:host([data-reduce=true]) .built a{transition:none}
-@media (max-width:767px){:host([data-reduce=true]) .stage{height:auto;grid-template-rows:300px auto}}
+:host([data-reduce=true]) .card__body,:host([data-reduce=true]) .intro-l span,:host([data-reduce=true]) #figS,:host([data-reduce=true]) #figF,:host([data-reduce=true]) #bub,:host([data-reduce=true]) #rbub,:host([data-reduce=true]) .plq .hi,:host([data-reduce=true]) .pill,:host([data-reduce=true]) .more,:host([data-reduce=true]) .more svg{transition:none}
 `;
 
 const MARKUP = `
@@ -171,8 +154,35 @@ const MARKUP = `
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function mountJourney(host, chapters, options) {
-  const root = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
+const ICON={education:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6l7-3 7 3-7 3-7-3zm3 1.5V11c1 1 2.5 1.5 4 1.5s3-.5 4-1.5V7.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',work:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12v8H2zM6 5V3h4v2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'};
+const DOWN='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M3 7l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+const COUNT=['No','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'];
+const plateText=s=>{const y=String(s.period).match(/\d{4}/g);return y?[...new Set(y)].join('–'):''};
+const MORE='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2h6v6M10 2 2 10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+const END_KIND='Still climbing',END_TITLE='Still moving forward',END_SAY='Looking for better opportunities, still learning, and building my empire.';
+const END_HTML=`<p class="kind">${END_KIND}</p><h3>${END_TITLE}</h3><p class="close">${END_SAY}</p>`;
+const stopsWord=N=>`${COUNT[N]??String(N)} stop${N===1?'':'s'}`;
+/* Desktop (the ladder scene) */
+const ledeOf=N=>`College at the bottom, every job a rung above it, from junior to senior. ${stopsWord(N)} so far, and I’m still climbing.`;
+const HOW='Scroll to climb. I stop at every role to tell you what it was: the company, what I did in plain words, the tools I used, and what I built there.';
+/* Compact (below 1024 and short landscape): there is no ladder there, so no ladder words */
+const C_TITLE='My career, one stop at a time.';
+const cLedeOf=N=>`From college to senior roles. ${stopsWord(N)} so far, and I’m still moving forward.`;
+const C_HOW='Scroll, or use <kbd>↑</kbd> <kbd>↓</kbd>, to go through each role: the company, what I did in plain words, the tools I used, and what I built there.';
+
+/* A stop's card, the same on every screen: kind, position, organisation,
+   when / where / sector, the summary (clamped), the first three things done,
+   and View more, which opens JourneyStopModal with everything else. */
+function stopHTML(s,k){
+  const did=s.did??[],rest=did.length-3;
+  const extra=[rest>0?`${rest} more`:'',s.tools?.length?'tools':'',s.projects.length?'Built here':''].filter(Boolean).join(', ');
+  return `<p class="kind">${ICON[s.kind]??ICON.work}${s.kind==='education'?'School':'Work'}</p><h3>${esc(s.title)}</h3><p class="org">${esc(s.org)}</p>
+  <div class="facts"><div><p class="lbl">When</p><p class="val val--mono">${esc(s.period)}</p></div><div><p class="lbl">Where</p><p class="val">${esc(s.loc)}</p></div>${s.sector?`<div><p class="lbl">Sector</p><p class="val">${esc(s.sector)}</p></div>`:''}</div>
+  ${s.short?`<p class="short clamp3">${esc(s.short)}</p>`:''}
+  <div class="sec">${did.length?`<p class="lbl">What I did</p><ul class="did did--short">${did.slice(0,3).map(d=>`<li>${esc(d)}</li>`).join('')}</ul>`:''}<button type="button" class="more" data-more="${k}" aria-haspopup="dialog" aria-label="View more about ${esc(s.title)} at ${esc(s.org)}">View more${extra?` <span>${esc(extra)}</span>`:''}${MORE}</button></div>`;
+}
+
+function mountLadder(host, root, chapters, options) {
   root.innerHTML = `<style>${CSS}</style>${MARKUP}`;
   const $ = (id) => root.getElementById(id);
   const mq = matchMedia('(prefers-reduced-motion: reduce)');
@@ -193,36 +203,18 @@ export function mountJourney(host, chapters, options) {
 const INTRO=-1,END=N,RH=17,PER=4,D=180/Math.PI;
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,t)=>a+(b-a)*t,f=n=>n.toFixed(2);
 const smooth=t=>t*t*(3-2*t),smoother=t=>t*t*t*(t*(6*t-15)+10),easeSine=t=>-(Math.cos(Math.PI*t)-1)/2;
-const isPh=s=>/^\s*\[.*\]\s*$/.test(s);
 
-/* ---------- the card: organisation, position, kind, when, where, learned, built here ---------- */
-const ICON={education:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6l7-3 7 3-7 3-7-3zm3 1.5V11c1 1 2.5 1.5 4 1.5s3-.5 4-1.5V7.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',work:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h12v8H2zM6 5V3h4v2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'};
-const ARR='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M7 3l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
-const DOWN='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M3 7l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
-const COUNT=['No','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'];
+/* ---------- the card: stopHTML (module scope), the intro and the closing line ---------- */
 function intro(){
-  const n=COUNT[N]??String(N);
-  const lede=`College at the bottom, every job a rung above it, from junior to senior. ${n} stop${N===1?'':'s'} so far, and I’m still climbing.`;
+  const lede=ledeOf(N);
   return `<p class="kick">The Journey</p><h2 class="intro-t">This ladder is my career.</h2><p class="intro-l" id="lede">${lede.split(' ').map(w=>`<span>${esc(w)} </span>`).join('')}</p>
-  <p class="intro-how">Scroll to climb. I stop at every role to tell you what it was: the company, what I did in plain words, the tools I used, and what I built there.</p>
+  <p class="intro-how">${HOW}</p>
   <p class="cue">${DOWN}Scroll to begin</p><button type="button" class="pill skip" id="skip">Skip intro</button>`;
-}
-function learnedHTML(s){
-  if(!s.learned)return '';
-  const body=isPh(s.learned)?`<p class="ph">${esc(s.learned)}</p>`:s.learnedIsHtml?`<div class="learned">${s.learned}</div>`:`<p class="learned">${esc(s.learned)}</p>`;
-  return `<div class="sec"><p class="lbl">What I took from it</p>${body}</div>`;
 }
 function cardHTML(k){
   if(k===INTRO)return intro();
-  if(k===END)return `<p class="kind">Still climbing</p><h3>Still moving forward</h3><p class="close">Looking for better opportunities, still learning, and building my empire.</p>`;
-  const s=S[k];
-  return `<p class="kind">${ICON[s.kind]??ICON.work}${s.kind==='education'?'School':'Work'}</p><h3>${esc(s.title)}</h3><p class="org">${esc(s.org)}</p>
-  <div class="facts"><div><p class="lbl">When</p><p class="val val--mono">${esc(s.period)}</p></div><div><p class="lbl">Where</p><p class="val">${esc(s.loc)}</p></div>${s.sector?`<div><p class="lbl">Sector</p><p class="val">${esc(s.sector)}</p></div>`:''}</div>
-  ${s.short?`<p class="short">${esc(s.short)}</p>`:''}
-  ${s.did?.length?`<div class="sec"><p class="lbl">What I did</p><ul class="did">${s.did.map(d=>`<li>${esc(d)}</li>`).join('')}</ul></div>`:''}
-  ${s.tools?.length?`<div class="sec"><p class="lbl">Tools</p><div class="tools">${s.tools.map(t=>`<span>${esc(t)}</span>`).join('')}</div></div>`:''}
-  ${learnedHTML(s)}
-  <div class="sec"><p class="lbl">Built here</p>${s.projects.length?`<div class="built">${s.projects.map(p=>`<a href="${esc(p.href)}" data-nav>${esc(p.title)}${ARR}</a>`).join('')}</div>`:'<p class="empty">No public project from this stop.</p>'}</div>`;
+  if(k===END)return END_HTML;
+  return stopHTML(S[k],k);
 }
 let swapT=0,first=true;
 function fill(k){
@@ -241,6 +233,8 @@ function render(k){
   swapT=later(()=>{fill(k);b.dataset.state='in';requestAnimationFrame(()=>requestAnimationFrame(()=>{b.dataset.state=''}))},150);
 }
 const onRootClick=e=>{
+  const more=e.target.closest('button[data-more]');
+  if(more){options.onMore?.(Number(more.dataset.more),more);return}
   const link=e.target.closest('a[data-nav]');
   if(!link)return;
   e.preventDefault();
@@ -295,7 +289,6 @@ function wrap(t,max){const out=[];let line='';for(const w of String(t).split(' '
 
 /* ---------- the ladder: 3/4 side view, near and far stiles, round rungs ---------- */
 const E={};const el=id=>E[id]||(E[id]=$(id)),set=(id,t)=>el(id).setAttribute('transform',t);
-const plateText=s=>{const y=String(s.period).match(/\d{4}/g);return y?[...new Set(y)].join('–'):''};
 function world(){
   const top=(N+40)*PER,H=top*RH;let rungs='',rv='',br='',seams='',plq='';
   for(let i=1;i<=top;i++){const y=-i*RH;
@@ -410,10 +403,6 @@ let geometry={top:0,scrollable:0,stageH:0};
 function scrollToBand(k){
   window.scrollTo({top:geometry.top+geometry.scrollable*k/(N+1),behavior:reduce?'auto':'smooth'});
 }
-function placeSnaps(){
-  const t=$('track');t.querySelectorAll('.snap').forEach(n=>n.remove());if(reduce)return;
-  for(let i=0;i<=N+1;i++){const d=document.createElement('div');d.className='snap';d.style.top=(geometry.scrollable*i/(N+1))+'px';t.appendChild(d)}
-}
 function fit(){
   const w=$('stage').querySelector('.scene').clientWidth,ph=w<560;
   $('svg').setAttribute('viewBox',ph?'0 0 300 450':'0 0 400 600');CX=ph?165:220;CY=ph?285:330;
@@ -426,7 +415,7 @@ $('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);
 const onKey=e=>{
   if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
   if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;
-  const t=e.composedPath()[0];if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+  const t=e.composedPath()[0];if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.closest?.('[aria-modal="true"]')))return;
   const r=$('stage').getBoundingClientRect();if(r.top>innerHeight*.5||r.bottom<innerHeight*.5)return;
   e.preventDefault();go(e.key==='ArrowUp'?1:-1);
 };
@@ -468,7 +457,7 @@ function measurePage(){
   const tr=$('track').getBoundingClientRect(),stageH=$('stage').offsetHeight;
   geometry={top:tr.top+window.scrollY,scrollable:Math.max(0,tr.height-stageH),stageH};
   markers.forEach((m,k)=>{m.dataset.substepY=String(Math.round(geometry.top+geometry.scrollable*(k+1)/(N+1)))});
-  fit();placeSnaps();
+  fit();
 }
 function pagerState(){
   const y=window.scrollY;
@@ -519,4 +508,313 @@ return ()=>{
   delete document.documentElement.dataset.journeyStop;
   root.innerHTML='';
 };
+}
+
+/* ======================================================================
+ * Below 1024 wide, and in landscape no taller than 540: the journey one
+ * stop at a time (approved v6). No ladder here, so no ladder words: an
+ * intro, a sticky strip (count, progress ticks, ↑ previous / ↓ next) under
+ * the header, then one screen-tall stop per role in normal page flow. While
+ * you are inside the journey the page settles on a stop when the scroll
+ * ends near one (proximity: a mandatory snap held a mouse wheel on the stop
+ * it was on), and the hero above and the contact band below scroll freely. Each stop fades
+ * and drifts with the scroll; only transform and opacity move.
+ *
+ * Never a fixed-height pinned stage: on 320×568 and 360×780 one cut off the
+ * heading and the nav. Each stop fits itself instead (f1–f4 below).
+ * ==================================================================== */
+const COMPACT_Q='(max-width:1023px), (orientation:landscape) and (max-height:540px)';
+/** The strip's height, also in the snap offset below the header. */
+const BAR_H=52;
+const SNAP_CLASS='jw-snap';
+
+const CSS_C = `
+:host{display:block;--display:var(--font-display);--body:var(--font-body);--mono:var(--font-mono,ui-monospace,monospace);
+--accent:#c2766b;--stage-bg:#0f0e0c;--line:#2a2823;--rule:#3a3830;--ink:#eceae4;--muted:#a9a49a;--faint:#8c877d;
+--ease-out:cubic-bezier(.23,1,.32,1);--hh:var(--header-h,72px);--bar-h:${BAR_H}px;--px:40px;font-family:var(--body);color:#f2f0ea}
+@media (max-width:599px){:host{--px:20px}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.jw{background:var(--stage-bg);color:#f2f0ea}
+
+.head{max-width:1100px;margin:0 auto;padding:28px var(--px) 20px;scroll-snap-align:start}
+.kick{display:flex;align-items:center;gap:10px;font-size:.6875rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.kick::before{content:'';width:22px;height:2px;background:currentColor}
+.head h2{margin-top:12px;font:600 clamp(1.875rem,6.4vw,2.75rem)/1.04 var(--display);letter-spacing:-.02em;color:#f2f0ea}
+.head .lede{margin-top:12px;max-width:32em;font-size:1rem;line-height:1.5;color:#e4e1da}
+.head .how{margin-top:8px;max-width:34em;font-size:.875rem;line-height:1.55;color:var(--muted)}
+.head .how kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;margin:0 1px;border:1px solid var(--rule);border-radius:3px;font:600 .6875rem/1 var(--mono);color:#cfcac0;vertical-align:1px}
+
+/* the strip: under the header for as long as the journey is on screen */
+.jbar{position:sticky;top:var(--hh);z-index:3;height:var(--bar-h);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;
+  padding:0 calc(var(--px) - 8px) 0 var(--px);background:color-mix(in srgb,var(--stage-bg) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.count{font:600 .75rem/1 var(--mono);color:#cfcac0;letter-spacing:.06em;white-space:nowrap}
+.count b{color:#f2f0ea}
+.count span{margin-left:10px;color:var(--faint)}
+@media (max-width:359px){.count span{display:none}}
+.ticks{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;height:3px;max-width:220px}
+.ticks i{display:block;position:relative;overflow:hidden;border-radius:2px;background:#2a2823}
+.ticks i::after{content:'';position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform 240ms var(--ease-out)}
+.ticks i[data-on=true]::after{transform:scaleX(1)}
+.jnav{display:flex}
+.ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:#f2f0ea;transition:transform 160ms ease;touch-action:manipulation}
+.ibtn span{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:50%;transition:border-color 160ms ease}
+.ibtn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.5}
+@media (hover:hover){.ibtn:hover:not(:disabled) span{border-color:var(--accent)}}
+.ibtn:active:not(:disabled){transform:scale(.94)}
+.ibtn:focus-visible{outline:none}
+.ibtn:focus-visible span{outline:2px solid var(--accent);outline-offset:2px}
+.ibtn:disabled{opacity:.35;cursor:not-allowed}
+
+/* one stop: exactly one screen under the header and the strip */
+.stop{height:calc(100svh - var(--hh) - var(--bar-h));display:flex;flex-direction:column;justify-content:center;padding:24px var(--px) 28px;border-top:1px solid var(--line);
+  scroll-snap-align:start;scroll-snap-stop:always;overflow:clip;overflow-clip-margin:24px}
+.jbar+.stop{border-top:0}
+.stop-in{width:100%;max-width:960px;margin:0 auto;transform-origin:50% 50%}
+@media (min-width:600px),(orientation:landscape){
+  .stop-in{display:grid;grid-template-columns:clamp(140px,22vw,200px) minmax(0,1fr);gap:32px;align-items:start}
+}
+@media (orientation:landscape) and (max-height:540px){.stop{padding:16px var(--px)}.stop-in{gap:24px}}
+.stop-mark{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+@media (min-width:600px),(orientation:landscape){.stop-mark{flex-direction:column;align-items:flex-start;gap:10px;margin:2px 0 0}}
+.plaque{display:inline-flex;align-items:center;font:600 .8125rem/1 var(--mono);color:#f2f0ea;letter-spacing:.02em}
+.plaque::before{content:'';width:12px;height:2px;background:var(--accent)}
+.plaque b{padding:7px 10px;border:1.5px solid var(--accent);border-radius:3px;background:#1d1c18;font-weight:600}
+.stop-no{font:600 .6875rem/1 var(--mono);color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+
+.card{min-width:0}
+.kind{display:inline-flex;align-items:center;gap:6px;font-size:.6875rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.kind svg{width:13px;height:13px}
+.card h3{margin-top:10px;font:600 clamp(1.5rem,6.4vw,2rem)/1.08 var(--display);letter-spacing:-.015em;color:#f2f0ea;overflow-wrap:anywhere}
+.org{margin-top:6px;font-size:.9375rem;line-height:1.4;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,auto));justify-content:start;gap:12px 28px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.lbl{font-size:.625rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.val{margin-top:6px;font-size:.875rem;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.val--mono{font:600 .8125rem/1.3 var(--mono)}
+.short{margin-top:14px;max-width:36em;font-size:.9375rem;line-height:1.55;color:#e4e1da}
+.sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.did{list-style:none;display:grid;gap:8px;margin-top:10px}
+.did li{position:relative;padding-left:16px;font-size:.875rem;line-height:1.45;color:#d9d5cc}
+.did li::before{content:'';position:absolute;left:0;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.more{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-height:44px;margin-top:4px;padding:0 2px;color:#f2f0ea;font-size:.875rem;font-weight:600;text-align:left;text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:6px;transition:text-decoration-color 160ms ease,transform 160ms ease;touch-action:manipulation}
+.more span{display:inline-block;font-weight:500;color:var(--faint)}
+.more svg{width:12px;height:12px;color:var(--accent)}
+@media (hover:hover){.more:hover{text-decoration-color:#f2f0ea}}
+.more:active{transform:scale(.97)}
+.more:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (max-width:419px){.facts{grid-template-columns:1fr;gap:6px}.facts>div{display:flex;align-items:baseline;gap:10px}.facts .val{margin-top:0}}
+
+/* the last stop: where the climb is now */
+.close{margin-top:10px;max-width:32em;font-size:1rem;line-height:1.55;color:#cfcac0}
+.climb-lbl{margin-top:18px}
+.climb-list{list-style:none;display:grid;gap:2px;margin-top:8px;padding-top:10px;border-top:1px solid var(--line)}
+.climb-list li{display:grid;grid-template-columns:5.5em minmax(0,1fr);gap:12px;align-items:baseline;padding:5px 0;font-size:.875rem;color:#d9d5cc}
+.climb-list li span{font:600 .75rem/1 var(--mono);color:var(--faint)}
+.btn-ink{display:inline-flex;align-items:center;gap:10px;min-height:44px;margin-top:18px;padding:0 20px;border:1px solid #f2f0ea;border-radius:999px;font:600 .875rem/1 var(--body);color:#f2f0ea;transition:background-color 160ms ease,color 160ms ease,transform 180ms cubic-bezier(.2,.8,.2,1)}
+.cta-dot{flex:none;width:8px;height:8px;border-radius:50%;background:currentColor;animation:blink 460ms ease-in-out infinite alternate}
+@keyframes blink{to{opacity:.08}}
+@media (hover:hover){.btn-ink:hover{background:#f2f0ea;color:#0f0e0c;transform:translateY(-1px)}.btn-ink:hover .cta-dot{animation:none;opacity:1}}
+.btn-ink:active{transform:scale(.97)}
+.btn-ink:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* fit: each stop steps down until it fits its screen, measured in fit() */
+.stop.f1 .short{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.stop.f1 .facts{margin-top:12px;padding-top:10px}
+.stop.f1 .sec{margin-top:12px;padding-top:10px}
+.stop.f1 .stop-mark{margin-bottom:14px}
+.stop.f2 .short{display:none}
+.stop.f2 .did{gap:5px;margin-top:8px}
+.stop.f2 .climb-lbl{margin-top:12px}
+.stop.f2 .btn-ink{margin-top:12px}
+.stop.f3 .card h3{font-size:1.375rem}
+.stop.f3 .org{font-size:.875rem}
+.stop.f3 .did li:nth-child(n+3){display:none}
+.stop.f3 .climb-list li:nth-child(n+4){display:none}
+.stop.f3 .close{font-size:.9375rem}
+.stop.f4 .sec .lbl,.stop.f4 .did{display:none}
+.stop.f4 .sec{border:0;padding-top:0;margin-top:6px}
+.stop.f4 .climb-lbl,.stop.f4 .climb-list{display:none}
+
+/* reduced motion: the stops only fade, nothing moves or eases */
+:host([data-reduce=true]) .ticks i::after{transition:none}
+:host([data-reduce=true]) .cta-dot{animation:none}
+:host([data-reduce=true]) .ibtn:active,:host([data-reduce=true]) .more:active,:host([data-reduce=true]) .btn-ink:active{transform:none}
+`;
+
+const UP_ARROW='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10V2M3 5l3-3 3 3"/></svg>';
+const DOWN_ARROW='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M3 7l3 3 3-3"/></svg>';
+const pad2=n=>String(n).padStart(2,'0');
+
+/* The closing stop: where the climb is now, and every rung so far, newest first. */
+function endCardHTML(S){
+  const done=S.map(s=>({p:plateText(s),t:s.title})).reverse();
+  return `<p class="kind">${UP_ARROW.replace('<path','<path fill="none" stroke="currentColor" stroke-width="1.5"')}${END_KIND}</p><h3>${END_TITLE}</h3><p class="close">${END_SAY}</p>
+  <p class="lbl climb-lbl">The climb so far</p>
+  <ol class="climb-list">${done.map(d=>`<li><span>${esc(d.p)}</span>${esc(d.t)}</li>`).join('')}</ol>
+  <a class="btn-ink" href="/contact" data-nav><span class="cta-dot" aria-hidden="true"></span>Send a message</a>`;
+}
+
+function mountCompact(host, root, chapters, options) {
+  const S=chapters,N=S.length,M=N+1;           /* every stop, then "Still climbing" */
+  const markers=options.markers??[];
+  const html=document.documentElement;
+  const mq=matchMedia('(prefers-reduced-motion: reduce)');
+  let rm=mq.matches;
+  const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
+  const years=[...S.map(plateText),'next'];
+  const titles=[...S.map(s=>s.title),END_TITLE];
+
+  const stopsHTML=[...S.map((s,i)=>stopHTML(s,i)),endCardHTML(S)].map((card,k)=>`<article class="stop" aria-label="Stop ${k+1} of ${M}">
+    <div class="stop-in"${k?' inert':''}>
+      <div class="stop-mark"><span class="plaque" aria-hidden="true"><b>${esc(years[k])}</b></span><span class="stop-no">Stop ${pad2(k+1)} of ${pad2(M)}</span></div>
+      <div class="card">${card}</div>
+    </div></article>`).join('');
+  root.innerHTML=`<style>${CSS_C}</style><section class="jw">
+  <div class="head"><p class="kick">The Journey</p><h2>${C_TITLE}</h2><p class="lede">${esc(cLedeOf(N))}</p><p class="how">${C_HOW}</p></div>
+  <div class="jbar">
+    <span class="count" id="jCount"></span>
+    <div class="ticks" aria-hidden="true">${'<i></i>'.repeat(M)}</div>
+    <div class="jnav">
+      <button type="button" class="ibtn" id="jUp" aria-label="Previous stop (scroll up)"><span>${UP_ARROW}</span></button>
+      <button type="button" class="ibtn" id="jDown" aria-label="Next stop (scroll down)"><span>${DOWN_ARROW}</span></button>
+    </div>
+  </div>
+  ${stopsHTML}
+  <p class="sr" role="status" id="jLive"></p>
+  </section>`;
+  const $=id=>root.getElementById(id);
+  const head=root.querySelector('.head'),stops=[...root.querySelectorAll('.stop')],ins=stops.map(s=>s.firstElementChild);
+  const ticks=[...root.querySelectorAll('.ticks i')],up=$('jUp'),down=$('jDown'),count=$('jCount'),live=$('jLive');
+
+  /* The snap offset: the header, then the strip. */
+  const offset=()=>(parseFloat(getComputedStyle(host).getPropertyValue('--header-h'))||72)+BAR_H;
+  const snapTop=el=>el.getBoundingClientRect().top+window.scrollY-offset();
+
+  /* Each stop steps down f1→f4 until its content fits its screen. */
+  function fit(){
+    stops.forEach(s=>{
+      const cs=getComputedStyle(s),avail=s.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+      for(let lv=0;lv<=4;lv++){
+        for(let n=1;n<=4;n++)s.classList.toggle('f'+n,n<=lv);
+        if(s.firstElementChild.offsetHeight<=avail)break;
+      }
+    });
+    markers.forEach((m,k)=>{if(stops[k])m.dataset.substepY=String(Math.round(snapTop(stops[k])))});
+  }
+
+  /* Snapping only while you are inside the journey: from the intro's snap
+     point to the last stop's. One pixel past either end switches it off, so
+     the page above and below scrolls freely and nothing is trapped. */
+  function snapState(){
+    const y=window.scrollY,from=snapTop(head)-1,to=snapTop(stops[M-1])+1;
+    html.classList.toggle(SNAP_CLASS,y>=from&&y<=to);
+  }
+
+  let shown=-1,inIntro=true;
+  function setIdx(k){
+    if(k===shown)return;
+    const announce=shown!==-1;
+    shown=k;
+    ins.forEach((el,j)=>{el.inert=j!==k});
+    ticks.forEach((t,j)=>{t.dataset.on=String(j<=k)});
+    count.innerHTML=`<b>${pad2(k+1)}</b> / ${pad2(M)}<span>${esc(k===M-1?'now':years[k])}</span>`;
+    up.disabled=k===0;down.disabled=k===M-1;
+    if(announce)live.textContent=`Stop ${k+1} of ${M}: ${titles[k]}`;
+  }
+
+  /* Each stop fades and drifts with its distance d from its snap point, in
+     screens. Reduced motion: opacity only. */
+  function paint(){
+    const off=offset(),vh=Math.max(1,window.innerHeight-off);
+    let k=0;
+    stops.forEach((s,j)=>{
+      const d=(s.getBoundingClientRect().top-off)/vh,a=Math.abs(d);
+      if(d<=.5)k=j;
+      if(j===0)inIntro=d>.5;
+      const el=ins[j];
+      if(a>1.2){el.style.opacity='0';return}
+      el.style.opacity=(1-clamp(a/.7)).toFixed(3);
+      el.style.transform=rm?'none':`translate3d(0,${(d*28).toFixed(1)}px,0) scale(${(1-.03*clamp(a)).toFixed(4)})`;
+    });
+    setIdx(k);
+  }
+
+  function pagerState(){
+    const y=window.scrollY,on=y>=snapTop(stops[0])-4&&y<=snapTop(stops[M-1])+4;
+    html.dataset.journeyActive=on?'on':'off';
+    if(on)html.dataset.journeyStop=String(clamp(shown,0,N-1));
+  }
+
+  let raf=0;
+  const onScroll=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;snapState();paint();pagerState()})};
+  window.addEventListener('scroll',onScroll,{passive:true});
+
+  /* ↑ previous scrolls up, ↓ next scrolls down: the arrows follow the scroll.
+     The keyboard's ArrowUp/Down and PageUp/Down already do the same through
+     the snap, so there is no key handler here. */
+  const goTo=k=>{
+    const i=clamp(k,0,M-1);
+    html.classList.add(SNAP_CLASS);
+    window.scrollTo({top:snapTop(stops[i]),behavior:rm?'auto':'smooth'});
+  };
+  up.onclick=()=>goTo(shown-1);
+  // From the intro, ↓ goes to the first stop, not past it.
+  down.onclick=()=>goTo(inIntro?0:shown+1);
+
+  const onClick=e=>{
+    const more=e.target.closest('button[data-more]');
+    if(more){options.onMore?.(Number(more.dataset.more),more);return}
+    const link=e.target.closest('a[data-nav]');
+    if(!link||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    e.preventDefault();
+    options.navigate(link.getAttribute('href'));
+  };
+  root.addEventListener('click',onClick);
+
+  const applyRm=()=>{host.dataset.reduce=String(rm);paint()};
+  const onReduce=()=>{rm=mq.matches;applyRm()};
+  mq.addEventListener('change',onReduce);
+  const relayout=()=>{fit();snapState();paint()};
+  const ro=new ResizeObserver(relayout);
+  ro.observe(host);
+  let alive=true;
+  document.fonts?.ready.then(()=>{if(alive)relayout()});
+  host.dataset.reduce=String(rm);
+  relayout();
+
+  return ()=>{
+    alive=false;
+    cancelAnimationFrame(raf);
+    ro.disconnect();
+    mq.removeEventListener('change',onReduce);
+    window.removeEventListener('scroll',onScroll);
+    root.removeEventListener('click',onClick);
+    html.classList.remove(SNAP_CLASS);
+    delete html.dataset.journeyActive;
+    delete html.dataset.journeyStop;
+    root.innerHTML='';
+  };
+}
+
+/* Draws the journey into a shadow root on `host` — the ladder scene from
+   1024 up, one snapped stop at a time below it and in short landscape —
+   and swaps between them when the viewport crosses over (the compact
+   cleanup takes its snap class off <html>). Returns the cleanup. */
+export function mountJourney(host, chapters, options) {
+  const root = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
+  const cq = matchMedia(COMPACT_Q);
+  let stop = null;
+  const mount = () => {
+    stop?.();
+    stop = (cq.matches ? mountCompact : mountLadder)(host, root, chapters, options);
+  };
+  mount();
+  cq.addEventListener('change', mount);
+  return () => {
+    cq.removeEventListener('change', mount);
+    stop?.();
+    stop = null;
+  };
 }

@@ -64,31 +64,54 @@ for companies in Dubai.
 
 ## 3. Skills
 
-Group exactly as below on the About page. Do not reorder into a "proficiency"
-ranking — there is no data for that.
+Group exactly as below. Do not reorder into a "proficiency" ranking — there
+is no data for that. Shown with logos in the home page's "What I build with"
+section and as words on About; both read `skillGroups` in content/site.ts.
 
-**Languages & frameworks** — PHP, JavaScript, Dart, SQL, HTML, CSS/SCSS,
-Laravel 7–12, Node.js, Vue 3, React, Angular 7–10, .NET Web API, Flutter,
-Ionic 5
+Updated 2026-10-19 from Chrys's resume (`CJ_Roma_Resume_ATS.pdf`, Technical
+Skills), at his request ("show all the tech stacks, tools, AI that I am
+using… make sure it shows the logos"). Only the skills were taken: the
+resume's date of birth, civil status and phone stay off the site (rule 2 of
+CLAUDE.md). Groq is from the resume's experience section (used for testing
+the CEO dashboard's AI features). Kept on the site, not in the admin, by his
+choice.
 
-**Databases** — MySQL, MariaDB, PostgreSQL, MongoDB, Firebase Firestore
+**Languages & frameworks** — PHP, JavaScript, Python, Dart, SQL, HTML5,
+CSS3/SCSS, Laravel 7–12, Node.js, Vue 3, React, Angular 7–10, .NET Web API,
+Flutter, Ionic 5, Tauri
 
-**Architecture & practices** — SOLID, Repository pattern, Service Layer
-pattern, RESTful API design, RBAC, TDD, clean code, conventional commits,
-Agile/Scrum
+**Databases** — MySQL, MariaDB, PostgreSQL, MongoDB, Firebase Firestore, SQLite
 
-**Auth & security** — Laravel Sanctum, Laravel Passport OAuth, Twilio OTP, JWT
+**AI & agentic engineering** — Claude Code, Model Context Protocol (MCP),
+Groq; AI-assisted software development, agentic AI workflows, reusable AI
+skills, AI API integration, AI-powered application features, AI-assisted code
+analysis and refactoring
 
-**Tools & platforms** — Git, GitHub, GitLab, Azure, AWS, Firebase, Docker,
-Postman, JIRA, Figma, Composer, NPM, Vite, Webpack
+**Architecture & practices** — SOLID principles, clean code, Service Layer
+pattern, Repository pattern, RESTful API design, RBAC, database query
+optimisation, N+1 query prevention, TDD, Agile/Scrum, Conventional Commits
 
-**Testing** — PHPUnit, Pest, Firebase Emulator
+**Auth & security** — Laravel Sanctum, Laravel Passport, OAuth 2.0, JSON Web
+Tokens (JWT), Twilio OTP, role-based authorization
 
-**AI-assisted development** — code integration, optimisation, workflow
-automation
+**Payments & integrations** — Tabby, Tamara, Etisalat, Stripe, REST API
+integrations, mobile API integration
+
+**Tools & platforms** — Visual Studio Code, PhpStorm, Git, GitHub, GitLab,
+Azure, AWS, Firebase, Docker, Composer, NPM, Vite, Webpack, Postman, Apidog,
+DBngin, TablePlus, JIRA, Figma
+
+**Testing & QA** — PHPUnit, Pest, Firebase Emulator, TDD, API testing
+
+**Desktop apps** — Tauri, Rust/Cargo, Orca
+
+Logos are Simple Icons (CC0, simple-icons 16.35.0) copied into
+`public/logos/`. Simple Icons publishes none for VS Code, Azure, AWS,
+Apidog, DBngin, TablePlus, Twilio, Tabby, Tamara, Etisalat, PHPUnit, Pest,
+Orca, Groq, OAuth or SQL: those get a lettered tile, never a drawn-up mark.
 
 The work index shows a **principal stack** only: Laravel, Node.js, Vue, React,
-MySQL, TypeScript. The full list lives on About.
+MySQL, TypeScript. The full list lives in the stack section and on About.
 
 ---
 

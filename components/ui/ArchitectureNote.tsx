@@ -1,5 +1,8 @@
+'use client';
+
 /**
- * What this site is built out of, drawn as the path it describes.
+ * What this site is built out of, told as what happens when the content
+ * changes: "How this works?".
  *
  * Asked for on 2026-09-22, for one reader in particular: an engineering
  * manager who wants to know whether the person who wrote the portfolio
@@ -7,42 +10,70 @@
  * work done for other people behind an NDA — this is the one system a visitor
  * is standing inside while they read about it.
  *
- * It was four labelled columns and a paragraph, which floated in the middle of
- * the full-height section it was given. This is the same facts as a request
- * path, because that is what Chrys's sentence already describes: a frontend
- * that consumes an API that is backed by a database, with a CDN serving media
- * beside it. The connectives on the line — "dynamically consumes", "backed
- * by" — are lifted from that sentence, so the diagram reads as the sentence
- * and the paragraph below it reads as the caption.
+ * It was a three-hop request path (Next.js → Laravel → Neon, Cloudinary on a
+ * branch) with Chrys's paragraph as its caption. It is now five plain steps on
+ * a numbered rail. The step sentences were given in the brief; each step's
+ * detail line is lifted from Chrys's paragraph, so the paragraph's facts are
+ * all still published — just distributed along the rail.
  *
- * The prose is his, verbatim, and is the only copy on the site not drawn from
- * `docs/07-SOURCE-CONTENT.md`: it describes this repository, which is a fact
- * the site can verify about itself. A constant rather than a content field
- * because it changes when the deployment changes, not when the content does.
+ * `<ol>`, deliberately: the five steps are a real sequence, which is the only
+ * thing that earns numbered markup.
  *
- * `<ol>`, deliberately: three hops in order is a real sequence, which is the
- * only thing that earns numbered or ordered markup. Cloudinary is not a
- * fourth hop — media never travels through the API — so it hangs off the
- * frontend as a branch rather than joining the line.
+ * Motion (one orchestrated moment, scroll-linked, not on a timer): the rail is
+ * an inline SVG drawn segment by segment as the section scrolls into view,
+ * and each step lights up as the line reaches it. Opacity and transform only.
+ * Reduced motion: the rail is drawn and every step lit from the start.
+ * Before hydration the same is true, so a visitor without JS loses nothing
+ * but the detail lines, which need the buttons.
  */
 
-/** The request path, in order. `edge` is how this hop reaches the next one. */
-const PATH = [
-  { name: 'Next.js', role: 'frontend, deployed on Vercel', edge: 'dynamically consumes' },
-  { name: 'Laravel', role: 'custom REST API, hosted on Render', edge: 'backed by' },
-  { name: 'Neon PostgreSQL', role: 'serverless database', edge: null },
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+  animate,
+  type MotionStyle,
+  type MotionValue,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
+import '@/app/how-it-works.css';
+
+/**
+ * `detail` is lifted from the paragraph this section already published (see
+ * PROSE in this file's history), trimmed only to stand alone: no new facts.
+ * The step sentences themselves came with the brief; "admin", "told to
+ * refresh" and "cached pages" are not in that paragraph (they describe the
+ * revalidation flow in CLAUDE.md) and were flagged when this was built.
+ */
+const STEPS = [
+  {
+    text: 'You edit in the admin.',
+    detail: 'This portfolio is engineered as a decoupled, headless production application.',
+  },
+  {
+    text: 'Laravel on Render saves it to Neon PostgreSQL.',
+    detail:
+      'A custom REST API built with Laravel, hosted on Render, and backed by a serverless Neon PostgreSQL database.',
+  },
+  {
+    text: 'The site is told to refresh.',
+    detail: 'The frontend dynamically consumes that custom REST API.',
+  },
+  {
+    text: 'Next.js on Vercel re-reads the content and serves cached pages.',
+    detail: 'The fast, SEO-optimized frontend is built with Next.js and deployed on Vercel.',
+  },
+  {
+    text: 'Images come from Cloudinary.',
+    detail: 'Static assets and project media are optimized and served through Cloudinary.',
+  },
 ] as const;
 
-const BRANCH = { name: 'Cloudinary', role: 'optimized static assets and project media' };
-
-const LEAD = 'A decoupled, headless production application.';
-
-const PROSE =
-  'This portfolio is engineered as a decoupled, headless production application. ' +
-  'The fast, SEO-optimized frontend is built with Next.js and deployed on Vercel. ' +
-  'It dynamically consumes a custom REST API built with Laravel, hosted on Render, ' +
-  'and backed by a serverless Neon PostgreSQL database. Static assets and project ' +
-  'media are optimized and served through Cloudinary.';
+const LAST = STEPS.length - 1;
 
 /**
  * Two placements, because the section is doing two different jobs.
@@ -51,48 +82,96 @@ const PROSE =
  * contact band, with the rule above it as the boundary between the two.
  *
  * `detail` is /about, where it is one more entry in a column that already
- * reads Experience, Education, Languages, Availability. Chrys asked for it to
- * match those: no rule, no screenful of height, the same 64px above the
- * heading as they have between each other. A banded full-height section in
- * the middle of a list of details was the thing that looked wrong.
+ * reads Experience, Education, Languages, Availability — no rule, no
+ * screenful of height, the same 64px above the heading as they have.
+ *
+ * `dialog` is the header's How? dialog (HowItWorksButton), which supplies its
+ * own shell. There is no scroll inside it to draw the rail with, so the line
+ * draws on a timer instead: once per open, 120ms after it, over 900ms.
  */
-export function ArchitectureNote({ variant = 'page' }: { variant?: 'page' | 'detail' }) {
+const DRAW_DELAY_S = 0.12;
+const DRAW_S = 0.9;
+/** Ease-out cubic, as the approved design's 1 - (1 - x)^3. */
+const EASE_OUT_CUBIC = [0.33, 1, 0.68, 1] as const;
+
+export function ArchitectureNote({
+  variant = 'page',
+  headingId,
+}: {
+  variant?: 'page' | 'detail' | 'dialog';
+  /** The dialog labels itself by this heading, so it supplies the id. */
+  headingId?: string;
+}) {
   const detail = variant === 'detail';
+  const dialog = variant === 'dialog';
+  const reduced = useReducedMotion();
+  const railRef = useRef<HTMLOListElement>(null);
+  // Unique per instance: /about's detail note and the header dialog can be
+  // on the page together.
+  const ownId = useId();
+  const titleId = headingId ?? ownId;
+
+  /*
+   * Armed only after mount and only when motion is allowed. Until then the
+   * server markup is the finished state — drawn and lit — so nothing dims
+   * on a page that never hydrates, and reduced motion never sees a change.
+   */
+  const [armed, setArmed] = useState(false);
+  useEffect(() => setArmed(!reduced), [reduced]);
+
+  const { scrollYProgress } = useScroll({
+    target: railRef,
+    offset: ['start 0.85', 'end 0.55'],
+  });
+  // The site's scroll spring (WorkShowcase, MastheadHero): settles shortly
+  // after the wheel stops instead of stepping with it.
+  const scrolled = useSpring(scrollYProgress, {
+    stiffness: 260,
+    damping: 42,
+    mass: 0.6,
+    restDelta: 0.001,
+  });
+
+  // The dialog's timed draw-on. It mounts on every open, so it replays each time.
+  const timed = useMotionValue(0);
+  useEffect(() => {
+    if (!dialog || !armed) return;
+    timed.set(0);
+    const run = animate(timed, 1, { duration: DRAW_S, delay: DRAW_DELAY_S, ease: EASE_OUT_CUBIC });
+    return () => run.stop();
+  }, [dialog, armed, timed]);
+
+  const progress = dialog ? timed : scrolled;
+
+  /* How many steps the line has reached. Stored as a count so React only
+     re-renders when a step actually changes state, not on every frame. */
+  const [lit, setLit] = useState(0);
+  useMotionValueEvent(progress, 'change', (p) => {
+    const next = p <= 0.01 ? 0 : Math.min(STEPS.length, Math.floor(p * LAST + 0.02) + 1);
+    setLit((prev) => (prev === next ? prev : next));
+  });
 
   const body = (
     <>
-      <h2 id="arch-heading" className={detail ? undefined : 'section-label'}>
+      <p className={variant === 'page' ? 'section-label' : 'hiw__eyebrow'}>
         Engineering stack and architecture
+      </p>
+      <h2 id={titleId} className="hiw__title">
+        How this works?
       </h2>
 
-      <p className="arch__lead">{LEAD}</p>
-
-      <ol className="arch__path">
-        {PATH.map((hop) => (
-          <li key={hop.name} className="arch__hop">
-            <b className="arch__name">{hop.name}</b>
-            <span className="arch__role">{hop.role}</span>
-            {/*
-             * The connective belongs to the segment leaving this hop, so it
-             * is drawn from this cell rather than from the next one — and it
-             * is hidden from assistive tech, which reads the paragraph
-             * below as one continuous sentence instead.
-             */}
-            {hop.edge ? (
-              <em className="arch__edge" aria-hidden="true">
-                {hop.edge}
-              </em>
-            ) : null}
-          </li>
+      <ol ref={railRef} className="hiw__rail" data-armed={armed ? '' : undefined}>
+        {STEPS.map((step, i) => (
+          <Step
+            key={step.text}
+            index={i}
+            text={step.text}
+            detail={step.detail}
+            lit={!armed || i < lit}
+            progress={armed ? progress : null}
+          />
         ))}
       </ol>
-
-      <div className="arch__branch">
-        <b className="arch__name arch__name--branch">{BRANCH.name}</b>
-        <span className="arch__role">{BRANCH.role}</span>
-      </div>
-
-      <p className="arch__prose">{PROSE}</p>
     </>
   );
 
@@ -101,17 +180,99 @@ export function ArchitectureNote({ variant = 'page' }: { variant?: 'page' | 'det
    * not add a second one — nesting them would indent the content past the
    * column every other entry sits in and cap its width twice.
    */
+  // The dialog's panel is the `.hiw` container and the landmark itself.
+  if (dialog) return body;
+
   if (detail) {
     return (
-      <section className="detail-section arch arch--detail" aria-labelledby="arch-heading">
+      <section className="detail-section arch arch--detail hiw" aria-labelledby={titleId}>
         {body}
       </section>
     );
   }
 
   return (
-    <section className="arch" aria-labelledby="arch-heading">
+    <section className="arch hiw" aria-labelledby={titleId}>
       <div className="wrap arch__inner">{body}</div>
     </section>
+  );
+}
+
+function Step({
+  index,
+  text,
+  detail,
+  lit,
+  progress,
+}: {
+  index: number;
+  text: string;
+  detail: string;
+  lit: boolean;
+  /** Null when the rail should simply be drawn (reduced motion, pre-hydration). */
+  progress: MotionValue<number> | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const detailId = useId();
+
+  return (
+    <li className="hiw__step" data-lit={lit ? '' : undefined}>
+      {index < LAST ? <Segment index={index} progress={progress} /> : null}
+      <button
+        type="button"
+        className="hiw__toggle"
+        aria-expanded={open}
+        aria-controls={detailId}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="hiw__marker" aria-hidden="true">
+          {index + 1}
+        </span>
+        <span className="hiw__text">{text}</span>
+        <svg className="hiw__plus" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+          <path d="M6 1v10M1 6h10" />
+        </svg>
+      </button>
+      <p id={detailId} className="hiw__detail" hidden={!open}>
+        {detail}
+      </p>
+    </li>
+  );
+}
+
+/**
+ * The length of rail leaving step `index`, from its marker to the next one.
+ * Inline SVG: a static track and an ink stroke over it, scaled along the
+ * rail's direction (X on the row, Y on the column — CSS picks the axis from
+ * `--draw`). Each segment owns a quarter of the scroll range, so the line
+ * reaches each marker in turn.
+ */
+function Segment({ index, progress }: { index: number; progress: MotionValue<number> | null }) {
+  if (!progress) return <SegmentSvg />;
+  return <AnimatedSegment index={index} progress={progress} />;
+}
+
+function AnimatedSegment({ index, progress }: { index: number; progress: MotionValue<number> }) {
+  const draw = useTransform(progress, (p) => Math.min(1, Math.max(0, p * LAST - index)));
+  return (
+    <motion.span className="hiw__seg" aria-hidden="true" style={{ '--draw': draw } as MotionStyle}>
+      <SegmentSvg bare />
+    </motion.span>
+  );
+}
+
+function SegmentSvg({ bare = false }: { bare?: boolean }) {
+  const svg = (
+    <svg className="hiw__seg-svg" preserveAspectRatio="none" focusable="false">
+      <rect className="hiw__seg-track" width="100%" height="100%" />
+      <rect className="hiw__seg-ink" width="100%" height="100%" />
+    </svg>
+  );
+  return bare ? (
+    svg
+  ) : (
+    <span className="hiw__seg" aria-hidden="true">
+      {svg}
+    </span>
   );
 }

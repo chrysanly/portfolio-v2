@@ -1,0 +1,241 @@
+/*
+ * The ID card photo and the lightbox it opens (components/hero/PhotoLightbox.tsx).
+ *
+ * Unlayered on purpose: a separately imported sheet that opened
+ * `@layer components` could load before globals.css declares the layer order
+ * and reorder Tailwind's layers. Every selector here is this feature's own, so
+ * winning over the layered rules costs nothing.
+ *
+ * Motion is transform and opacity only, and all of it is driven from JS.
+ */
+
+/* --- The trigger, on the card ------------------------------------------- */
+
+.lanyard__photo.photo-trigger {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: zoom-in;
+  /* The card owns the gesture; the button must not start a scroll or a text
+     selection of its own. */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lanyard__card[data-held='true'] .photo-trigger {
+  cursor: grabbing;
+}
+
+.photo-trigger img {
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  -webkit-user-drag: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .photo-trigger:hover img {
+    transform: scale(1.06);
+  }
+
+  .photo-trigger:hover {
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--color-ground) 55%, transparent);
+  }
+}
+
+/*
+ * The site's focus ring (accent, 2px, offset 2px) with a ground-coloured ring
+ * filling the offset. The card is ink in both themes, and the accent alone sits
+ * at about 1.5:1 against it in the light theme; the inner ring is what makes it
+ * visible there.
+ */
+.photo-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-ground);
+}
+
+/* While the large frame stands in for it. No transition: it is a swap. */
+.photo-trigger[data-lifted='true'] {
+  opacity: 0;
+}
+
+/* --- The lightbox -------------------------------------------------------- */
+
+.photo-lightbox {
+  /* Width of the large photo: as big as the viewport allows with room left for
+     the caption (~70px) and the close button's row above it. 4:5, as on the card. */
+  --plb-w: min(460px, calc(100vw - 48px), calc((100dvh - 190px) * 0.8));
+
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: max(64px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+
+.photo-lightbox[data-leaving='true'] {
+  pointer-events: none;
+}
+
+.photo-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-ground) 64%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  backdrop-filter: blur(16px) saturate(1.1);
+  cursor: zoom-out;
+}
+
+.photo-lightbox__content {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  /* Empty space around the photo belongs to the backdrop, so a click there
+     closes. */
+  pointer-events: none;
+}
+
+.photo-lightbox__stage {
+  position: relative;
+  width: var(--plb-w);
+  aspect-ratio: 4 / 5;
+}
+
+.photo-lightbox__frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--color-ink);
+  box-shadow: 0 30px 70px rgb(0 0 0 / 28%);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  pointer-events: auto;
+}
+
+.photo-lightbox__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+}
+
+.photo-lightbox__monogram {
+  font-family: var(--font-display);
+  font-size: calc(var(--plb-w) * 0.3);
+  color: var(--color-ground);
+  opacity: 0.5;
+}
+
+.photo-lightbox__caption {
+  max-width: var(--plb-w);
+  text-align: center;
+  pointer-events: auto;
+}
+
+.photo-lightbox__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lead);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.photo-lightbox__role {
+  margin: 4px 0 0;
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+.photo-lightbox__close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.photo-lightbox__close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+@media (hover: hover) {
+  .photo-lightbox__close:hover {
+    border-color: var(--color-ink);
+  }
+}
+
+.photo-lightbox__close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/*
+ * Phones on their side: a column of photo-over-caption leaves the photo a
+ * postage stamp, so the caption goes beside it and the photo takes the height.
+ */
+@media (orientation: landscape) and (max-height: 520px) {
+  .photo-lightbox {
+    --plb-w: min(
+      calc((100dvh - 2 * max(16px, env(safe-area-inset-bottom))) * 0.8),
+      calc(100vw - 340px)
+    );
+
+    padding: max(16px, env(safe-area-inset-top)) max(72px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  }
+
+  .photo-lightbox__content {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .photo-lightbox__caption {
+    max-width: 22ch;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .photo-lightbox__backdrop {
+    background: color-mix(in srgb, var(--color-ground) 96%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-trigger img {
+    transition: none;
+  }
+
+  .photo-trigger:hover img {
+    transform: none;
+  }
+}

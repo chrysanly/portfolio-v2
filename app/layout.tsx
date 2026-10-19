@@ -3,12 +3,14 @@ import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { getProfile } from '@/lib/profile';
 import { AccentPicker } from '@/components/ui/AccentPicker';
 import { CursorDot } from '@/components/ui/CursorDot';
+import { FirstVisitGuide } from '@/components/ui/FirstVisitGuide';
 import { RouteVeil } from '@/components/ui/RouteVeil';
 import { ScrollMemory } from '@/components/ui/ScrollMemory';
 import { Splash } from '@/components/ui/Splash';
 import { SplashDismiss } from '@/components/ui/SplashDismiss';
 import './globals.css';
 import './contact-band.css';
+import './guide.css';
 
 /*
  * Three families, all self-hosted by next/font — no <link> to Google, no
@@ -99,21 +101,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           system preference, so the first paint is already correct and there is
           no flash of the wrong palette.
 
-          `data-gate="shut"` on the home page: the held masthead sits on plain
-          ground, and the facet mesh arrives when Begin is pressed (Chrys,
-          2026-09-23). Set here so the mesh is never painted and then removed;
-          MastheadHero owns it from hydration on.
-
           Scroll restoration is switched off here rather than on load. The
           browser restores the old offset before anything of ours runs, and a
           reload half way down a pinned hero drops you into the middle of a
           scroll sequence with no context. Setting it to 'manual' in the head
           means the restore never happens in the first place, so there is
           nothing to undo and nothing to see being undone.
+
+          The opening hold shows once per browser session (Chrys, 2026-10-19:
+          a hold on every load reads as a site with no cache). Once
+          SplashDismiss has written sessionStorage 'splash-seen', this marks
+          the page data-splash="seen" so the hold is never painted, and sets
+          data-ready at once so nothing waiting on it (the ID card, the
+          solver) waits for a hold that will not come.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if('scrollRestoration' in history)history.scrollRestoration='manual';var r=document.documentElement,d=r.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off';if(location.pathname==='/'&&!location.hash)d.gate='shut'}var t=null,a=null,x=null;try{t=localStorage.getItem('theme');a=localStorage.getItem('accent');x=localStorage.getItem('texture')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t;if(a)r.style.setProperty('--color-accent',a);if(x==='off')d.texture='off'}catch(e){}`,
+            __html: `try{if('scrollRestoration' in history)history.scrollRestoration='manual';var r=document.documentElement,d=r.dataset;if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.motion='on';d.heroHandoff='off'}var t=null,a=null,x=null;try{t=localStorage.getItem('theme');a=localStorage.getItem('accent');x=localStorage.getItem('texture')}catch(e){}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.theme=t;if(a)r.style.setProperty('--color-accent',a);if(x==='off')d.texture='off';try{if(sessionStorage.getItem('splash-seen')){d.splash='seen';d.ready='true'}}catch(e){}}catch(e){}`,
           }}
         />
       </head>
@@ -127,6 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RouteVeil />
         <ScrollMemory />
         <AccentPicker />
+        <FirstVisitGuide />
         <CursorDot />
       </body>
     </html>

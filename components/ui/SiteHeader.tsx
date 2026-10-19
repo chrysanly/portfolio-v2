@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { site } from '@/content/site';
+import { HowItWorksButton } from './HowItWorksButton';
 import { ThemeToggle } from './ThemeToggle';
 
 const LETTERS = site.name.toUpperCase().split('');
@@ -43,9 +44,14 @@ export function SiteHeader({ current, minimal }: { current?: string; minimal?: b
             // reuses the same [data-hero-handoff] reveal as the logo, so it
             // appears at exactly the moment the header becomes the way around
             // the page rather than sitting on top of the hero.
-            <Link href="/contact" className="header-cta">
+            // Below 480px only "Message" shows, so the row fits a 320px
+            // phone; the accessible name stays whole.
+            <Link href="/contact" className="header-cta" aria-label="Send a message">
               <span className="cta-dot" aria-hidden="true" />
-              Send a message
+              <span className="cta__long">Send a message</span>
+              <span className="cta__short" aria-hidden="true">
+                Message
+              </span>
             </Link>
           ) : (
             <nav className="site-nav" aria-label="Main">
@@ -60,6 +66,7 @@ export function SiteHeader({ current, minimal }: { current?: string; minimal?: b
               ))}
             </nav>
           )}
+          <HowItWorksButton />
           <ThemeToggle />
         </div>
       </div>

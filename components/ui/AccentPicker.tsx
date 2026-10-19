@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { isTextureOn, onTextureChange, setTexture as applyTexture } from '@/lib/texture';
+import { ACCENT_PICK_EVENT, TOUR_MENU_EVENT } from '@/lib/tour';
 
 /**
  * Floating control for the accent colour — the one hue the palette lets
@@ -37,24 +39,36 @@ export function AccentPicker() {
   const [accent, setAccent] = useState<string | null>(null);
   const [texture, setTexture] = useState(true);
   const [ready, setReady] = useState(false);
+  // The first-visit tour opens the menu and holds it open across two steps.
+  const [owned, setOwned] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let saved: string | null = null;
-    let savedTexture: string | null = null;
     try {
       saved = localStorage.getItem('accent');
-      savedTexture = localStorage.getItem('texture');
     } catch {
       // Blocked storage: the picker still works, it just will not persist.
     }
     setAccent(saved);
-    setTexture(savedTexture !== 'off');
+    setTexture(isTextureOn());
     setReady(true);
+    // The lag notice and the tour can switch the texture too.
+    return onTextureChange(setTexture);
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    const onTour = (event: Event) => {
+      const take = (event as CustomEvent<boolean>).detail;
+      setOwned(take);
+      setOpen(take);
+    };
+    window.addEventListener(TOUR_MENU_EVENT, onTour);
+    return () => window.removeEventListener(TOUR_MENU_EVENT, onTour);
+  }, []);
+
+  useEffect(() => {
+    if (!open || owned) return;
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
@@ -69,11 +83,12 @@ export function AccentPicker() {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onDown);
     };
-  }, [open]);
+  }, [open, owned]);
 
-  function pick(value: string | null) {
+  function pick(name: string, value: string | null) {
     setAccent(value);
-    setOpen(false);
+    if (!owned) setOpen(false);
+    window.dispatchEvent(new CustomEvent<string>(ACCENT_PICK_EVENT, { detail: name }));
 
     const style = document.documentElement.style;
     if (value) style.setProperty('--color-accent', value);
@@ -94,19 +109,7 @@ export function AccentPicker() {
    * fades out instead of vanishing between one frame and the next.
    */
   function toggleTexture() {
-    const next = !texture;
-    setTexture(next);
-
-    const root = document.documentElement;
-    if (next) delete root.dataset.texture;
-    else root.dataset.texture = 'off';
-
-    try {
-      if (next) localStorage.removeItem('texture');
-      else localStorage.setItem('texture', 'off');
-    } catch {
-      // As above.
-    }
+    applyTexture(!texture);
   }
 
   // Held back until the saved value is known, so the swatch never shows the
@@ -121,7 +124,7 @@ export function AccentPicker() {
             <li key={option.name}>
               <button
                 type="button"
-                onClick={() => pick(option.value)}
+                onClick={() => pick(option.name, option.value)}
                 aria-pressed={accent === option.value}
               >
                 <span
@@ -150,7 +153,9 @@ export function AccentPicker() {
       <button
         type="button"
         className="accent-picker__trigger"
-        onClick={() => setOpen((was) => !was)}
+        onClick={() => {
+          if (!owned) setOpen((was) => !was);
+        }}
         aria-expanded={open}
       >
         {/*

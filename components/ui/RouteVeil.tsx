@@ -15,6 +15,10 @@ import { useEffect, useRef, useState } from 'react';
  *
  * Now it waits for the route itself:
  *
+ *  - a navigation only draws the veil if it is still loading after
+ *    SHOW_DELAY_MS (Chrys, 2026-10-19: a loading screen on every click reads
+ *    as a site with no cache). A cached page opens before that and the veil
+ *    is never painted; the click itself is the feedback;
  *  - it hides when the path changes, held to MIN_MS so a fast load flashes
  *    rather than strobes, and only once the new page has painted;
  *  - after SLOW_MS it says what it is opening, so a slow load reads as
@@ -25,6 +29,7 @@ import { useEffect, useRef, useState } from 'react';
  * The form's own show/hide events keep the short behaviour they had.
  */
 
+const SHOW_DELAY_MS = 250;
 const MIN_MS = 260;
 const SLOW_MS = 1200;
 const FAIL_MS = 8000;
@@ -60,6 +65,8 @@ export function RouteVeil() {
    * every change of `visible`.
    */
   const visibleRef = useRef(false);
+  /** Whether the veil has actually been drawn; a fast navigation never is. */
+  const paintedRef = useRef(false);
   const shownAt = useRef(0);
   const target = useRef<string | null>(null);
   const timers = useRef<number[]>([]);
@@ -70,17 +77,24 @@ export function RouteVeil() {
       timers.current = [];
     };
 
-    const show = (href: string | null = null, title = '') => {
+    const paint = () => {
+      paintedRef.current = true;
+      shownAt.current = performance.now();
+      setVisible(true);
+    };
+
+    const show = (href: string | null = null, title = '', delay = 0) => {
       if (visibleRef.current) return;
       clearTimers();
       visibleRef.current = true;
-      shownAt.current = performance.now();
+      paintedRef.current = false;
       target.current = href;
       setCaption(title ? `Opening ${title}…` : 'Opening…');
       setState('loading');
       setSlow(false);
       setDone(false);
-      setVisible(true);
+      if (delay > 0) timers.current.push(window.setTimeout(paint, delay));
+      else paint();
       timers.current.push(window.setTimeout(() => setSlow(true), SLOW_MS));
 
       if (href) {
@@ -93,8 +107,14 @@ export function RouteVeil() {
     };
 
     const hide = () => {
-      const shown = performance.now() - shownAt.current;
       clearTimers();
+      // Arrived before the delay ran out: nothing was drawn, nothing to lift.
+      if (!paintedRef.current) {
+        visibleRef.current = false;
+        target.current = null;
+        return;
+      }
+      const shown = performance.now() - shownAt.current;
       timers.current.push(
         window.setTimeout(
           () => {
@@ -106,6 +126,7 @@ export function RouteVeil() {
                 timers.current.push(
                   window.setTimeout(() => {
                     visibleRef.current = false;
+                    paintedRef.current = false;
                     target.current = null;
                     setVisible(false);
                   }, fillMs()),
@@ -119,7 +140,7 @@ export function RouteVeil() {
     };
 
     const onPopState = () => {
-      show();
+      show(null, '', SHOW_DELAY_MS);
       requestAnimationFrame(() => requestAnimationFrame(hide));
     };
 
@@ -152,9 +173,10 @@ export function RouteVeil() {
       // Same page: nothing is going to load, so nothing should be veiled.
       if (url.pathname === window.location.pathname) return;
 
-      show(url.pathname + url.search, anchor.dataset.veilTitle ?? '');
+      show(url.pathname + url.search, anchor.dataset.veilTitle ?? '', SHOW_DELAY_MS);
     };
 
+    // The form's submit has no route to beat: its veil shows at once.
     const onFormShow = () => show();
 
     document.addEventListener('click', onClick, true);
@@ -205,6 +227,7 @@ export function RouteVeil() {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
     visibleRef.current = false;
+    paintedRef.current = false;
     target.current = null;
     setVisible(false);
   };

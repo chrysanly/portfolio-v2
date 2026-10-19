@@ -1,0 +1,707 @@
+/* ---------------------------------------------------------------------------
+   "How this works?" — components/ui/ArchitectureNote.tsx.
+
+   The section shell (`.arch`, `.arch--detail`: the screenful of height, the
+   rule above it, the /about spacing) still comes from globals.css. This file
+   only draws what is inside it: five numbered steps on a rail. A column on
+   phones and tablets in portrait, a row from 1024px up — and only when the
+   section itself has the room, so the narrower /about column stays a column.
+
+   Unlayered on purpose: it has to win over `.detail-section h2`, which would
+   otherwise set the title as an 11px label on /about.
+
+   No accent here, as before: the step text is the loud thing.
+--------------------------------------------------------------------------- */
+
+.hiw {
+  container: hiw / inline-size;
+  --hiw-marker: 28px;
+  --hiw-half: 14px;
+  --hiw-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* The eyebrow on /about matches the entry labels around it. */
+.hiw__eyebrow {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-meta);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  margin-bottom: 14px;
+}
+
+.hiw .hiw__title {
+  margin: 0;
+  max-width: 22em;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.4vw, 3rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-ink);
+}
+
+.arch--detail .hiw__title {
+  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+}
+
+/* ----- the rail: a column by default ------------------------------------ */
+.hiw__rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: clamp(32px, 6vh, 72px);
+  padding: 0;
+  list-style: none;
+}
+
+.arch--detail .hiw__rail {
+  margin-top: clamp(24px, 4vh, 44px);
+}
+
+.hiw__step {
+  position: relative;
+  min-width: 0;
+  padding-bottom: 22px;
+}
+
+.hiw__step:last-child {
+  padding-bottom: 0;
+}
+
+/*
+ * The rail segment leaving this step: from this marker's centre to the next
+ * one's. On the column that is this step's full height (its padding included),
+ * so it stays joined when a detail line opens and the step grows.
+ */
+.hiw__seg {
+  position: absolute;
+  top: var(--hiw-half);
+  left: calc(var(--hiw-half) - 0.5px);
+  width: 1px;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hiw__seg-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hiw__seg-track {
+  fill: var(--color-rule);
+}
+
+/* Drawn by scaling along the rail; `--draw` comes from the scroll progress
+   and is absent (fully drawn) before hydration and under reduced motion. */
+.hiw__seg-ink {
+  fill: var(--color-ink);
+  transform-box: fill-box;
+  transform-origin: 0 0;
+  transform: scaleY(var(--draw, 1));
+}
+
+/* ----- the step button ---------------------------------------------------- */
+.hiw__toggle {
+  display: grid;
+  grid-template-columns: var(--hiw-marker) minmax(0, 1fr) 12px;
+  column-gap: 14px;
+  align-items: start;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms var(--hiw-ease);
+}
+
+.hiw__marker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--hiw-marker);
+  height: var(--hiw-marker);
+  border: 1px solid var(--color-rule);
+  border-radius: 50%;
+  background: var(--color-ground);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  line-height: 1;
+  color: var(--color-faint);
+}
+
+/* Lit: a state, not an animation — the colour swaps, only opacity and
+   position are tweened (below). */
+.hiw__step[data-lit] .hiw__marker {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.hiw__text {
+  padding-top: 3px;
+  font-family: var(--font-display);
+  font-size: clamp(1.0625rem, 0.6vw + 0.8rem, 1.375rem);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 160ms ease;
+}
+
+/* The affordance: a plus that turns to a cross when the detail is open. */
+.hiw__plus {
+  width: 12px;
+  height: 12px;
+  margin-top: calc(var(--hiw-half) - 6px);
+  fill: none;
+  stroke: var(--color-faint);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition:
+    transform 200ms var(--hiw-ease),
+    stroke 160ms ease;
+}
+
+.hiw__detail {
+  margin: 2px 0 0;
+  padding-left: calc(var(--hiw-marker) + 14px);
+  max-width: 34em;
+  font-size: var(--text-small);
+  line-height: 1.55;
+  color: var(--color-muted);
+  animation: hiw-reveal 220ms var(--hiw-ease);
+}
+
+.hiw__detail[hidden] {
+  display: none;
+}
+
+@keyframes hiw-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ----- states ------------------------------------------------------------- */
+@media (hover: hover) {
+  .hiw__toggle:hover .hiw__text {
+    text-decoration-color: var(--color-faint);
+  }
+
+  .hiw__toggle:hover .hiw__plus {
+    stroke: var(--color-ink);
+  }
+
+  .hiw__toggle:hover .hiw__marker {
+    border-color: var(--color-ink);
+  }
+}
+
+.hiw__toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+.hiw__toggle:active {
+  transform: scale(0.985);
+}
+
+.hiw__toggle[aria-expanded='true'] .hiw__plus {
+  stroke: var(--color-ink);
+  transform: rotate(45deg);
+}
+
+/* Open: a ring around the marker, so the expanded step reads from the rail. */
+.hiw__toggle[aria-expanded='true'] .hiw__marker {
+  box-shadow:
+    0 0 0 3px var(--color-ground),
+    0 0 0 4px var(--color-ink);
+}
+
+/* ----- the scroll reveal -------------------------------------------------
+   Only once the component has armed itself (hydrated, motion allowed): a
+   step the line has not reached yet waits dimmed and a few pixels back. */
+[data-armed] .hiw__marker,
+[data-armed] .hiw__text,
+[data-armed] .hiw__plus {
+  transition:
+    opacity 360ms var(--hiw-ease),
+    transform 480ms var(--hiw-ease),
+    text-decoration-color 160ms ease,
+    stroke 160ms ease;
+}
+
+[data-armed] .hiw__step:not([data-lit]) .hiw__marker,
+[data-armed] .hiw__step:not([data-lit]) .hiw__plus {
+  opacity: 0.35;
+}
+
+[data-armed] .hiw__step:not([data-lit]) .hiw__text {
+  opacity: 0.35;
+  transform: translateY(6px);
+}
+
+/* The open cross keeps its rotation whatever the lit state. */
+[data-armed] .hiw__toggle[aria-expanded='true'] .hiw__plus {
+  transform: rotate(45deg);
+}
+
+/* ----- the row: 1024px and up, when the section has the width ------------ */
+@media (min-width: 1024px) {
+  @container hiw (min-width: 720px) {
+    .hiw__rail {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .hiw__step {
+      padding: 0 28px 0 0;
+    }
+
+    .hiw__step:last-child {
+      padding-right: 0;
+    }
+
+    /* Marker centre to the next marker centre: one column's width. */
+    .hiw__seg {
+      top: calc(var(--hiw-half) - 0.5px);
+      left: var(--hiw-half);
+      width: 100%;
+      height: 1px;
+    }
+
+    .hiw__seg-ink {
+      transform: scaleX(var(--draw, 1));
+    }
+
+    .hiw__toggle {
+      grid-template-columns: minmax(0, 1fr) 12px;
+      grid-template-rows: auto auto;
+      row-gap: 18px;
+      padding-bottom: 4px;
+    }
+
+    .hiw__marker {
+      grid-column: 1 / -1;
+    }
+
+    .hiw__text {
+      padding-top: 0;
+    }
+
+    .hiw__plus {
+      margin-top: 0.45em;
+    }
+
+    .hiw__detail {
+      padding-left: 0;
+      margin-top: 8px;
+    }
+  }
+}
+
+/* ----- reduced motion ----------------------------------------------------
+   The component never arms, so the rail is drawn and every step lit. What
+   remains is feedback: no press scale, no slide on the detail line (it
+   fades), and the cross swaps without turning. */
+@media (prefers-reduced-motion: reduce) {
+  .hiw__toggle,
+  .hiw__plus {
+    transition: stroke 160ms ease;
+  }
+
+  .hiw__toggle:active {
+    transform: none;
+  }
+
+  .hiw__detail {
+    animation: hiw-fade 150ms ease;
+  }
+}
+
+@keyframes hiw-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ===========================================================================
+   The header's How? button and its dialog — components/ui/HowItWorksButton.tsx.
+   The steps inside are the rail above, unchanged; only the shell is new.
+   Panel family: zero radius, hairline border, ground 96% over a 9px blur,
+   one soft shadow. Transform and opacity only.
+=========================================================================== */
+
+/* ----- the pill: the only one in the header ----------------------------- */
+.how-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.how-btn__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 11px 0 8px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-ground) 88%, transparent);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  line-height: 1;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 150ms var(--hiw-ease, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.how-btn__mark {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+}
+
+@media (hover: hover) {
+  .how-btn:hover .how-btn__pill {
+    color: var(--color-ink);
+    border-color: var(--color-accent);
+  }
+}
+
+.how-btn[aria-expanded='true'] .how-btn__pill {
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.how-btn:active .how-btn__pill {
+  transform: scale(0.95);
+}
+
+/* The ring goes on the visible pill, not the 44px hit area around it. */
+.how-btn:focus-visible {
+  outline: none;
+}
+
+.how-btn:focus-visible .how-btn__pill {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* ----- the dialog: above the journey stage (40) and the header (20) ------ */
+.hiw-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.hiw-scrim[data-open] {
+  opacity: 1;
+}
+
+.hiw-dialog {
+  --sheet-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  position: fixed;
+  z-index: 71;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(1120px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 36px 44px 44px;
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-ground) 96%, transparent);
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--color-ink) 45%, transparent);
+  color: var(--color-ink);
+  opacity: 0;
+  transform: translateY(12px) scale(0.985);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.hiw-dialog[data-open] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 300ms var(--sheet-ease),
+    transform 300ms var(--sheet-ease);
+}
+
+/* Room for Close beside the eyebrow and the title. */
+.hiw-dialog .hiw__eyebrow,
+.hiw-dialog .hiw__title {
+  padding-right: 96px;
+}
+
+.hiw-dialog .hiw__rail {
+  margin-top: 44px;
+}
+
+.hiw-close {
+  position: absolute;
+  top: 26px;
+  right: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.hiw-close:hover {
+  color: var(--color-ink);
+}
+
+.hiw-close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.hiw-close svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.hiw-dialog__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 36px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-rule);
+  font-size: var(--text-small);
+  color: var(--color-faint);
+}
+
+.hiw-dialog__foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -14px 0;
+  color: var(--color-muted);
+  text-underline-offset: 0.22em;
+}
+
+.hiw-dialog__foot a:hover {
+  color: var(--color-accent);
+}
+
+.hiw-dialog__foot a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ----- phone: a bottom sheet, the column rail ---------------------------- */
+@media (max-width: 767px) {
+  /* CTA, How? and the toggle fit at 393: the toggle keeps its glyph and its
+     aria-label, and drops the word. */
+  .site-header__end {
+    gap: 14px;
+  }
+
+  .theme-toggle__text {
+    display: none;
+  }
+
+  .hiw-dialog {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    translate: none;
+    width: auto;
+    max-height: 88dvh;
+    padding: 12px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+    border-width: 1px 0 0;
+    transform: translateY(24px);
+  }
+
+  .hiw-dialog::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 0 auto 14px;
+    border-radius: var(--radius-pill);
+    background: var(--color-rule);
+  }
+
+  .hiw-close {
+    top: 18px;
+    right: 10px;
+  }
+
+  .hiw-dialog .hiw__title {
+    font-size: 1.625rem;
+  }
+
+  .hiw-dialog .hiw__rail {
+    margin-top: 28px;
+  }
+
+  .hiw-dialog__foot {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 28px;
+  }
+}
+
+/* ----- the header row fits every width --------------------------------------
+   Below 480px "Send a message" shortens to "Message", How? keeps only its
+   "?" and the toggle only its glyph (from 767px down, above). Accessible
+   names stay whole and every target stays 44px. Here, not in globals.css,
+   because this file is unlayered and already owns the How? pill. */
+.cta__short {
+  display: none;
+}
+
+@media (max-width: 479px) {
+  .site-header__inner {
+    gap: 8px;
+    padding-inline: 16px;
+  }
+
+  .site-header__end {
+    gap: 2px;
+  }
+
+  .header-cta {
+    min-height: 44px;
+    margin-right: 4px;
+    padding: 0 14px;
+    gap: 8px;
+  }
+
+  .cta__long {
+    display: none;
+  }
+
+  .cta__short {
+    display: inline;
+  }
+
+  .how-btn {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  .how-btn__pill {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .how-btn__mark {
+    width: auto;
+    height: auto;
+    border: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .how-btn__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The narrowest phones. On /work, /about and /contact the row is the logo,
+   three nav words, How? and the toggle: 356px at 320 before this, which
+   stretched the page sideways. Every target keeps its 44px. */
+@media (max-width: 360px) {
+  .site-header__inner {
+    gap: 4px;
+    padding-inline: 10px;
+  }
+
+  .logo {
+    font-size: 17px;
+  }
+
+  .site-nav {
+    gap: 0;
+  }
+
+  .site-nav a {
+    font-size: 0.75rem;
+  }
+
+  .header-cta {
+    padding: 0 12px;
+  }
+}
+
+/* ----- reduced motion: opacity only, no press scale ----------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .hiw-dialog,
+  .hiw-dialog[data-open] {
+    transform: none;
+    transition: opacity 200ms linear;
+  }
+
+  .how-btn__pill {
+    transition:
+      color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .how-btn:active .how-btn__pill {
+    transform: none;
+  }
+}
