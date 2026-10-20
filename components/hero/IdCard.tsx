@@ -2,6 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Profile } from '@/lib/profile';
+import {
+  canSleep,
+  clampPoint,
+  dragBounds,
+  EDGE_PAD,
+  maxSpeed,
+  STEP_MS,
+  stepsFor,
+} from '@/lib/lanyard';
+import '@/app/id-card.css';
 import { PhotoLightbox } from './PhotoLightbox';
 
 /**
@@ -22,6 +32,8 @@ import { PhotoLightbox } from './PhotoLightbox';
  *     it, and its rotation falls out of the physics instead of being authored.
  *   - Grab it anywhere and it follows the point you grabbed. Let go and the
  *     velocity is already in the integrator, so it flies and settles.
+ *   - It stays in view: drag and throw both stop at the hero's visible left
+ *     and right edges (lib/lanyard.ts), and the loop sleeps once it is still.
  *
  * This is also how charmling.app does it: an SVG cord and a separate charm
  * element, not a 3D scene.
@@ -205,6 +217,17 @@ export function IdCard({ profile }: { profile: Profile }) {
     let stretch = MAX_STRETCH;
 
     /*
+     * Where the card (and the cord) may go, in the stage's coordinates: the
+     * hero, cut to the window's left and right edges. Chrys asked for the
+     * badge to be playable "within the view of the user only", so a drag or a
+     * throw stops at the edge instead of leaving the screen. Measured in
+     * build() and on each press, never in the frame loop.
+     */
+    let bounds = { minX: -Infinity, maxX: Infinity, minY: -Infinity, maxY: Infinity };
+    let ropeMinX = -Infinity;
+    let ropeMaxX = Infinity;
+
+    /*
      * The chain: POINTS cord points, then the card's slot and its bottom edge.
      * Keeping the card in the same solver as the cord is what makes it hang
      * rather than hover — the card's weight is what pulls the cord straight.
@@ -213,6 +236,14 @@ export function IdCard({ profile }: { profile: Profile }) {
     const rope = () => pts.slice(0, POINTS);
     const slot = () => pts[POINTS];
     const foot = () => pts[POINTS + 1];
+
+    const measureBounds = () => {
+      const hero = (stage.closest<HTMLElement>('.hero') ?? stage).getBoundingClientRect();
+      const box = stage.getBoundingClientRect();
+      bounds = dragBounds(hero, box, document.documentElement.clientWidth, cardW, cardH);
+      ropeMinX = bounds.minX - cardW / 2 - EDGE_PAD + TAPE_W;
+      ropeMaxX = bounds.maxX + cardW / 2 + EDGE_PAD - TAPE_W;
+    };
 
     const build = () => {
       const box = stage.getBoundingClientRect();
@@ -226,6 +257,7 @@ export function IdCard({ profile }: { profile: Profile }) {
       anchorX = W - ANCHOR_INSET;
       seg = segmentFor(H, cardH);
       stretch = MAX_STRETCH * (SEG / seg);
+      measureBounds();
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.setAttribute('width', String(W));
@@ -256,13 +288,24 @@ export function IdCard({ profile }: { profile: Profile }) {
     let lastScroll = window.scrollY;
     let grabX = 0;
     let grabY = 0;
+    // The stage's page offset, read on press and moved by scroll, so a drag
+    // never reads layout on pointermove.
+    let boxLeft = 0;
+    let boxTop = 0;
     let running = false;
+    let waiting = false;
+    let visible = false;
     let frame = 0;
+    let lastFrame = 0;
+    let carry = 0;
+    // Sway time advances only while the solver runs, so waking from sleep
+    // picks the sway up where it stopped instead of jumping the anchor.
+    let swayT = 0;
+    let lastKick = performance.now();
     let tapX = 0;
     let tapY = 0;
     let tapAt = 0;
     let tapCandidate = false;
-    const born = performance.now();
 
     /**
      * One constraint between two points.
@@ -300,15 +343,23 @@ export function IdCard({ profile }: { profile: Profile }) {
       b.y -= dy * k * b.w;
     };
 
+    /** The held slot follows the pointer, but never past the edge of the view. */
+    const pinToPointer = () => {
+      const s = slot();
+      s.x = Math.min(bounds.maxX, Math.max(bounds.minX, grabX - grabDX));
+      s.y = Math.min(bounds.maxY, Math.max(bounds.minY, grabY - grabDY));
+    };
+
+    /** One fixed 60fps step of the physics. */
     const solve = () => {
-      const t = (performance.now() - born) / 1000;
+      swayT += STEP_MS / 1000;
 
       /*
        * The idle sway is applied to the anchor, not to the card. A lanyard is
        * never quite still, and moving the top lets the cord carry the movement
        * down as a real one would, instead of the card oscillating on its own.
        */
-      pts[0].x = anchorX + Math.sin(t * 0.34) * 2.4 + Math.sin(t * 0.21) * 1.3;
+      pts[0].x = anchorX + Math.sin(swayT * 0.34) * 2.4 + Math.sin(swayT * 0.21) * 1.3;
       pts[0].y = ANCHOR_Y;
 
       for (const p of pts) {
@@ -324,32 +375,38 @@ export function IdCard({ profile }: { profile: Profile }) {
       if (held) {
         // The grabbed point is pinned to the pointer; everything else is left
         // to the solver, so the card dangles from where it is actually held.
-        const s = slot();
-        s.x = grabX - grabDX;
-        s.y = grabY - grabDY;
-        s.px = s.x;
-        s.py = s.y;
+        pinToPointer();
+        slot().px = slot().x;
+        slot().py = slot().y;
       }
 
       for (let n = 0; n < ITERATIONS; n++) {
         for (let i = 0; i < POINTS - 1; i++) link(pts[i], pts[i + 1], seg, true);
         link(pts[POINTS - 1], slot(), CLIP, true);
         link(slot(), foot(), cardH);
-        if (held) {
-          const s = slot();
-          s.x = grabX - grabDX;
-          s.y = grabY - grabDY;
-        }
+        if (held) pinToPointer();
+        clampPoint(slot(), bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
+        clampPoint(foot(), bounds.minX, bounds.maxX);
       }
+      for (let i = 1; i < POINTS; i++) clampPoint(pts[i], ropeMinX, ropeMaxX);
 
       const s = slot();
       const f = foot();
       f.x += (s.x - f.x) * UPRIGHT;
       f.y += (s.y + cardH - f.y) * UPRIGHT;
+
+      twistVel += -0.06 * twist + (s.x - s.px) * 0.22;
+      twistVel *= 0.88;
+      twist = Math.max(-34, Math.min(34, twist + twistVel));
     };
 
-    /** The webbing: a ribbon built by offsetting the cord along its normal. */
-    const paint = () => {
+    /**
+     * The webbing: a ribbon built by offsetting the cord along its normal.
+     * `rest` is the last paint before the loop sleeps: whole pixels and no 3D
+     * turn, so the settled badge is rasterised crisp rather than as a
+     * resampled 3D layer.
+     */
+    const paint = (rest = false) => {
       const r = rope();
       const chain = [...r, slot()];
 
@@ -392,19 +449,32 @@ export function IdCard({ profile }: { profile: Profile }) {
       // The card's rotation is the direction of its own body, not the cord's:
       // that difference is what reads as weight.
       const angle = (Math.atan2(f.x - s.x, f.y - s.y) * -180) / Math.PI;
-      const vx = s.x - s.px;
-      twistVel += -0.06 * twist + vx * 0.22;
-      twistVel *= 0.88;
-      twist = Math.max(-34, Math.min(34, twist + twistVel));
-
-      card.style.transform =
-        `translate3d(${(s.x - cardW / 2).toFixed(1)}px, ${s.y.toFixed(1)}px, 0)` +
-        ` rotate(${angle.toFixed(2)}deg) rotateY(${twist.toFixed(2)}deg)`;
+      const x = s.x - cardW / 2;
+      card.style.transform = rest
+        ? `translate3d(${Math.round(x)}px, ${Math.round(s.y)}px, 0) rotate(${angle.toFixed(2)}deg)`
+        : `translate3d(${x.toFixed(1)}px, ${s.y.toFixed(1)}px, 0)` +
+          ` rotate(${angle.toFixed(2)}deg) rotateY(${twist.toFixed(2)}deg)`;
     };
 
-    const tick = () => {
-      solve();
-      paint();
+    /*
+     * Fixed 60fps steps, so a 120Hz screen does not swing it twice as fast,
+     * and a slow frame catches up by at most MAX_STEPS. Once it has been let
+     * go, left alone and come to rest, the loop sleeps until something wakes
+     * it: nothing runs while the badge is just hanging there.
+     */
+    const tick = (now: number) => {
+      const elapsed = lastFrame ? now - lastFrame : STEP_MS;
+      lastFrame = now;
+      const next = stepsFor(carry, elapsed);
+      carry = next.carry;
+      for (let i = 0; i < next.steps; i++) solve();
+
+      if (canSleep(held, now - lastKick, maxSpeed(pts), twistVel)) {
+        paint(true);
+        running = false;
+        return;
+      }
+      if (next.steps > 0) paint();
       frame = requestAnimationFrame(tick);
     };
 
@@ -417,9 +487,13 @@ export function IdCard({ profile }: { profile: Profile }) {
     const ready = () => document.documentElement.dataset.ready === 'true';
 
     const start = () => {
-      if (running || still.matches) return;
+      if (running || waiting || still.matches) return;
       if (!ready()) {
-        window.setTimeout(start, 180);
+        waiting = true;
+        window.setTimeout(() => {
+          waiting = false;
+          start();
+        }, 180);
         return;
       }
       // First measurement happens here, not on mount: reading layout during
@@ -427,6 +501,8 @@ export function IdCard({ profile }: { profile: Profile }) {
       // the static geometry in the markup already holds the at-rest pose.
       if (pts.length === 0) build();
       running = true;
+      lastFrame = 0;
+      carry = 0;
       frame = requestAnimationFrame(tick);
     };
 
@@ -435,11 +511,18 @@ export function IdCard({ profile }: { profile: Profile }) {
       cancelAnimationFrame(frame);
     };
 
+    /** Something touched the badge: keep it awake, and restart it if it slept. */
+    const wake = () => {
+      lastKick = performance.now();
+      if (visible) start();
+    };
+
     const onDown = (event: PointerEvent) => {
       pointerOwned.current = false;
       if (still.matches || pts.length === 0) return;
       pointerOwned.current = true;
       held = true;
+      wake();
       tapX = event.clientX;
       tapY = event.clientY;
       tapAt = performance.now();
@@ -449,8 +532,11 @@ export function IdCard({ profile }: { profile: Profile }) {
       card.setPointerCapture(pointerId);
       card.dataset.held = 'true';
       const box = stage.getBoundingClientRect();
-      grabX = event.clientX - box.left;
-      grabY = event.clientY - box.top;
+      boxLeft = box.left;
+      boxTop = box.top;
+      measureBounds();
+      grabX = event.clientX - boxLeft;
+      grabY = event.clientY - boxTop;
       grabDX = grabX - slot().x;
       grabDY = grabY - slot().y;
       event.preventDefault();
@@ -461,27 +547,21 @@ export function IdCard({ profile }: { profile: Profile }) {
       if (tapCandidate && Math.hypot(event.clientX - tapX, event.clientY - tapY) >= TAP_SLOP) {
         tapCandidate = false;
       }
-      const box = stage.getBoundingClientRect();
       /*
-       * The raw pointer, unclamped.
-       *
-       * It used to be held inside the badge's own box — `[10, W - 10]` — which
-       * is what stopped the card short of the cursor however wide the box was
-       * made. Chrys's instruction was "no blockings, and it's freeway": the
-       * card goes where the pointer goes, the cord pays out behind it, and the
-       * spring brings both back on release.
-       *
-       * Nothing needs to clamp it. Pointer capture keeps the events coming
-       * outside the box, the webbing is no longer clipped to it (see
-       * `.lanyard__cord`), and the hero's own stage bounds what can be seen.
+       * The pointer in the stage's coordinates, from the offset taken on
+       * press (no layout read per move). Pointer capture keeps the events
+       * coming outside the box; solve() holds the card to the hero's visible
+       * part, so it stops at the edge of the screen while the pointer goes on.
        */
-      grabX = event.clientX - box.left;
-      grabY = event.clientY - box.top;
+      grabX = event.clientX - boxLeft;
+      grabY = event.clientY - boxTop;
+      lastKick = performance.now();
     };
 
     const onUp = (event: PointerEvent) => {
       if (!held) return;
       held = false;
+      wake();
       const tapped =
         tapCandidate &&
         event.type === 'pointerup' &&
@@ -500,20 +580,26 @@ export function IdCard({ profile }: { profile: Profile }) {
     const onScroll = () => {
       const delta = window.scrollY - lastScroll;
       lastScroll = window.scrollY;
+      boxTop -= delta;
       if (held || pts.length === 0) return;
       // Scrolling jogs the cord, as moving would jog a badge on your chest.
       const kick = Math.max(-2.4, Math.min(2.4, delta * 0.06));
       for (let i = 4; i < pts.length; i++) pts[i].px -= kick * (i / pts.length);
+      wake();
     };
 
     const onResize = () => {
       if (pts.length > 0) build();
+      wake();
     };
 
     /* The loop is the hero's alone — there is no reason to integrate a rope
        that is three sections off the top of the screen. */
     const watch = new IntersectionObserver(
-      ([entry]) => (entry.isIntersecting ? start() : stop()),
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        return entry.isIntersecting ? start() : stop();
+      },
       { rootMargin: '120px' },
     );
     watch.observe(stage);
@@ -608,7 +694,7 @@ export function IdCard({ profile }: { profile: Profile }) {
             >
               {profile.portrait ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.portrait} alt="" draggable={false} />
+                <img src={profile.portrait} alt="" draggable={false} decoding="async" />
               ) : (
                 <span className="lanyard__monogram" aria-hidden="true">
                   {initials}

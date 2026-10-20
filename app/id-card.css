@@ -1,0 +1,40 @@
+/*
+ * The ID badge's portrait (components/hero/IdCard.tsx). The rest of the badge
+ * is in globals.css; this sits outside its layer, so these rules win.
+ *
+ * The photo was a 56px thumbnail cropped from the centre, which cut the top
+ * of the head and read soft. It is larger now, cropped towards the face, and
+ * framed with a thin inset ring, the way a laminated ID is.
+ */
+.lanyard .lanyard__id {
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.lanyard .lanyard__photo {
+  border-radius: 4px;
+  outline: none;
+}
+
+/* The ring sits over the photo: the img fills the box and would cover an inset shadow on it. */
+.lanyard .lanyard__photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ground) 22%, transparent);
+  pointer-events: none;
+}
+
+/* The frame must not hide the site's focus ring: the photo is a button. */
+.lanyard .lanyard__photo:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.lanyard .lanyard__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+}

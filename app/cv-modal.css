@@ -1,0 +1,273 @@
+/*
+ * The CV modal (components/ui/CvModal.tsx), approved HeroActions v1.
+ * Every colour is a site token, so the light theme follows on its own; the
+ * fixed values are the scrim, the shadow and the hover ink, named here once.
+ */
+.cvm {
+  --cvm-scrim: rgb(8 7 6 / 72%);
+  --cvm-shadow: 0 24px 48px -16px rgb(0 0 0 / 60%);
+  --cvm-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  /* A hovered label goes one step past --color-ink: white in dark, black in light. */
+  --cvm-ink-strong: #000;
+
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.cvm__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--cvm-scrim);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.cvm__panel {
+  position: relative;
+  width: min(920px, 100%);
+  height: min(88vh, 1100px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+  box-shadow: var(--cvm-shadow);
+  opacity: 0;
+  transform: translateY(16px) scale(0.985);
+  transition:
+    opacity 240ms var(--cvm-ease),
+    transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cvm[data-open='true'] .cvm__scrim,
+.cvm[data-open='true'] .cvm__panel {
+  opacity: 1;
+}
+
+.cvm[data-open='true'] .cvm__panel {
+  transform: none;
+}
+
+/* ----- header ----------------------------------------------------------- */
+.cvm__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 20px;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.cvm__titles {
+  min-width: 0;
+}
+
+.cvm__t {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.cvm__s {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--color-faint);
+}
+
+.cvm__act {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cvm__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-ink);
+  font: 600 0.8125rem/1 var(--font-body);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+:root[data-theme='dark'] .cvm {
+  --cvm-ink-strong: #fff;
+}
+
+.cvm__btn svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.cvm__close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+@media (hover: hover) {
+  .cvm__btn:hover {
+    border-color: var(--color-accent);
+    color: var(--cvm-ink-strong);
+  }
+}
+
+.cvm__btn:active {
+  transform: scale(0.97);
+}
+
+.cvm__btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ----- body: the PDF, or its loading and error states -------------------- */
+.cvm__body {
+  position: relative;
+  background: color-mix(in srgb, var(--color-ground) 80%, var(--color-ink));
+}
+
+.cvm__body iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.cvm__body[data-state='ready'] iframe {
+  opacity: 1;
+}
+
+.cvm__load,
+.cvm__err {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.cvm__err-t {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.cvm__err .button {
+  min-height: 44px;
+  margin-top: 4px;
+}
+
+.cvm__err .button svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* A ghost A4 sheet while the PDF loads. */
+.cvm__sheet {
+  position: relative;
+  width: min(300px, 60vw);
+  aspect-ratio: 0.707;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-surface);
+  opacity: 0.35;
+}
+
+.cvm__sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-ink) 18%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: cvm-shimmer 1.2s linear infinite;
+}
+
+@keyframes cvm-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ----- phone: a full-screen sheet ---------------------------------------- */
+@media (max-width: 599px) {
+  .cvm {
+    padding: 0;
+    place-items: end stretch;
+  }
+
+  .cvm__panel {
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    transform: translateY(24px);
+  }
+
+  .cvm__head {
+    padding: max(8px, env(safe-area-inset-top)) 8px 8px 16px;
+  }
+
+  .cvm__lbl {
+    display: none;
+  }
+
+  .cvm__btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+}
+
+/* ----- reduced motion: opacity only, no shimmer -------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .cvm__panel {
+    transform: none !important;
+    transition: opacity 150ms linear;
+  }
+
+  .cvm__scrim {
+    transition-duration: 150ms;
+  }
+
+  .cvm__btn:active {
+    transform: none;
+  }
+
+  .cvm__sheet::after {
+    animation: none;
+  }
+}

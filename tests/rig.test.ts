@@ -11,34 +11,12 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const read = (file: string) =>
   readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
 
-const { deviceCycle, pickFor, tiltFor, MAX_TILT } = (await import(
+const { pickFor, tiltFor, MAX_TILT } = (await import(
   new URL('../lib/rig.ts', import.meta.url).href
 )) as typeof import('../lib/rig');
 
 const showcase = read('components/work/WorkShowcase.tsx');
 const css = read('app/globals.css');
-
-const shots = [
-  { id: 'l1', device: 'laptop' },
-  { id: 't1', device: 'tablet' },
-  { id: 'l2', device: 'laptop' },
-  { id: 'm1', device: 'mobile' },
-];
-
-test("a device cycles its own shots first, then the project's others", () => {
-  assert.deepEqual(
-    deviceCycle(shots, 'laptop').map((s) => s.id),
-    ['l1', 'l2', 't1', 'm1'],
-  );
-  assert.deepEqual(
-    deviceCycle(shots, 'mobile').map((s) => s.id),
-    ['m1', 'l1', 't1', 'l2'],
-  );
-});
-
-test('a project with no shots cycles nothing', () => {
-  assert.deepEqual(deviceCycle([], 'laptop'), []);
-});
 
 test('the pick wraps per project and stays 0 with one shot or none', () => {
   assert.equal(pickFor(0, 4), 0);
@@ -68,10 +46,11 @@ test('an empty box gives no tilt', () => {
 test('each device is a button that cycles its screen', () => {
   assert.match(showcase, /className="rig__hit"/);
   assert.match(showcase, /aria-label=\{`Show the next screenshot on the \$\{label\}`\}/);
-  assert.match(
-    showcase,
-    /setPicks\(\(was\) => \(\{ \.\.\.was, \[device\]: was\[device\] \+ 1 \}\)\)/,
-  );
+  // A tap is the slideshow's next and a swipe goes either way (WorkShowcase v4);
+  // with one shot it is out of the tab order.
+  assert.match(showcase, /tabIndex=\{slides \? 0 : -1\}/);
+  assert.match(showcase, /go\(Math\.abs\(dx\) > SWIPE_PX && dx > 0 \? -1 : 1\);/);
+  assert.match(showcase, /if \(event\.detail === 0\) go\(1\);/);
 });
 
 test('touch skips the tilt; the tap still cycles', () => {
@@ -79,14 +58,16 @@ test('touch skips the tilt; the tap still cycles', () => {
   assert.match(showcase, /matchMedia\('\(hover: hover\) and \(pointer: fine\)'\)/);
 });
 
-test('NDA shots keep the blur and the ribbon', () => {
-  assert.match(showcase, /const media = usable\?\.nda \? 'nda-media' : undefined;/);
-  assert.match(showcase, /\{usable\?\.nda \? <NdaWatermark \/> : null\}/);
+test('NDA shots keep the ribbon and have no blur (the owner blurs the file)', () => {
+  assert.doesNotMatch(showcase, /nda-media/);
+  assert.doesNotMatch(css, /nda-media|--nda-blur/);
+  assert.match(showcase, /\{shots\[on\]\?\.nda \? <NdaWatermark \/> : null\}/);
 });
 
 test('motion is transform/translate only and off under reduced motion', () => {
   assert.match(css, /transition: transform 300ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\);/);
-  assert.match(css, /transition: translate 300ms/);
+  // The lean shares `translate` with the device arrangement: one 320ms ease.
+  assert.match(css, /translate 320ms cubic-bezier\(0\.23, 1, 0\.32, 1\)/);
   assert.match(
     css,
     /@media \(prefers-reduced-motion: reduce\) \{\s*\.rig \{\s*transform: none;\s*transition: none;/,

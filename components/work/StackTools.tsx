@@ -56,6 +56,8 @@ export function StackTools({ tabs, groupCount }: { tabs: readonly Tab[]; groupCo
   const [open, setOpen] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [dragged, setDragged] = useState(false);
+  const [watching, setWatching] = useState(false);
+  const [seen, setSeen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const chipsRef = useRef<HTMLDivElement>(null);
@@ -89,6 +91,45 @@ export function StackTools({ tabs, groupCount }: { tabs: readonly Tab[]; groupCo
   }, []);
 
   useEffect(() => centreChip(0, false), [centreChip]);
+
+  // ---- first view: the pills rise in once, when the cloud scrolls into view
+
+  useEffect(() => {
+    const cloud = cloudRef.current;
+    if (!cloud || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        setAnimate(true);
+        setSeen(true);
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(cloud);
+    setWatching(true);
+    return () => observer.disconnect();
+  }, []);
+
+  // ---- the spotlight: one pointermove on the cloud, one write per frame
+
+  const spotFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(spotFrame.current), []);
+
+  const spotlight = (e: PointerEvent<HTMLUListElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    const pill = (e.target as Element).closest<HTMLElement>('.stack-pill');
+    if (!pill) return;
+
+    const { clientX, clientY } = e;
+    cancelAnimationFrame(spotFrame.current);
+    spotFrame.current = requestAnimationFrame(() => {
+      const box = pill.getBoundingClientRect();
+      pill.style.setProperty('--mx', `${clientX - box.left}px`);
+      pill.style.setProperty('--my', `${clientY - box.top}px`);
+    });
+  };
 
   const onStripScroll = () => {
     const strip = chipsRef.current;
@@ -222,6 +263,7 @@ export function StackTools({ tabs, groupCount }: { tabs: readonly Tab[]; groupCo
   };
 
   const onCloudMove = (e: PointerEvent<HTMLUListElement>) => {
+    spotlight(e);
     const drag = cloudDrag.current;
     if (!drag) return;
 
@@ -365,6 +407,8 @@ export function StackTools({ tabs, groupCount }: { tabs: readonly Tab[]; groupCo
           className="stack-cloud"
           data-open={open ? '' : undefined}
           data-animate={animate ? '' : undefined}
+          data-watch={watching ? '' : undefined}
+          data-seen={seen ? '' : undefined}
           onPointerDown={onCloudDown}
           onPointerMove={onCloudMove}
           onPointerUp={onCloudUp}

@@ -39,15 +39,14 @@ every fact on the site.
    `client: null`. Do not change one without explicit per-project instruction.
    The rule is enforced in `lib/schema.ts` and fails the build in both
    directions.
-   **Screenshots of NDA work may be shown, marked and blurred.** Each image
-   carries an `nda` flag from the API, and this site draws the treatment from
-   it — an `NDA` ribbon in the selected accent across the top-right corner,
-   plus a blur on the picture (`components/work/NdaWatermark.tsx`, `.nda` in `globals.css`).
-   Never render an image that arrives with `nda: true` without both, and never
-   composite either into a file: they are CSS so that a clearance can take
-   them off later, and so that the mark reads on a light screenshot and a dark
-   one. The blur is the part that actually withholds the contents — the ribbon
-   only states the restriction.
+   **Screenshots of NDA work may be shown, marked.** The owner blurs NDA
+   files before upload (2026-10-20); the site no longer blurs them. Each image
+   carries an `nda` flag from the API, and the site draws only the ribbon from
+   it — an `NDA` band in the selected accent across the top-right corner
+   (`components/work/NdaWatermark.tsx`, `.nda` in `globals.css`). Never render
+   an image that arrives with `nda: true` without the ribbon, and never
+   composite the ribbon into a file: it is CSS so that a clearance can take it
+   off later, and so that the mark reads on a light screenshot and a dark one.
 4. **No new dependencies** beyond `docs/02-TRD.md` §1 without asking. There is
    no icon package — icons are inline SVG. react-three-fiber was asked for and
    refused: ~600kB against a 120kB first-load budget.

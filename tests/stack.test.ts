@@ -243,6 +243,39 @@ test('reduced motion stops the nudge and the rise-in', () => {
   assert.match(reduced, /\.stack-grab\.is-nudging \{\s*animation: none;/);
 });
 
+test('a soft accent spotlight follows the pointer inside a pill', () => {
+  assert.match(css, /\.stack-pill::before \{[^}]*radial-gradient\(120px circle at var\(--mx\) var\(--my\)/);
+  assert.match(css, /\.stack-pill:hover::before \{\s*opacity: 1;/);
+});
+
+test('the spotlight is one rAF-throttled, mouse-only pointermove on the cloud', () => {
+  assert.match(tools, /if \(e\.pointerType !== 'mouse'\) return;/);
+  assert.match(tools, /spotFrame\.current = requestAnimationFrame\(/);
+  assert.match(tools, /style\.setProperty\('--mx'/);
+  assert.doesNotMatch(tools, /<li className="stack-pill"[^>]*onPointer/);
+});
+
+test('a press scales the pill and springs back, never mid-drag', () => {
+  assert.match(css, /\.stack-pill:active \{\s*transform: translateY\(-1px\) scale\(0\.97\);/);
+  assert.match(css, /transform 320ms cubic-bezier\(0\.34, 1\.4, 0\.64, 1\)/);
+  assert.match(css, /\.stack-cloud\[data-dragging\] \.stack-pill:active \{\s*transform: none;/);
+});
+
+test('pills rise in once on first view, and stay visible without JS', () => {
+  assert.match(tools, /new IntersectionObserver\([\s\S]*threshold: 0\.2/);
+  assert.match(tools, /data-seen=\{seen \? '' : undefined\}/);
+  assert.match(tools, /data-watch=\{watching \? '' : undefined\}/);
+  assert.match(css, /\.stack-cloud\[data-watch\]:not\(\[data-seen\]\) \.stack-pill \{\s*opacity: 0;/);
+});
+
+test('reduced motion drops the rise-in, spotlight and press, and shows pills at once', () => {
+  const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+  assert.match(reduced, /\.stack-cloud\[data-animate\] \.stack-pill,[^{]*\{\s*animation: none;/);
+  assert.match(reduced, /\.stack-cloud\[data-watch\]:not\(\[data-seen\]\) \.stack-pill \{\s*opacity: 1;/);
+  assert.match(reduced, /\.stack-pill::before \{\s*display: none;/);
+  assert.match(reduced, /\.stack-pill:active,/);
+});
+
 test('the chip clones are hidden from assistive tech and the tab order', () => {
   assert.match(tools, /'data-clone': '', tabIndex: -1, 'aria-hidden': true/);
 });

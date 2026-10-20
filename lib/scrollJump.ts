@@ -25,12 +25,21 @@ export const easeInOutCubic = (t: number) =>
  * Fixed duration rather than the browser's distance-scaled one, so a jump of
  * several screens lands as quickly as a jump of one. A second call takes over
  * from the first instead of the two fighting over `scrollTo`.
+ *
+ * Reduced motion gets the destination at once. And the visitor always wins:
+ * a wheel, touch, press or key during the jump stops it where it is, rather
+ * than every frame's `scrollTo` dragging them back.
  */
 export function animateScrollTo(
   target: number,
-  ms = 420,
+  ms = 380,
   easing: (t: number) => number = easeOutCubic,
 ): Promise<void> {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    window.scrollTo(0, target);
+    return Promise.resolve();
+  }
+
   const start = window.scrollY;
   const delta = target - start;
   if (Math.abs(delta) < 1) return Promise.resolve();
@@ -39,9 +48,23 @@ export function animateScrollTo(
   running = true;
 
   return new Promise((resolve) => {
+    const finish = () => {
+      INTERRUPTS.forEach((type) => window.removeEventListener(type, interrupt));
+      resolve();
+    };
+    const interrupt = () => {
+      if (mine !== token) return;
+      token++;
+      running = false;
+      finish();
+    };
+    INTERRUPTS.forEach((type) =>
+      window.addEventListener(type, interrupt, { passive: true, once: true }),
+    );
+
     const startTime = performance.now();
     const step = (now: number) => {
-      if (mine !== token) return resolve();
+      if (mine !== token) return finish();
       const t = Math.min(1, (now - startTime) / ms);
       window.scrollTo(0, start + delta * easing(t));
       if (t < 1) {
@@ -49,8 +72,11 @@ export function animateScrollTo(
         return;
       }
       running = false;
-      resolve();
+      finish();
     };
     requestAnimationFrame(step);
   });
 }
+
+/** What a visitor does to take the scroll back. */
+const INTERRUPTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;

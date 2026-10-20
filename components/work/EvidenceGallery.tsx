@@ -78,7 +78,6 @@ function NdaVideo({ item, autoPlay }: { item: Item; autoPlay: boolean }) {
         <video
           key={attempt}
           ref={videoRef}
-          className="nda-media"
           src={item.src}
           autoPlay={autoPlay}
           muted={muted}
@@ -203,8 +202,8 @@ function NdaVideo({ item, autoPlay }: { item: Item; autoPlay: boolean }) {
  * controls, it is never autoplayed with sound or under reduced motion, and
  * moving to the next item stops whatever was playing.
  *
- * An `nda` item's blur is on the media element (`.nda-media`) rather than
- * inferred from the ribbon beside it, so it does not depend on `:has()`.
+ * An `nda` item gets the corner ribbon only: the owner blurs NDA files
+ * before upload (CLAUDE.md rule 3).
  */
 export function EvidenceGallery({ items }: { items: Item[] }) {
   const reduced = useReducedMotion();
@@ -288,7 +287,6 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                     {/* A muted first frame is the honest thumbnail for a
                         video: any still we invented would be a guess. */}
                     <video
-                      className={item.nda ? 'nda-media' : undefined}
                       src={item.src}
                       muted
                       playsInline
@@ -299,7 +297,6 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    className={item.nda ? 'nda-media' : undefined}
                     src={item.src}
                     alt=""
                     loading="lazy"
@@ -341,6 +338,23 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
               <p className="lightbox__count">
                 {(open ?? 0) + 1} / {items.length}
               </p>
+              {/* Where you are among the shots (.rig__dot in globals.css); a click jumps there, never autoplayed. */}
+              {items.length > 1 ? (
+                <div className="lightbox__dots">
+                  {items.map((item, j) => (
+                    <button
+                      key={`${item.src}-${j}`}
+                      type="button"
+                      className="rig__dot"
+                      aria-label={`Screen ${j + 1} of ${items.length}`}
+                      aria-current={j === open ? 'true' : undefined}
+                      onClick={() => setOpen(j)}
+                    >
+                      <b />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <button type="button" onClick={close} aria-label="Close">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path
@@ -382,7 +396,6 @@ export function EvidenceGallery({ items }: { items: Item[] }) {
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        className={current.nda ? 'nda-media' : undefined}
                         src={current.src}
                         alt={current.alt}
                       />

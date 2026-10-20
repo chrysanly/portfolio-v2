@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import type { MouseEvent } from 'react';
+import { type MouseEvent, useCallback, useState } from 'react';
 import { updatedLabel } from '@/lib/cv';
 import type { Profile } from '@/lib/profile';
 import { animateScrollTo, easeInOutCubic } from '@/lib/scrollJump';
+import { CvModal } from './CvModal';
 
 /*
  * Long enough that the hand-over — ledger out, header in, first panel in —
@@ -22,7 +23,8 @@ const TO_WORK_MS = 1000;
  *
  * A client component because of where "View my work" has to land — see
  * `showcaseTarget`. It renders inside the animated hero (a client tree) and
- * inside the resolved static intro (a server tree), and holds no state.
+ * inside the resolved static intro (a server tree). Its one piece of state is
+ * whether the CV modal is open.
  */
 
 /**
@@ -71,6 +73,19 @@ function goToWork(event: MouseEvent<HTMLAnchorElement>) {
 
 export function HeroActions({ cv }: { cv: Profile['cv'] }) {
   const updated = updatedLabel(cv?.updatedAt ?? null);
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  const closeCv = useCallback(() => setOpener(null), []);
+
+  /*
+   * A plain left click opens the CV over the hero (2026-10-20). Ctrl/Cmd,
+   * Shift, Alt and the middle button fall through to `/cv`, which is also
+   * where the link goes with no JavaScript.
+   */
+  const openCv = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    setOpener(event.currentTarget);
+  };
 
   return (
     <div className="hero-actions">
@@ -105,15 +120,18 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
          * this repository: `docs/resume.pdf` carries a date of birth and a civil
          * status, which rule 2 of CLAUDE.md keeps off the site entirely.
          *
-         * "View CV", to /cv (2026-10-19): the file is previewed on the site
-         * with Open and Download beside it, rather than handed to whatever the
-         * browser does with a cross-origin PDF in a new tab.
+         * "View CV" opens CvModal: the file previewed over the hero with
+         * Download and Open in new tab, and closed again without leaving the
+         * page. `/cv` stays the href for no-JS and modified clicks.
          */}
         {cv ? (
           <Link
             className="button button--cv"
             href="/cv"
             title={updated ? `PDF, updated ${updated}` : 'PDF'}
+            aria-haspopup="dialog"
+            data-no-veil=""
+            onClick={openCv}
           >
             View CV
             <svg
@@ -135,6 +153,16 @@ export function HeroActions({ cv }: { cv: Profile['cv'] }) {
       </div>
 
       {cv && updated ? <p className="hero-actions__stamp">CV updated {updated}</p> : null}
+
+      {cv && opener ? (
+        <CvModal
+          url={cv.url}
+          title={cv.label ?? 'Curriculum vitae'}
+          updated={updated}
+          opener={opener}
+          onClose={closeCv}
+        />
+      ) : null}
     </div>
   );
 }

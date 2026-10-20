@@ -11,6 +11,7 @@ import { SplashDismiss } from '@/components/ui/SplashDismiss';
 import './globals.css';
 import './contact-band.css';
 import './guide.css';
+import './cv-modal.css';
 
 /*
  * Three families, all self-hosted by next/font — no <link> to Google, no

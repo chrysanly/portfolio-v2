@@ -1,25 +1,11 @@
 /**
  * The showcase rig's interaction, kept pure so node:test runs it: which
- * screenshots a device cycles through, which one shows, and the pointer tilt.
+ * screenshot a device's screen shows, and the pointer tilt. Which shots a
+ * device has at all is lib/devices.ts.
  */
 
 /** Tilt at the rig's edge, in degrees. Small: it should read as weight, not a spin. */
 export const MAX_TILT = 5;
-
-/**
- * What one device's screen cycles through on a click: its own shots first,
- * then the project's other shots, so a device with a single shot still has
- * somewhere to go. Order within each group is kept.
- */
-export function deviceCycle<T extends { device: string }>(
-  images: readonly T[],
-  device: string,
-): T[] {
-  return [
-    ...images.filter((i) => i.device === device),
-    ...images.filter((i) => i.device !== device),
-  ];
-}
 
 /** The shot shown for a running pick count: wraps per project, so projects of any size share one counter. */
 export function pickFor(picks: number, length: number): number {

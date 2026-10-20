@@ -18,11 +18,18 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion';
+import {
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+} from 'framer-motion';
 import type { Profile } from '@/lib/profile';
 import { IdCard } from './IdCard';
 import { HeroActions } from '@/components/ui/HeroActions';
 import { isJumping } from '@/lib/scrollJump';
+import { freshHold, holdTarget, type HoldOptions } from '@/lib/readHold';
 import {
   ENTRANCE_TOTAL_MS,
   LEAN_LERP,
@@ -131,6 +138,18 @@ const toScroll = (p: number) =>
       : READ_END + (1 - READ_END) * ((p - SETTLE) / (1 - SETTLE));
 
 /*
+ * The plateau holds for a stretch of scroll; a flick crosses that stretch in
+ * a frame or two. So the details also hold for `ms` of time once they are on
+ * screen (lib/readHold.ts): 700ms, inside the 600–800ms asked for on
+ * 2026-10-20. Past `bail` the sticky stage is about to scroll away, so the
+ * hold lets go rather than carry the ledger off the top.
+ */
+const READ_HOLD: HoldOptions = { from: REVEAL_AT, to: READ_END, ms: 700, bail: 0.97 };
+
+/** The pager's "Details" stop: the middle of the plateau, so a nudge either way stays on it. */
+const PLATEAU_MID = (toScroll(SETTLE) + READ_END) / 2;
+
+/*
  * The logo the masthead docks into lives in the header, above the stage, and
  * the stage clips its overflow — so the masthead crosses that top edge and is
  * cut off before it ever arrives. Crossfading it out as it approaches, while
@@ -151,8 +170,9 @@ const HANDOVER_TO = CLEAR_TO;
  *
  * DETAILS_START: past it, enough of the ledger and the card have revealed
  * that "Details" is an accurate label rather than a still-mostly-masthead
- * view, and it's also where the pager's own "jump to Details" lands.
- * Exposed as `--hero-details-y` (measure) and `data-hero-stage` (paint).
+ * view. Exposed as `data-hero-stage` (paint). The pager's "jump to Details"
+ * lands on the `.hero__stop` marker at PLATEAU_MID instead, where everything
+ * is fully in.
  *
  * The third value, 'done', is written once CLEAR_TO is reached — i.e. once
  * the ledger has actually finished fading out, not merely once the header
@@ -385,25 +405,49 @@ export function MastheadHero({
     offset: ['start start', 'end end'],
   });
 
+  /*
+   * The spring's target: the scroll, except while the read hold caps it at
+   * the end of the plateau (READ_HOLD above).
+   */
+  const target = useMotionValue(0);
+  const hold = useRef(freshHold());
+  const wake = useRef(0);
+
   /** Motion trails the scroll rather than tracking it frame-for-frame. */
   // Stiff enough to settle about 0.25s after the wheel stops; the old 60/28
   // kept the stage drifting for most of a second.
-  const progress = useSpring(scrollYProgress, {
+  const progress = useSpring(target, {
     stiffness: 260,
     damping: 42,
     mass: 0.6,
     restDelta: 0.001,
   });
 
-  /*
-   * Except when the page is jumping on purpose. The spring trails a wheel
-   * nicely and a jump badly — the page crossed the whole hand-over before the
-   * spring was a third of the way through it, and the stage scrolled away
-   * with the ledger still painted on it. See lib/scrollJump.ts.
-   */
-  useMotionValueEvent(scrollYProgress, 'change', (raw) => {
-    if (isJumping()) progress.jump(raw);
-  });
+  const retarget = useCallback(() => {
+    window.clearTimeout(wake.current);
+    const raw = scrollYProgress.get();
+
+    /*
+     * Except when the page is jumping on purpose. The spring trails a wheel
+     * nicely and a jump badly — the page crossed the whole hand-over before
+     * the spring was a third of the way through it, and the stage scrolled
+     * away with the ledger still painted on it. See lib/scrollJump.ts. A
+     * click is a decision to move on, so it is not held either.
+     */
+    if (isJumping()) {
+      hold.current.armed = false;
+      target.jump(raw);
+      progress.jump(raw);
+      return;
+    }
+
+    const next = holdTarget(hold.current, raw, progress.get(), performance.now(), READ_HOLD);
+    target.set(next.target);
+    if (next.wakeIn !== null) wake.current = window.setTimeout(retarget, next.wakeIn);
+  }, [scrollYProgress, target, progress]);
+
+  useMotionValueEvent(scrollYProgress, 'change', retarget);
+  useEffect(() => () => window.clearTimeout(wake.current), []);
 
   /** Measure natural vs. destination positions. Re-run on resize and font load. */
   const measure = useCallback(() => {
@@ -420,25 +464,6 @@ export function MastheadHero({
     const logo = logoRef.current;
     const track = trackRef.current;
     if (!masthead || !logo || !track) return;
-
-    /*
-     * The pixel scrollY at which the sequence reaches DETAILS_START — the
-     * only way the pager can jump straight to "Details" without duplicating
-     * the scroll-progress maths `useScroll` does internally.
-     *
-     * Landing a little past the threshold rather than exactly on it: pixel
-     * rounding here and the spring's own rounding on the way back to a `p`
-     * can land a hair under DETAILS_START even when the intent was exactly
-     * on it, which read back as "Hero" the instant the next real scroll
-     * event recomputed the stage — a jump to "Details" that silently
-     * reverted itself.
-     */
-    const trackTop = track.getBoundingClientRect().top + window.scrollY;
-    const scrollable = track.offsetHeight - window.innerHeight;
-    document.documentElement.style.setProperty(
-      '--hero-details-y',
-      String(Math.round(trackTop + toScroll(DETAILS_START + 0.02) * scrollable)),
-    );
 
     /*
      * Every transform that displaces the masthead has to be cleared, not just
@@ -668,6 +693,10 @@ export function MastheadHero({
    * reveal in reverse with no state to unwind.
    */
   useMotionValueEvent(progress, 'change', (raw) => {
+    // The hold's clock starts when the details are on screen, not when the
+    // scroll got there: the spring arrives a beat after the scroll.
+    const h = hold.current;
+    if (h.armed && h.since === null && raw >= READ_HOLD.from) retarget();
     if (!ready) return;
     paint(fromScroll(raw));
   });
@@ -691,9 +720,12 @@ export function MastheadHero({
       const scrollable = track.offsetHeight - window.innerHeight;
       raw = scrollable > 0 ? clamp((window.scrollY - top) / scrollable) : 0;
     }
+    // Arriving below the plateau (a restored Back) is not a fling to hold.
+    hold.current = { armed: raw < READ_HOLD.from, since: null };
+    target.jump(raw);
     progress.jump(raw);
     paint(fromScroll(raw));
-  }, [ready, reduced, paint, progress]);
+  }, [ready, reduced, paint, progress, target]);
 
   /*
    * Hand the skeleton over once the hero is measured and its fonts are in.
@@ -839,6 +871,19 @@ export function MastheadHero({
         has to be recomputed with it.
       */}
       <div ref={trackRef} className="h-[280svh] max-md:h-[240svh] relative">
+        {/*
+          The pager's two hero stops, read off the DOM like every other stop
+          (see SectionPager's measure()). Placed in CSS, as a share of the
+          track's travel (its height less one screen), so they need no JS
+          measuring and land the same raw progress on every screen.
+        */}
+        <span className="hero__stop" data-substep-title="" aria-hidden="true" />
+        <span
+          className="hero__stop"
+          data-substep-title="Details"
+          aria-hidden="true"
+          style={{ top: `calc(${PLATEAU_MID} * (100% - 100svh))` }}
+        />
         {/*
           Clipped sideways only. `overflow-hidden` also clipped the top edge,
           and on a short laptop the docking name crosses it on its way to the

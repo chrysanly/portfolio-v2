@@ -153,11 +153,29 @@
   white-space: nowrap;
   color: var(--color-ink);
   user-select: none;
+  overflow: hidden;
+  isolation: isolate;
+  --mx: 50%;
+  --my: 50%;
+  /* The release springs back past rest a touch; the rest eases as before. */
   transition:
-    transform 320ms var(--stack-ease),
+    transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1),
     border-color 320ms var(--stack-ease),
     box-shadow 320ms var(--stack-ease),
     background-color 320ms var(--stack-ease);
+}
+
+/* The spotlight: a soft accent glow under the content, placed by --mx/--my
+   from one rAF-throttled pointermove on the cloud. Mouse hover only. */
+.stack-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120px circle at var(--mx) var(--my), color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity 200ms var(--stack-ease);
 }
 
 .stack-pill__badge {
@@ -209,7 +227,13 @@
   color: var(--color-muted);
 }
 
-/* Pills rise in only after the visitor has done something: never on load. */
+/* Pills rise in once when the cloud first scrolls into view, and again after
+   a filter click. Hidden only once StackTools is watching ([data-watch]), so without
+   JS they are simply there. */
+.stack-cloud[data-watch]:not([data-seen]) .stack-pill {
+  opacity: 0;
+}
+
 .stack-cloud[data-animate] .stack-pill {
   animation: stack-pill-in 360ms var(--stack-ease) both;
   animation-delay: min(calc(var(--i) * 22ms), 400ms);
@@ -240,6 +264,14 @@
     transform: rotate(-8deg) scale(1.12);
   }
 
+  .stack-pill:hover::before {
+    opacity: 1;
+  }
+
+  :root[data-texture='off'] .stack-pill::before {
+    display: none;
+  }
+
   /* Texture off: flat, no lift, no glow. */
   :root[data-texture='off'] .stack-pill:hover {
     transform: none;
@@ -254,6 +286,17 @@
 
 :root[data-texture='off'] .stack-pill {
   background: var(--color-surface);
+}
+
+/* Press: in fast, out on the spring above. Never while the cloud is dragged. */
+.stack-pill:active {
+  transform: translateY(-1px) scale(0.97);
+  transition-duration: 120ms;
+  transition-timing-function: var(--stack-ease);
+}
+
+.stack-cloud[data-dragging] .stack-pill:active {
+  transform: none;
 }
 
 /* ---- View more: how many show first, by screen ---------------------------- */
@@ -611,6 +654,15 @@
     animation: none;
   }
 
+  .stack-cloud[data-watch]:not([data-seen]) .stack-pill {
+    opacity: 1;
+  }
+
+  .stack-pill::before {
+    display: none;
+  }
+
+  .stack-pill:active,
   .stack-pill:hover,
   .stack-pill:hover .stack-pill__badge,
   .stack-ghost[data-armed] i {

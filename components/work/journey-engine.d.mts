@@ -12,14 +12,15 @@ export interface JourneyChapter {
   learnedIsHtml: boolean;
   /** The line in his speech bubble at this stop, first person, from facts already in the stop. */
   say: string;
-  projects: { title: string; href: string }[];
+  /** What was built here; `confidential` marks NDA work on the desktop panel. */
+  projects: { title: string; href: string; confidential?: boolean }[];
   /** From the first project built here; absent when the stop has none. */
   sector?: string | null;
   /** That project's summary, one line. */
   short?: string;
   /** That project's "What I did" lines. */
   did?: string[];
-  /** That project's stack, first five. */
+  /** That project's stack. */
   tools?: string[];
 }
 
@@ -40,6 +41,15 @@ export interface JourneyOptions {
  * 1024 up, one stop at a time below it and in short landscape — and returns
  * the cleanup.
  */
+/** The year plate: "Nov 2025 – present" → "2025 – Present", a range → "2022 – 2025". */
+export function plateText(stop: Pick<JourneyChapter, 'period'>): string;
+
+/** The desktop panel's markup for stop `index`, every block inline, View more hidden until something is cut. */
+export function panelHTML(stop: JourneyChapter, index?: number): string;
+
+/** Shows the first `cap` "What I did" items and a "+N more" line; returns N. */
+export function capDid(list: Element | null, cap: number): number;
+
 export function mountJourney(
   host: HTMLElement,
   chapters: JourneyChapter[],

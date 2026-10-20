@@ -8,6 +8,8 @@ import { expect, test, type Page } from '@playwright/test';
 async function openStack(page: Page) {
   await page.addInitScript(() => localStorage.setItem('guide-seen', '1'));
   await page.goto('/');
+  // React hydrates after networkidle: a click before then is lost.
+  await page.locator('html[data-ready="true"]').waitFor();
   const section = page.locator('#stack');
   await section.scrollIntoViewIfNeeded();
   return section;
@@ -43,7 +45,9 @@ test('filtering by a group shows only that group, with logos', async ({ page }) 
 
   await test.step('Check no version numbers are shown', async () => {
     await realChip(page, /^Languages/).click();
-    await section.locator('.stack-more').click();
+    // Languages fits under the desktop limit, so View more only shows on smaller screens.
+    const more = section.locator('.stack-more');
+    if (await more.isVisible()) await more.click();
     await expect(section.locator('.stack-cloud')).not.toContainText(
       /Laravel 7|Angular 7|Ionic 5|Vue 3/,
     );
@@ -91,6 +95,9 @@ test('on a phone, dragging the cloud sideways opens the next tab', async ({
   });
 
   await test.step('Drag the cloud left past the release point', async () => {
+    // The page can reset its scroll shortly after load: settle, then measure.
+    await page.waitForTimeout(800);
+    await cloud.scrollIntoViewIfNeeded();
     const box = (await cloud.boundingBox())!;
     const y = box.y + 20;
     await page.mouse.move(box.x + box.width - 20, y);
@@ -117,5 +124,45 @@ test('arrow keys move focus across the filter chips', async ({ page, isMobile })
 
   await test.step('Check Languages has focus', async () => {
     await expect(realChip(page, /^Languages/)).toBeFocused();
+  });
+});
+
+test('the pills rise in on first view, and a soft spotlight follows the mouse', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'The spotlight is mouse only');
+  await page.addInitScript(() => localStorage.setItem('guide-seen', '1'));
+  await page.goto('/');
+  await page.locator('html[data-ready="true"]').waitFor();
+  const cloud = page.locator('#stack-cloud');
+
+  await test.step('Check the pills wait out of view', async () => {
+    await expect(cloud).toHaveAttribute('data-watch', '');
+    await expect(cloud).not.toHaveAttribute('data-seen', '');
+  });
+
+  await test.step('Scroll to the stack and see the pills rise in', async () => {
+    // Something resets the scroll shortly after load: scroll until it holds.
+    await expect
+      .poll(async () => {
+        await cloud.scrollIntoViewIfNeeded();
+        return cloud.getAttribute('data-seen');
+      })
+      .toBe('');
+    await expect(cloud.locator('.stack-pill').first()).toHaveCSS('opacity', '1');
+  });
+
+  await test.step('Move the mouse across a pill and check the glow follows it', async () => {
+    const pill = cloud.locator('.stack-pill').first();
+    const box = (await pill.boundingBox())!;
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    await page.mouse.move(box.x + 30, box.y + 12);
+    await expect
+      .poll(() => pill.evaluate((el) => el.style.getPropertyValue('--mx')))
+      .toBe('30px');
+    await expect
+      .poll(() => pill.evaluate((el) => getComputedStyle(el, '::before').opacity))
+      .toBe('1');
   });
 });

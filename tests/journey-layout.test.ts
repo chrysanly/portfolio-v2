@@ -103,6 +103,13 @@ test('the last stop lists the climb so far and offers Send a message', () => {
   assert.match(compact, /\$\{END_KIND\}<\/p><h3>\$\{END_TITLE\}<\/h3>/);
 });
 
+test('the closing stop speaks to people hiring internationally', () => {
+  assert.match(engine, /const END_KIND='The next stop',END_TITLE='Could be your team',END_SAY='Recruiters, hiring managers and founders, wherever you hire from: this is the path so far\. Tell me what your team needs built, and we can talk it through\.';/);
+  for (const old of [/Still climbing/, /Still moving forward/, /building my empire/, /better opportunities/]) {
+    assert.doesNotMatch(engine, old);
+  }
+});
+
 test('View more still opens the details modal', () => {
   assert.match(compact, /const more=e\.target\.closest\('button\[data-more\]'\);\s*if\(more\)\{options\.onMore\?\.\(Number\(more\.dataset\.more\),more\);return\}/);
 });

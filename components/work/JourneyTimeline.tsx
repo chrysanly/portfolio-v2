@@ -18,9 +18,11 @@ export type { JourneyChapter };
  *
  * Below 1024 wide, and in landscape no taller than 540, the engine draws
  * Sinag's one-stop-at-a-time stage instead: the ladder rail on the left and a
- * single card on the right, swapped as he climbs. Every card shows the
+ * single card on the right, swapped as he climbs. There each card shows the
  * headline facts and the first three things done; View more opens
- * JourneyStopModal with the rest. Only the page scrolls, at every size.
+ * JourneyStopModal with the rest. From 1024 up the panel shows everything
+ * inline (summary, every "What I did", tools, "What I took from it", Built
+ * here) and scrolls inside its column when it is taller than the stage.
  *
  * The scene is Bahaghari's design (side-on ladder), drawn in vector. It lives
  * in a shadow root (journey-engine.mjs), so its many generic class names

@@ -167,6 +167,9 @@ export function RouteVeil() {
         return;
       }
       if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      // A link that opens something in place (View CV's modal) keeps its href
+      // only for no-JS and modified clicks: no route loads, so no veil.
+      if (anchor.hasAttribute('data-no-veil')) return;
 
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin) return;

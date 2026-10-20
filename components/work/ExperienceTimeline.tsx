@@ -66,11 +66,11 @@ export async function ExperienceTimeline() {
       // Admin text is sanitised HTML; older rows and placeholders are plain.
       learnedIsHtml: !!learned && !PLACEHOLDER.test(learned) && learned.startsWith('<'),
       say: sayFor(stop),
-      projects: mine.map((p) => ({ title: p.title, href: `/work/${p.slug}` })),
+      projects: mine.map((p) => ({ title: p.title, href: `/work/${p.slug}`, confidential: p.confidential })),
       sector: lead?.sector ?? null,
       short: lead?.summary,
       did: lead?.contributions ?? [],
-      tools: lead?.stack.slice(0, 5) ?? [],
+      tools: lead?.stack ?? [],
     };
   });
 

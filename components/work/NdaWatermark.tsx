@@ -12,15 +12,14 @@
  * nowhere unmarked, which meant it was also dense enough to be the first thing
  * you saw, and it still did nothing to stop a reader from reading the numbers
  * on the dashboard underneath. The ribbon states the restriction once, in the
- * corner, and the blur on the image — see `.nda` in globals.css — is what
- * actually protects the contents. The band takes the selected accent,
- * deepened for contrast against its white label; `--color-nda` says why.
+ * corner. The band takes the selected accent, deepened for contrast against
+ * its white label; `--color-nda` says why. There is no blur: since 2026-10-20
+ * the owner blurs NDA files before upload (CLAUDE.md rule 3).
  *
  * Drawn here rather than burned into the file on upload, for two reasons. A
  * composited file can never be un-marked when a clearance finally arrives, and
  * a mark in CSS stays legible against a dark screenshot and a light one
- * without the backend having to know which it has. Same reason the blur is a
- * filter and not a second, pre-blurred derivative in the media library.
+ * without the backend having to know which it has.
  *
  * `aria-hidden`: three letters in a corner are a visual shorthand, and every
  * caller states the same fact in words where a screen reader will reach it —

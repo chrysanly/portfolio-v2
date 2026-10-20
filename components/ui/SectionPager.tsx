@@ -37,7 +37,8 @@ function maxScroll(): number {
  * how far the target is — which is the point of a Next/Previous control in
  * the first place, skipping the scroll rather than a slow version of it.
  */
-const JUMP_MS = 420;
+// Inside the site's 150–400ms motion budget; a whole section still reads at 380.
+const JUMP_MS = 380;
 
 /**
  * Which section is being read.
@@ -73,19 +74,19 @@ const JUMP_MS = 420;
  * real sections works exactly as it always did; Hero and Details are far up
  * the page by then and are never the nearest thing regardless.
  */
-function heroSubIndex(): number | null {
+function heroSubIndex(stops: Stop[]): number | null {
   if (!document.querySelector('.hero')) return null;
   const stage = document.documentElement.dataset.heroStage;
   if (stage === 'done' || stage === undefined) return null;
   /*
-   * One stop, not two. "Hero" and "Details" were separate because the ledger
-   * only existed part-way through a scroll-driven sequence; the gate plays
-   * that sequence before any scrolling, so both describe the same position —
-   * the top of the page. Keeping them split gave the pager a stop it could
-   * never make current and a jump that landed mid-sequence with the masthead
-   * clipped against the stage, which is what Chrys photographed.
+   * Two stops again since the gate went (2026-10-19): the reveal is played
+   * by scrolling, so "Hero" (the masthead alone) and "Details" (the read
+   * plateau, MastheadHero's `.hero__stop` markers) are different places.
    */
-  return 0;
+  const first = stops.findIndex((s) => s.label.startsWith('Hero'));
+  if (first === -1) return 0;
+  const details = stops[first + 1]?.label.endsWith('Details') ?? false;
+  return first + (stage === 'details' && details ? 1 : 0);
 }
 
 /*
@@ -144,7 +145,7 @@ function currentIndex(stops: Stop[]): number {
   const journeyIndex = journeySubIndex(stops);
   if (journeyIndex !== null) return journeyIndex;
 
-  const heroIndex = heroSubIndex();
+  const heroIndex = heroSubIndex(stops);
   if (heroIndex !== null) return heroIndex;
 
   const max = maxScroll();
