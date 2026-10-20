@@ -13,3 +13,5 @@ next-env.d.ts
 # Playwright
 /test-results/
 /playwright-report/
+# Scratch debug specs, never committed
+/e2e/zz-*.spec.ts
